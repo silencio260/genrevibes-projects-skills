@@ -56,9 +56,18 @@ Future<Either<Failure, Data>> getData(String id) async {
     return Left(ErrorHandler.handle(error).failure);
   }
 }
-```
+### Hive Storage
 
-### Image Caching
+**Critical Rule**: Use **Manual TypeAdapters** (not `@HiveType` generators).
+1. Avoid `hive_generator` and `build_runner`.
+2. Extends `TypeAdapter<T>` for each Hive model.
+3. Manually implement `read` and `write` with numbered fields.
+
+**Benefits**:
+- Faster builds (no codegen).
+- Clearer logic and more predictable serialization.
+- Less project noise (no `*.g.dart` files).
+
 
 Use `AppNetworkImage` or `CachedNetworkImage` for consistent image caching across all screens.
 

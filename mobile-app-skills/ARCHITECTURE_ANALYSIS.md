@@ -671,6 +671,22 @@ class TiktokVideoModel extends TikTokVideo {
 extension TiktokVideoExtension on TiktokVideoModel {
   TikTokVideo toDomain() => TikTokVideo(...);
 }
+
+### 9. Code Generation Policy
+
+**Critical Rule**: Avoid code generation (`build_runner`, `*_generator`) unless there is absolutely no other option (e.g., extremely complex frozen models or huge API surfaces where manual maintenance is impossible).
+
+**Rationale**:
+- Reducer project complexity and build times.
+- Eliminates "codegen debt" and brittle `.g.dart` dependencies.
+- Encourages deep understanding of the underlying patterns (e.g., manual Hive adapters).
+- Makes the codebase cleaner and more "standard" Dart.
+
+**Preferred Alternative**:
+- Use manual `TypeAdapter` for Hive.
+- Use manual `fromJson`/`toJson` for basic models.
+- Use manual `copyWith` and `Equatable` for simple states.
+
 ```
 
 ---

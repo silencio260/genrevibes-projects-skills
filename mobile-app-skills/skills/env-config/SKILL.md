@@ -124,3 +124,4 @@ Each `.run.xml` file uses `--dart-define-from-file` to load the appropriate env 
 - [ ] `AppEnv` class created to read env vars via `String.fromEnvironment`
 - [ ] All API keys filled in for dev environment
 - [ ] Test IDs used for ads in dev, real IDs in release
+- [ ] **AdMob App ID** added to `AndroidManifest.xml` and `Info.plist` (Mandatory for build to run)

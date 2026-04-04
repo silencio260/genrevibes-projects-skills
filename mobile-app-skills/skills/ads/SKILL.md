@@ -14,7 +14,9 @@ Ads are managed through the starter kit's `AdsBloc`. Supports Banner, Interstiti
 - Starter kit integrated
 - AdMob account + ad unit IDs configured
 - Ad IDs in env config (`AppEnv`): `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, `native_ad_id`
-- AdMob App ID configured in `AndroidManifest.xml` and `Info.plist`
+- **Mandatory**: AdMob App ID configured in `AndroidManifest.xml` and `Info.plist`. The app will crash on launch if this is missing.
+    - Android Test App ID: `ca-app-pub-3940256099942544~3347511713`
+    - iOS Test App ID: `ca-app-pub-3940256099942544~1458002511`
 
 ## Implementation
 

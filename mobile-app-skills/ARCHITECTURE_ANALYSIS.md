@@ -220,12 +220,11 @@ tiktok_video_downloader/
 ├── lib/
 │   ├── main.dart                    # App entry point
 │   ├── bloc_observer.dart           # Global BLoC observer
-│   ├── src/                         # Main source code
-│   │   ├── config/                  # App configuration
-│   │   ├── core/                    # Core/shared components
-│   │   ├── features/                # Feature modules
-│   │   ├── container_injector.dart  # DI container setup
-│   │   └── my_app.dart              # Root widget
+│   ├── config/                  # App configuration
+│   ├── core/                    # Core/shared components
+│   ├── features/                # Feature modules
+│   ├── container_injector.dart  # DI container setup
+│   └── my_app.dart              # Root widget
 │   └── starter_kit/                 # Reusable starter kit
 ├── android/                         # Android platform code
 ├── ios/                            # iOS platform code
@@ -239,7 +238,7 @@ tiktok_video_downloader/
 └── analysis_options.yaml           # Linting rules
 ```
 
-### Core Directory Structure (`lib/src/core/`)
+### Core Directory Structure (`lib/core/`)
 
 ```
 core/
@@ -272,7 +271,7 @@ core/
     └── custom_elevated_btn.dart
 ```
 
-### Config Directory (`lib/src/config/`)
+### Config Directory (`lib/config/`)
 
 ```
 config/
@@ -280,7 +279,7 @@ config/
 └── theme_manager.dart             # Theme configuration
 ```
 
-### Feature Directory Structure (`lib/src/features/`)
+### Feature Directory Structure (`lib/features/`)
 
 Each feature follows this structure:
 
@@ -686,6 +685,15 @@ extension TiktokVideoExtension on TiktokVideoModel {
 - Use manual `TypeAdapter` for Hive.
 - Use manual `fromJson`/`toJson` for basic models.
 - Use manual `copyWith` and `Equatable` for simple states.
+
+### 10. No `src/` Folder Policy
+
+**Critical Rule**: Do NOT use a `src/` folder inside `lib/`. All main source code components (`core/`, `features/`, `config/`, etc.) should reside directly under `lib/`.
+
+**Rationale**: 
+- Simplifies path navigation and import statements.
+- Avoids unnecessary nesting that doesn't add value in small-to-medium Flutter projects.
+- Better aligns with modern Flutter "Clean Architecture" feature-based organizations where `lib/` acts as the primary source container.
 
 ```
 

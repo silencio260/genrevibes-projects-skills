@@ -19,6 +19,7 @@ This skill defines the mandatory implementation pattern for achieving premium, e
 - Always wrap the top-level screen in an **`AnnotatedRegion<SystemUiOverlayStyle>`**.
 - This ensures the status bar and navigation bar are:
     - **Transparent**: `statusBarColor: Colors.transparent`, `systemNavigationBarColor: Colors.transparent`.
+    - **No Scrim**: Set `systemNavigationBarContrastEnforced: false` and `systemStatusBarContrastEnforced: false` to remove the automatic grey bar on Android 10+.
     - **Themed correctly**: Use `statusBarIconBrightness: Brightness.dark` for white backgrounds to ensure system icons (Time, Battery) are visible.
 
 ### 4. Scaffold Configuration

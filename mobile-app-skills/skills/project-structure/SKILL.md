@@ -8,6 +8,9 @@ This skill defines the preferred project structure for the Flutter application, 
 2. **Feature-Based Organization**: Group code by features under `lib/features/`, following Clean Architecture layers (presentation, domain, data).
 3. **Core components**: Shared utilities and base classes MUST be in `lib/core/`.
 4. **No Code Generation**: Avoid using `build_runner` or similar tools unless absolutely necessary. Prefer manual implementations (e.g., Hive adapters).
+5. **API vs Network Separation**: Always separate high-level business protocol from low-level network plumbing:
+    - `lib/core/api/`: Centralized endpoints (`api_endpoints.dart`) and response modeling (`api_response.dart`).
+    - `lib/core/network/`: Low-level infrastructure (Dio instances, Interceptors, Connectivity checks).
 
 ## Import Conventions
 - Prefer `package:note_ai/...` imports over relative imports when crossing feature boundaries.

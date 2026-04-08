@@ -60,11 +60,31 @@ class AppEnv {
       bool.fromEnvironment('development_mode', defaultValue: false);
   static const String firebaseApiKeyAndroid =
       String.fromEnvironment('firebase_api_key_android');
-  static const String bannerAdId =
-      String.fromEnvironment('banner_ad_id');
-  static const String interstitialAdId =
-      String.fromEnvironment('interstitial_ad_id');
+  static const String cloudFunctionsBaseUrl =
+      String.fromEnvironment('cloud_functions_base_url');
   // ... all other keys
+}
+```
+
+## Centralized API Protocol
+
+Every project MUST separate business-level endpoints from low-level network configuration:
+
+- **Business Layer** (`lib/core/api/`): Use `api_endpoints.dart` to centralize all paths and dynamic URL construction logic. Use `api_response.dart` for uniform response modeling.
+- **Infrastructure Layer** (`lib/core/network/`): Use for Dio interceptors, connectivity checkers, and low-level HTTP client setup.
+
+**Example `lib/core/api/api_endpoints.dart`**:
+```dart
+import '../config/app_env.dart';
+
+class ApiEndpoints {
+  static const String baseUrl = AppEnv.cloudFunctionsBaseUrl;
+  
+  static const String transcribe = '$baseUrl/transcribe';
+  static const String summarize = '$baseUrl/summarize';
+  
+  /// Helper for dynamic paths
+  static String recordingDetail(String id) => '$baseUrl/recordings/$id';
 }
 ```
 

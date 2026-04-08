@@ -165,6 +165,14 @@ MultiBlocProvider(
 );
 ```
 
+## API & Network with Starter Kit
+
+The Starter Kit manages its own internal network traffic for Ads, IAP, and Analytics. However, your app’s custom backend logic (Cloud Functions) MUST follow the centralized API pattern:
+
+- **APP Logic**: All custom backend calls MUST use `lib/core/api/api_endpoints.dart`.
+- **KIT Logic**: Use the `StarterKit` facade for all kit-provided features.
+- **Interceptors**: Common network headers (Auth tokens, Language) should be handled in `lib/core/network/` logic, but never hardcoded in the Starter Kit calls.
+
 ## Checklist
 
 - [ ] `starter_kit` added as path dependency in `pubspec.yaml`

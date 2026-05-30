@@ -43,12 +43,26 @@ Adding `.gitmodules` + VS Code settings fixes all three.
 
 ## VS Code settings (`.vscode/settings.json`)
 
+Full file content (merge the `git.*` keys into whatever else is already in there):
+
 ```json
-"git.detectSubmodules": true,
-"git.detectSubmodulesLimit": 20,
-"git.repositoryScanMaxDepth": 3,
-"git.autoRepositoryDetection": "subFolders"
+{
+  "dart.flutterSdkPath": ".fvm/versions/3.35.1",
+  "git.detectSubmodules": true,
+  "git.detectSubmodulesLimit": 20,
+  "git.repositoryScanMaxDepth": 3,
+  "git.autoRepositoryDetection": "subFolders"
+}
 ```
+
+Key meanings:
+
+| Key | Why |
+| --- | --- |
+| `git.detectSubmodules` | Turns on submodule recognition in the Source Control panel. |
+| `git.detectSubmodulesLimit` | Max number of submodules VS Code will scan. Default is 10; bumped to 20 to leave headroom. |
+| `git.repositoryScanMaxDepth` | Folder depth VS Code searches for nested git repos. Must be ≥ 2 because `packages/genrevibes_starter_kit` is two levels down. |
+| `git.autoRepositoryDetection` | `"subFolders"` makes VS Code surface nested repos as separate entries instead of only the workspace root. |
 
 Reload the window after editing: `Cmd+Shift+P` → "Developer: Reload Window".
 

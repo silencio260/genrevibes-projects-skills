@@ -81,6 +81,16 @@ void main() async {
 | **Feedback** | `StarterKit.sl<FeedbackRepository>()` | `skills/feedback/SKILL.md` |
 | **Push Notifications** | `StarterKit.sl<PushNotificationsRepository>()` | `skills/push-notifications/SKILL.md` |
 
+## Remote Config Template
+
+When the user asks for a "remote config temp", "remote config template", or Firebase Remote Config template, use the canonical template documented in `skills/remote-config/SKILL.md`:
+
+```text
+skills/remote-config/remote_config_template.json
+```
+
+This template is the starter Firebase Remote Config JSON for app ad timing, rewarded/interstitial/banner intervals, and app-open ad toggles.
+
 ## UI Templates
 
 ### Onboarding

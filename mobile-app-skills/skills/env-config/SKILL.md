@@ -47,6 +47,15 @@ project_root/
 | `posthog_api_key` | String | PostHog analytics API key |
 | `feed_back_nest_api_key` | String | Feedback Nest API key |
 
+## AdMob IDs
+
+AdMob uses two different ID types and both must be configured by the host app:
+
+- **AdMob App ID**: Native SDK identifier with `~` in the value. Put this in `android/app/src/main/AndroidManifest.xml` as `com.google.android.gms.ads.APPLICATION_ID` and in `ios/Runner/Info.plist` as `GADApplicationIdentifier`.
+- **Ad unit IDs**: Placement identifiers with `/` in the value. Put these in env keys such as `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, and `native_ad_id`.
+
+The starter kit ships a Google test AdMob App ID fallback so development builds do not crash before native config exists. Do not ship that fallback. Release builds must override it with the app's own AdMob App ID, and release env files must use this app's own production ad unit IDs.
+
 ## Reading Env Vars in Dart
 
 ```dart
@@ -144,4 +153,4 @@ Each `.run.xml` file uses `--dart-define-from-file` to load the appropriate env 
 - [ ] `AppEnv` class created to read env vars via `String.fromEnvironment`
 - [ ] All API keys filled in for dev environment
 - [ ] Test IDs used for ads in dev, real IDs in release
-- [ ] **AdMob App ID** added to `AndroidManifest.xml` and `Info.plist` (Mandatory for build to run)
+- [ ] **AdMob App ID** added to host `AndroidManifest.xml` and `Info.plist`, overriding the starter-kit fallback for release

@@ -91,6 +91,16 @@ skills/remote-config/remote_config_template.json
 
 This template is the starter Firebase Remote Config JSON for app ad timing, rewarded/interstitial/banner intervals, and app-open ad toggles.
 
+## AdMob Host Configuration
+
+The starter kit includes a Google test AdMob App ID in its Android manifest only as a safety fallback. Every host app must override that default before release:
+
+- Add this app's own AdMob App ID to `android/app/src/main/AndroidManifest.xml` as `com.google.android.gms.ads.APPLICATION_ID`.
+- Add this app's own AdMob App ID to `ios/Runner/Info.plist` as `GADApplicationIdentifier`.
+- Put this app's own banner/interstitial/app-open/rewarded/native ad unit IDs in env config or app-specific Remote Config.
+
+Do not confuse the App ID (`ca-app-pub-...~...`) with ad unit IDs (`ca-app-pub-.../...`). Do not ship the starter-kit Google sample IDs.
+
 ## UI Templates
 
 ### Onboarding
@@ -192,3 +202,4 @@ The Starter Kit manages its own internal network traffic for Ads, IAP, and Analy
 - [ ] Retention tracking started via `UserTargetingManager.startTracking()`
 - [ ] Env keys configured for all required services
 - [ ] Android/iOS platform configs set for native SDKs (Firebase, AdMob, OneSignal)
+- [ ] Host app overrides starter-kit AdMob defaults with its own AdMob App ID and production ad unit IDs for release

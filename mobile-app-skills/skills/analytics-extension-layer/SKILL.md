@@ -72,6 +72,29 @@ class AppAnalyticsService extends AnalyticsService {
 - **Use Null-Safety for Meta**: Optional parameters (like `latency_ms` or `total_tokens`) should be handled cleanly with logic like `if (val != null) 'key': val`.
 - **Inherit Standard Tracking**: By extending the base service, your app-specific service still logs default events like `ad_impression` and `iap_success` without any extra code.
 
+## Standard vs App-Specific Events
+
+Keep reusable starter-kit events in the kit and feature/business events in the app layer.
+
+Starter-kit / shared events:
+- `screen_view`
+- `app_open`
+- `retention_app_opened`
+- `retention_day_0_returned`, `retention_day_1_returned`, `retention_day_3_returned`, `retention_day_7_returned`, `retention_day_10_returned`, `retention_day_15_returned`, `retention_day_20_returned`, `retention_day_25_returned`, `retention_day_30_returned`
+- `retention_first_open` through `retention_fifth_open`
+- `retention_first_session` through `retention_fifth_session`
+- `ad_impression`, `ad_revenue`, `ad_click`
+
+App-layer feature events:
+- Feature usage such as `search_performed`, `drawer_opened`, `mini_app_open`
+- Developer/test events such as `ad_lifecycle`
+- Launcher-specific app-management events such as `app_install_event` and `installed_app_removed`
+
+Firebase automatic events that Mixpanel/PostHog do not track automatically should be handled deliberately:
+- Mirror `first_open` outside Firebase only once if the exact event name is required.
+- Do not try to emit `app_remove` from client code; the app cannot run after uninstall. Use Firebase automatic reporting or backend/push-provider uninstall detection.
+- Do not claim `notification_receive`, `in_app_purchase`, or subscription renewal events are tracked unless the actual push/IAP provider callbacks are wired.
+
 ## Interactions
 
 - **Blockers**: Avoid using this layer for blocking operations. Logging should always be fire-and-forget.

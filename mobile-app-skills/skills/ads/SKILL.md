@@ -1,13 +1,13 @@
 ---
 name: Ads
-description: Banner, interstitial, rewarded, app open, and native ads via AdMob with starter kit
+description: Banner, interstitial, rewarded, app open, and native ads via AdMob with starter kit, including ad revenue and ad click tracking
 ---
 
 # Ads
 
 ## Overview
 
-Ads are managed through the starter kit's `AdsBloc`. Supports Banner, Interstitial, Rewarded, App Open, and Native ad types via AdMob. Ad revenue is automatically tracked to Firebase Analytics and PostHog.
+Ads are managed through the starter kit's `AdsBloc`. Supports Banner, Interstitial, Rewarded, App Open, and Native ad types via AdMob. Ad revenue is automatically tracked to Firebase Analytics and Mixpanel/PostHog, and ad clicks must be tracked as the exact `ad_click` event.
 
 ## Prerequisites
 
@@ -109,10 +109,35 @@ if (adsEnabled) {
 ### Disable Ads for Subscribers
 The `starter_kit` handles this automatically if `IapBloc` and `AdsBloc` are correctly configured. When the `IapState` becomes `isActive`, the `AdsBloc` state is updated to `isEnabled: false`.
 
+## Analytics Contract
+
+Ads must emit these standard events:
+
+| Event | Destination | Trigger |
+|---|---|---|
+| `ad_impression` | Firebase | AdMob `onPaidEvent` routed through `FirebaseAnalytics.logAdImpression`. |
+| `ad_revenue` | Mixpanel/PostHog | Same AdMob `onPaidEvent` routed as a custom revenue event. |
+| `ad_click` | Firebase + Mixpanel/PostHog | AdMob `onAdClicked` for banner/native and `FullScreenContentCallback.onAdClicked` for interstitial/rewarded/app-open. |
+| `ad_lifecycle` | Firebase + Mixpanel/PostHog | Dev/test lifecycle events such as load/show success/failure when the host app exposes a developer ads test screen. |
+
+Required `ad_click` params:
+
+```dart
+{'ad_type': 'banner' | 'native' | 'interstitial' | 'rewarded' | 'app_open'}
+```
+
+Implementation rules:
+
+- `AdsRepository` should expose click listener/recording methods so all ad surfaces use one path.
+- Banner/native widgets should call `recordAdClick('banner')` or `recordAdClick('native')` from `onAdClicked`.
+- Interstitial, rewarded, and app-open ads should call the click listener from `FullScreenContentCallback.onAdClicked`.
+- Keep `ad_lifecycle` separate from `ad_click`; lifecycle is useful for developer testing, but dashboards often need the exact `ad_click` event name.
+- Test ads can fire callbacks, but normal Firebase/AdMob revenue dashboards may not show test revenue like production. Verify with Firebase DebugView and Mixpanel live events.
+
 ## Interaction Map
 
 - **IAP** → Subscribers see no ads
-- **Analytics** → Ad revenue auto-tracked (Firebase `ad_impression` + PostHog `ad_revenue`)
+- **Analytics** → Ad revenue auto-tracked (Firebase `ad_impression` + Mixpanel/PostHog `ad_revenue`) and ad clicks tracked as `ad_click`
 - **Tracking** → Adjust ad frequency by engagement level
 - **Content Locking** → Show rewarded ads to unlock content
 
@@ -126,3 +151,6 @@ The `starter_kit` handles this automatically if `IapBloc` and `AdsBloc` are corr
 - [ ] Rewarded ads offered for content unlock
 - [ ] Banner ads placed in layouts
 - [ ] Ads disabled for subscribers
+- [ ] `ad_impression` verified in Firebase DebugView after paid callbacks
+- [ ] `ad_revenue` verified in Mixpanel/PostHog live events if configured
+- [ ] `ad_click` verified for each ad type that can be clicked

@@ -47,6 +47,9 @@ void main() async {
 
   await StarterKit.initialize(
     supportEmail: 'support@yourapp.com',
+    analyticsUserId: installId,
+    mixpanelToken: AppEnv.mixpanelToken,
+    mixpanelDistinctId: installId,
     // Optional overrides:
     // feedbackNestApiKey: 'YOUR_KEY',
     // adsDataSource: MyCustomAdsDataSource(),
@@ -57,14 +60,20 @@ void main() async {
     // iapRepository: MyCustomIapRepository(),
   );
 
-  // Start retention tracking
-  final analytics = StarterKit.sl<AnalyticsService>();
-  await UserTargetingManager.startTracking(analytics);
-
   Bloc.observer = MyBlocObserver();
   runApp(const MyApp());
 }
 ```
+
+`StarterKit.initialize` owns startup analytics by default:
+
+- Initializes Mixpanel before startup events when `mixpanelToken` and `mixpanelDistinctId` are supplied.
+- Sets the analytics user id when `analyticsUserId` is supplied.
+- Logs `app_open`.
+- Calls `RetentionTracker.trackAppOpen(...)`, including D0 and first-five open/session milestones.
+- Mirrors Firebase automatic `first_open` to Mixpanel once.
+
+Do not add separate manual calls for `StarterKit.analytics.setUserId`, `AppAnalytics.appOpen`, `StarterKit.retentionTracker.trackAppOpen`, or `mixpanel.capture('first_open')` unless `autoTrackAppOpen: false` is explicitly used.
 
 ## Available Features
 
@@ -199,7 +208,7 @@ The Starter Kit manages its own internal network traffic for Ads, IAP, and Analy
 - [ ] `StarterKit.initialize()` called in `main.dart` before `runApp`
 - [ ] Firebase initialized before StarterKit
 - [ ] Starter kit blocs provided in `MultiBlocProvider`
-- [ ] Retention tracking started via `UserTargetingManager.startTracking()`
+- [ ] Startup analytics configured through `StarterKit.initialize` (`analyticsUserId`, `mixpanelToken`, `mixpanelDistinctId` when needed)
 - [ ] Env keys configured for all required services
 - [ ] Android/iOS platform configs set for native SDKs (Firebase, AdMob, OneSignal)
 - [ ] Host app overrides starter-kit AdMob defaults with its own AdMob App ID and production ad unit IDs for release

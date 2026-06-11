@@ -1,18 +1,18 @@
 ---
 name: Analytics
-description: Firebase Analytics, PostHog, Crashlytics, and unified event logging via starter kit
+description: Firebase Analytics, Mixpanel/PostHog, Crashlytics, automatic Firebase event mirrors, and unified event logging via starter kit
 ---
 
 # Analytics
 
 ## Overview
 
-Analytics provides unified event logging to Firebase Analytics and PostHog, plus Crashlytics for crash reporting. The starter kit handles all wiring — ad revenue is automatically tracked.
+Analytics provides unified event logging to Firebase Analytics and Mixpanel/PostHog, plus Crashlytics for crash reporting. The starter kit handles shared wiring for app events, retention, ad revenue, and ad clicks.
 
 ## Prerequisites
 
 - Starter kit integrated
-- `posthog_api_key` in env config
+- Mixpanel token or PostHog key in env config, depending on the app
 - Firebase project configured
 
 ## Firebase dependencies must be direct (version-locked to the kit)
@@ -50,16 +50,58 @@ StarterKit.analyticsBloc.add(AnalyticsLogEvent(
 StarterKit.analyticsBloc.add(AnalyticsLogRetention(name: 'app_opened'));
 ```
 
-### PostHog
+### Mixpanel / PostHog
 
 ```dart
+StarterKit.mixpanel?.capture(eventName: 'video_shared', properties: {'platform': 'tiktok'});
 StarterKit.postHog?.capture(eventName: 'video_shared', properties: {'platform': 'tiktok'});
 StarterKit.postHog?.identify(userId: 'user_123', userProperties: {'plan': 'premium'});
 ```
 
 ### Ad Revenue (Auto-Wired)
 
-No extra code needed — when `AdsBloc` detects a paid event, it automatically logs to Firebase (`ad_impression`) and PostHog (`ad_revenue`).
+No extra code needed after ads are initialized correctly. AdMob paid callbacks must flow into the starter kit `AdsRepository` paid-event listener.
+
+- Firebase receives ad revenue through `FirebaseAnalytics.logAdImpression`, so the Firebase event name is `ad_impression`.
+- Mixpanel receives the same paid callback as `ad_revenue`.
+- Test ads may not populate normal Firebase/AdMob revenue dashboards like production ads; use Firebase DebugView and Mixpanel live events while developing.
+
+### Ad Clicks (Auto-Wired)
+
+Ad click callbacks must emit the exact `ad_click` event to Firebase and Mixpanel/PostHog with:
+
+```dart
+{'ad_type': 'banner' | 'native' | 'interstitial' | 'rewarded' | 'app_open'}
+```
+
+Banner/native widgets should call `AdsRepository.recordAdClick(...)` from `onAdClicked`. Full-screen ads should call the repository click listener from `FullScreenContentCallback.onAdClicked`.
+
+## Standard Event Contract
+
+When a user asks to add "the standard Firebase/Mixpanel events" or refers to the Firebase dashboard event list, keep this contract:
+
+| Event | Firebase | Mixpanel/PostHog | Implementation rule |
+|---|---|---|---|
+| `screen_view` | Use `logScreenView` | Mirror as `screen_view` | Route observer or explicit screen logger. |
+| `app_open` | Custom app event | Custom app event | Log on every launch after analytics init. |
+| `first_open` | Firebase automatic | Mirror once if needed | Do not fake duplicate Firebase automatic event; mirror to Mixpanel/PostHog on first retained open. |
+| `session_start` | Firebase automatic | Optional custom mirror | Prefer app-specific `retention_session_started` unless exact mirror is requested. |
+| `user_engagement` | Firebase automatic | Optional custom mirror | Usually leave Firebase-only unless product analytics needs a custom engagement event. |
+| `app_remove` | Firebase automatic uninstall signal | Not client-side trackable after uninstall | Cannot be emitted by app code after uninstall; Mixpanel requires backend/push-provider uninstall detection. |
+| `ad_impression` | `logAdImpression` | Usually `ad_revenue` | Firebase event name is `ad_impression`; Mixpanel revenue event is `ad_revenue`. |
+| `ad_revenue` | Not the Firebase event name | Custom Mixpanel/PostHog event | Fired from AdMob `onPaidEvent`. |
+| `ad_click` | Custom event | Custom event | Fired from AdMob click callbacks. |
+| `notification_receive` | Firebase/FCM automatic only if FCM is integrated | Custom mirror if implemented | Do not claim this exists unless push notification handling is wired. |
+| `in_app_purchase` / subscription renewals | Provider/Firebase integration dependent | Custom mirror if IAP provider wired | Do not claim this exists without real IAP purchase/renewal callbacks. |
+
+For launcher apps that observe other apps being installed or removed, track privacy-safe app-management events without package names:
+
+```dart
+app_install_event: {event_type: 'added' | 'removed' | 'updated', source: 'package_broadcast'}
+installed_app_removed: {source: 'package_broadcast'}
+```
+
+These are not the same as Firebase's automatic `app_remove`, which means this app itself was removed.
 
 ## ProGuard / R8 (Android)
 
@@ -91,7 +133,7 @@ Firebase Analytics is built for production telemetry at scale, so on-device it *
 | Scope | Only debug-flagged devices | All users, aggregated |
 | Use for | Confirming events fire during dev | Real product analytics |
 
-> Mixpanel works the same way conceptually, but its **Events / Activity feed is already near-real-time** per distinct ID — no debug flag needed. The bigger Mixpanel gotcha is the `MIXPANEL_TOKEN` (see env-config): with no token the SDK is a silent no-op and *nothing* logs, debug or not. Firebase needs no token — it authenticates via `google-services.json` / `firebase_options.dart`.
+> Mixpanel works the same way conceptually, but its **Events / Activity feed is already near-real-time** per distinct ID — no debug flag needed. The bigger Mixpanel gotcha is the `mixpanel_token` / `MIXPANEL_TOKEN` env value: with no token the SDK is a silent no-op and nothing logs, debug or not. Firebase needs no token — it authenticates via `google-services.json` / `firebase_options.dart`.
 
 ### Enable Firebase DebugView
 
@@ -129,6 +171,7 @@ For a coarser real-time check that needs no setup, **Analytics → Realtime** sh
 - [ ] `firebase_analytics` (+ `firebase_core`/`firebase_crashlytics`) are **direct** deps, version-aligned to the kit (not relied on transitively)
 - [ ] `AnalyticsBloc` provided in widget tree
 - [ ] Key user actions logged as events
-- [ ] PostHog wrapper initialized (if using)
+- [ ] Mixpanel token/distinct id supplied to `StarterKit.initialize` before startup events if those events must appear in Mixpanel
+- [ ] Firebase automatic events that Mixpanel does not track by itself are either intentionally Firebase-only or explicitly mirrored
 - [ ] Events verified live in Firebase **DebugView** (not the delayed standard reports)
 - [ ] Crashlytics receiving crash reports

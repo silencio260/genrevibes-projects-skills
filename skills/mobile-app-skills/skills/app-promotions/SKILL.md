@@ -45,6 +45,38 @@ Collect or infer:
 
 If dimensions or store policy compliance matter, verify current official Google Play, Android, Apple, or OneSignal documentation before final export because store requirements can change.
 
+## Kept-Asset Style Study
+
+Before generating new assets, inspect the user's existing promotional asset folder when one exists. Surviving files are stronger evidence than old chat memory.
+
+Required pass:
+
+1. List image files and contact sheets under the requested output folder, especially files in `finals/`, `play-store-ready/`, `1080x1920/`, `1052x592/`, and named draft folders.
+2. Open representative contact sheets and final images with the available image viewing tool before writing prompts.
+3. Treat files the user kept as approved or partially approved style direction. Treat files the user deleted as rejection signal only after confirming they are actually absent.
+4. Record the style evidence in `prompts/asset-direction.md`: kept folders, visual traits to preserve, rejected traits to avoid, and which files were used as references.
+5. Generate new prompts from the kept-file style, not from generic assumptions.
+
+When kept files resemble the current promotional asset examples, transfer the **style language and process** to the current project instead of copying launcher-specific subject matter:
+
+- Use glossy full-image promotional renders with a complete app-relevant hero subject, usually `1024x1024` concepts before final export crops.
+- Use neon or premium gradient studio lighting when it fits the app, especially red/blue/purple/cyan/orange glow, reflective depth, and high-contrast hero staging.
+- Use frosted/glass surfaces, rounded pictogram-style UI elements, layered screens, floating feature cards, and depth-based compositions when they help explain the app.
+- Use simple pictogram versions with clear symbolic icons for the app domain, avoiding blank placeholder boxes and unreadable generic UI.
+- Generate many variations in a contact sheet before selecting finals.
+- Add a unique twist based on the project profile, feature set, and audience so every app does not look like a launcher reskin.
+
+Adapt the style to the detected app profile:
+
+- Launcher apps can use phone home screens, app grids, widgets, docks, themes, home symbols, wallpaper stacks, and customization studio views.
+- AI/chat apps should translate the style into glowing chat surfaces, prompt cards, generated image previews, assistant/persona tiles, and history galleries.
+- Utility apps should translate the style into core task/result screens, before/after panels, scan/analyze cards, dashboards, and trust-oriented feature symbols.
+- Ecommerce/content apps should translate the style into product/content cards, browse/detail flows, saved items, recommendations, and checkout or profile surfaces.
+- Productivity apps should translate the style into calendars, tasks, dashboards, automation cards, reports, and collaboration surfaces.
+- Games should translate the style into gameplay scenes, characters/items, rewards, modes, progression, and dynamic action compositions.
+
+Do not ignore local kept files. If the folder contains images, the skill must inspect and summarize them before creating or revising prompt recipes.
+
 ## App-Type Detection
 
 Before generating assets, infer the app profile from the user's brief, screenshots, package name, UI folders, store references, existing assets, and feature list. If multiple profiles fit, choose the closest primary profile and note secondary influences in `prompts/asset-direction.md`.

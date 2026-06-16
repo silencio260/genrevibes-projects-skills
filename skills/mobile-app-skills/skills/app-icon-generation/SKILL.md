@@ -61,6 +61,31 @@ Before prompting:
 
 Ask only when the category or target style cannot be reasonably inferred.
 
+When a project has an `app promotional assets/` folder, inspect the surviving reference families before generating:
+
+- `generated-raw-app-screenshots/`
+- `individual-ai-promo-mockups/`
+- `individual-ai-promo-mockups/v2-play-reference-style/`
+- `theme-showcase/ios-launcher-os-style/`
+- `theme-showcase/minimalistic-themes/`
+- `v3-ai-generated/`
+- any kept `app store screenshots/` campaign folders
+
+Treat files that are still present as approved or at least informative reference material. Treat folders or variants that were removed by the user as rejected direction unless the user says otherwise.
+
+## Reference Families
+
+If the current project contains the retained Smart Launcher asset families, use them as concrete style references:
+
+- `generated-raw-app-screenshots`: true raw in-app screens, no frames, no promo copy, full-screen UI truth.
+- `individual-ai-promo-mockups/v2-play-reference-style`: dark premium launcher cards, orange accent glow, large vertical phone, short readable copy, high-contrast ASO composition.
+- `v3-ai-generated`: brighter Play-style ASO, white/light backgrounds, multiple phones, bold headlines, feature-pill layouts.
+- `theme-showcase/ios-launcher-os-style`: iOS-launcher-inspired visual language, frosted widgets, glass dock, rounded icon grids.
+- `theme-showcase/minimalistic-themes`: sparse compositions, theme-led variation packs, black/white/paper-light/focus-list/soft-grid style families.
+- `app store screenshots/test-dark-aura`: campaign-level experimental promo direction that should be inspected before starting a new dark-style branch.
+
+Do not collapse these into one average style. Pick the closest reference family for the current ask and name it in the working notes before generating.
+
 ## Design Rules
 
 Preferred default:
@@ -70,6 +95,14 @@ Preferred default:
 - one strong subject large in frame
 - readable at small size
 - high contrast and clean silhouette
+
+Keep the image simple, but not empty:
+
+- one hero object or surface
+- a few meaningful UI cues
+- enough detail to feel like a real app image
+- not a flat logo-only mark
+- not a busy full promo poster
 
 Good subjects:
 
@@ -102,6 +135,7 @@ Use generic pictograms only. Avoid:
 - recognizable brand marks
 - readable app names
 - competitor identities
+- generic colored placeholder squares where app icons should be
 
 PNG only unless the user explicitly asks for source/vector files.
 
@@ -116,6 +150,7 @@ Avoid these failure modes:
 - fake readable text inside the icon
 - recognizable third-party brand logos
 - repeated near-duplicate compositions presented as distinct concepts
+- averaging together the dark premium, bright ASO, iOS theme, and minimal theme families until the result loses character
 
 If the user says a direction is wrong, encode the rejection into the next prompts before regenerating.
 
@@ -140,6 +175,17 @@ Every concept prompt should share these constraints:
 - no copyrighted app icons
 - strong central subject
 - clean lighting and readable silhouette
+- simple but not empty
+- a real image, not a flat mark
+
+Before generating the concept set, write a short working direction that names:
+
+- chosen reference family
+- app category
+- approved patterns copied from surviving assets
+- rejected patterns from deleted or explicitly disliked outputs
+
+Use that direction to keep the concept set stylistically coherent.
 
 When a launcher/home-screen concept is involved, explicitly require:
 
@@ -169,6 +215,15 @@ Adapt the subject mix to the app category. For example:
 - `utility`: single device + tool dashboard, one key result card, one control panel
 - `ai-chat`: one hero chat surface, assistant cards, prompt tiles, gallery/history card
 
+When working on launcher apps, bias the set using the retained launcher reference families:
+
+- dark premium branch: closer to `v2-play-reference-style`
+- bright ASO branch: closer to `v3-ai-generated`
+- iOS launcher branch: closer to `theme-showcase/ios-launcher-os-style`
+- minimal branch: closer to `theme-showcase/minimalistic-themes`
+
+Do not mix all four branches into every concept. Pick one branch per concept or per sub-batch.
+
 ## Quality Gate
 
 Before delivery:
@@ -183,6 +238,8 @@ Before delivery:
    - include real brand marks
    - include garbled visible text
    - feel too similar to another concept in the same batch
+   - ignore the chosen surviving reference family
+   - replace mini app pictograms with generic colored boxes
 
 Deliver only the curated final set.
 

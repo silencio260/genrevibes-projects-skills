@@ -77,6 +77,52 @@ Adapt the style to the detected app profile:
 
 Do not ignore local kept files. If the folder contains images, the skill must inspect and summarize them before creating or revising prompt recipes.
 
+## Named Opt-In Style Presets
+
+Use named presets only when the user explicitly asks for the preset by name, asks for a very close visual match, or provides the preset references as the requested style direction. Do not apply these presets to normal promotional assets by default.
+
+### Noir Glass Launcher
+
+Aliases: `black and white aura`, `dark aura setup`, `dark aura vibes`, `noir glass`, `monochrome glass launcher`, `similar to the dark/black-white launcher mockups`.
+
+Reference files:
+
+- `references/noir-glass-launcher/noir-glass-launcher-neon.png`
+- `references/noir-glass-launcher/noir-glass-launcher-mono-dark.png`
+- `references/noir-glass-launcher/noir-glass-launcher-clean-light.png`
+
+Trigger this preset only when:
+
+- The user asks for `Noir Glass Launcher` or one of its aliases.
+- The user asks to generate/regenerate a mockup in the same style as the saved Noir Glass Launcher references.
+- The user explicitly points to the three saved examples or equivalent black/white launcher mockups as the desired style.
+
+Do not trigger this preset when:
+
+- The user merely says `dark`, `premium`, `black`, `white`, or `clean` without asking for this specific style family.
+- The user asks for raw screenshots, normal app interface captures, icons, notification icons, or unrelated app-store assets.
+- The target app profile is not a launcher unless the user explicitly says to adapt this visual language to another app type.
+
+Visual language:
+
+- Premium launcher promo mockups with a strong phone hero, feature cards, glass panels, and large editorial headline copy.
+- Black, white, graphite, charcoal, and soft gray dominate the image. Use restrained cyan, blue, purple, or ember accents only for UI affordances, icon highlights, or a variant-specific glow.
+- Background options include deep black studio space, monochrome smoky texture, black/white gradient depth, or clean light-gray store layout with a bold graphite swoosh.
+- Use frosted glass panels, thin rim lighting, soft shadows, rounded feature chips, and clear phone-screen UI.
+- Keep the launcher interface product-truthful: home screen, clock/weather widgets, event or steps widgets, smart search, dock, folders, themes, and app organization.
+
+Identity and copy rules:
+
+- Keep this preset brand-safe by default: no app name, app logo, company name, developer name, platform logo, competitor mark, or trademarked service icon in the generated image.
+- Replace removed identity areas with feature-led content such as `Personal Setup`, `Dark Aura Setup`, `Built around your style`, `Personalize every swipe`, or other generic benefit copy.
+- Use exact short copy when possible and inspect outputs for garbled text before delivery.
+
+Variant names:
+
+- `Noir Glass Neon`: deep black background, glass cards, subtle cyan/blue/purple/ember accents.
+- `Noir Glass Mono`: black-and-white background, grayscale phone wallpaper, minimal colored UI accents.
+- `Noir Glass Clean`: light-gray/white store layout with graphite panels and black glass feature elements.
+
 ## App-Type Detection
 
 Before generating assets, infer the app profile from the user's brief, screenshots, package name, UI folders, store references, existing assets, and feature list. If multiple profiles fit, choose the closest primary profile and note secondary influences in `prompts/asset-direction.md`.

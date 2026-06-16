@@ -13,6 +13,24 @@ Branded assets are opt-in. By default, generated images must use feature-led gen
 
 If the user specifically wants **app icon concepts** rather than broader promotional campaigns, use the dedicated **App Icon Generation** skill. Keep this skill focused on screenshots, promo screenshots, feature graphics, social assets, and implementation of already-chosen icon outputs.
 
+## Named Style Presets
+
+When the user wants a specific mockup or promotional asset style, use these exact preset names so they can be requested directly:
+
+- `dark-premium-launcher`
+  - Source family: `individual-ai-promo-mockups/v2-play-reference-style`
+  - Visual language: black or near-black backgrounds, orange accent glow, large vertical phones, bold high-contrast headlines, premium launcher-ASO feel.
+
+- `bright-play-aso`
+  - Source family: `v3-ai-generated`
+  - Visual language: brighter white or pastel Play-style layouts, multiple phones, bold marketing headlines, colorful feature pills, cleaner retail-store energy.
+
+- `minimal-theme-showcase`
+  - Source family: `theme-showcase/minimalistic-themes`
+  - Visual language: sparse UI, theme-led comparisons, restrained composition, black/white/paper-light/focus-list style families, less marketing noise.
+
+If the user does not name a preset, infer the closest one from the kept references and record the chosen preset in `prompts/asset-direction.md`.
+
 ## Default Output Location
 
 Write generated assets to an `app promotional assets/` folder at the workspace root unless the user gives another destination. If the user names a destination, use that exact destination. Use campaign subfolders to keep outputs easy to compare:
@@ -65,6 +83,8 @@ When kept files resemble the current promotional asset examples, transfer the **
 - Use simple pictogram versions with clear symbolic icons for the app domain, avoiding blank placeholder boxes and unreadable generic UI.
 - Generate many variations in a contact sheet before selecting finals.
 - Add a unique twist based on the project profile, feature set, and audience so every app does not look like a launcher reskin.
+
+Prefer the named style preset vocabulary above when writing prompts, manifests, filenames, or user-facing summaries.
 
 Adapt the style to the detected app profile:
 

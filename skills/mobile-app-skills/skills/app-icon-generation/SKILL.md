@@ -86,6 +86,24 @@ If the current project contains the retained Smart Launcher asset families, use 
 
 Do not collapse these into one average style. Pick the closest reference family for the current ask and name it in the working notes before generating.
 
+## Named Style Presets
+
+Use these exact preset names so the user can request them directly:
+
+- `dark-premium-launcher`
+  - Source family: `individual-ai-promo-mockups/v2-play-reference-style`
+  - Best for: black/orange premium launcher promos, moody phone renders, privacy/security/tooling concepts.
+
+- `bright-play-aso`
+  - Source family: `v3-ai-generated`
+  - Best for: brighter Play-style promotional images, multi-phone compositions, colorful ASO-style icon surfaces.
+
+- `minimal-theme-showcase`
+  - Source family: `theme-showcase/minimalistic-themes`
+  - Best for: sparse compositions, cleaner icon surfaces, monochrome or paper-light branches, theme-led variation packs.
+
+If the user names one of these presets, follow it exactly. If they do not, infer the closest preset from the retained references and record it before generating.
+
 ## Design Rules
 
 Preferred default:
@@ -181,6 +199,7 @@ Every concept prompt should share these constraints:
 Before generating the concept set, write a short working direction that names:
 
 - chosen reference family
+- chosen style preset
 - app category
 - approved patterns copied from surviving assets
 - rejected patterns from deleted or explicitly disliked outputs
@@ -217,12 +236,12 @@ Adapt the subject mix to the app category. For example:
 
 When working on launcher apps, bias the set using the retained launcher reference families:
 
-- dark premium branch: closer to `v2-play-reference-style`
-- bright ASO branch: closer to `v3-ai-generated`
-- iOS launcher branch: closer to `theme-showcase/ios-launcher-os-style`
-- minimal branch: closer to `theme-showcase/minimalistic-themes`
+- `dark-premium-launcher`: closer to `v2-play-reference-style`
+- `bright-play-aso`: closer to `v3-ai-generated`
+- `minimal-theme-showcase`: closer to `theme-showcase/minimalistic-themes`
+- custom iOS-launcher branch: closer to `theme-showcase/ios-launcher-os-style` when the user explicitly asks for iOS-launcher treatment
 
-Do not mix all four branches into every concept. Pick one branch per concept or per sub-batch.
+Do not mix all presets into every concept. Pick one preset per concept set or clearly split sub-batches by preset.
 
 ## Quality Gate
 

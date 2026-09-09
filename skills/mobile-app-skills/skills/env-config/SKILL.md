@@ -46,6 +46,44 @@ project_root/
 | `revenue_cat_api_key_android` | String | RevenueCat API key for Android |
 | `posthog_api_key` | String | PostHog analytics API key |
 | `feed_back_nest_api_key` | String | Feedback Nest API key |
+| `disabled_firebase_analytics_in_debug_mode` | bool | Keeps development traffic out of Firebase Analytics. Optional, defaults to `false` |
+
+## Firebase Analytics Collection
+
+Analytics is a core function of an application, not a consent-gated extra, so
+it collects by default in every build and every environment. There is exactly
+one way to turn it off:
+
+```json
+{ "development_mode": true, "disabled_firebase_analytics_in_debug_mode": true }
+```
+
+Both conditions are required. A release build ignores the flag entirely, so it
+cannot be shipped to production by accident.
+
+**Firebase persists this setting on the device.** `setAnalyticsCollectionEnabled(false)`
+is written to `com.google.android.gms.measurement.prefs.xml` as
+`measurement_enabled_from_api` and honoured on every later launch, including by
+builds that never call it. It survives reinstall-in-place and it survives
+deleting the code that set it. A single build that disabled collection will keep
+every later build dark until something explicitly re-enables it, and the symptom
+is silent: the sink initializes, reports healthy, accepts every event, and
+Firebase drops them all with `Event not sent since app measurement is disabled`.
+
+Because of that, collection state is **asserted on every launch, never assumed**:
+
+- `AnalyticsPipeline` pushes its consent state onto every sink after
+  initialization, so a stale on-disk `false` is corrected at startup.
+- `FirebaseAnalyticsSink`'s `collectionEnabled` is a ceiling, not a switch. The
+  pipeline may always turn collection off; it may only turn it on if
+  configuration permits.
+
+To confirm on a device:
+
+```
+adb shell setprop log.tag.FA VERBOSE
+adb logcat -s FA | grep -i "measurement enabled\|measurement disabled"
+```
 
 ## AdMob IDs
 
@@ -138,7 +176,7 @@ Each `.run.xml` file uses `--dart-define-from-file` to load the appropriate env 
 - **Ads** → reads `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, `native_ad_id`
 - **Push Notifications** → reads `one_signal_app_id`
 - **IAP** → reads `revenue_cat_api_key_android`
-- **Analytics** → reads `posthog_api_key`
+- **Analytics** → reads `posthog_api_key`, `disabled_firebase_analytics_in_debug_mode`
 - **Feedback** → reads `feed_back_nest_api_key`
 - **Firebase** → reads `firebase_api_key_android`, `firebase_api_key_ios`
 - **Content Locking / Paywall** → reads `founders_version`, `special_version_mode`

@@ -147,7 +147,8 @@ service cloud.firestore {
 The starter kit manages:
 - **Firebase Analytics** → `StarterKit.analyticsBloc`
 - **Firebase Crashlytics** → Automatic crash reporting
-- **Firebase Remote Config** → `StarterKit.sl<RemoteConfigRepository>()`
+- **Firebase Remote Config** → `sl<RemoteConfigCoordinator>()`. `initialize()`
+  does not fetch; see the `remote-config` skill before wiring it.
 - **Firebase Auth** → `StarterKit.sl<AuthRepository>()` (if provided)
 
 Your app manages:

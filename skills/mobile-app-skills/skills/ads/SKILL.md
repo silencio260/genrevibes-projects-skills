@@ -31,21 +31,21 @@ account is suspended, real units serve nothing, so a project that relied on
 sample units "are not associated with your AdMob account", so they fill
 regardless of account standing.
 
-**Dart** — swap units at the environment boundary, so placements, policy, and
-call sites are identical to production:
+**Dart** — test ads follow `DeveloperAccessController`, which grants every
+development build (and, in store builds, listed developer phones or the
+passcode — see the **developer-access** skill). The environment always carries
+the app's real units; the switch happens at runtime, because a developer device
+can be recognised after startup:
 
 ```dart
-bool get useTestAds => isDevelopment;
+final ads = AdMobAdProvider(
+  configuration: env.adMob, // real units
+  testMode: developerAccess.current.servesTestAds,
+);
+developerAccess.changes.listen((a) => ads.setTestMode(a.servesTestAds));
 
-GenRevibesAdMobConfiguration get adMob {
-  final configuration = GenRevibesAdMobConfiguration(adUnits: [...]);
-  return useTestAds ? configuration.withTestAdUnits() : configuration;
-}
-
-AdMobAdUnit get bannerAdUnit {
-  final unit = AdMobAdUnit(placement: AppPlacements.banner, adUnitId: bannerAdUnitId);
-  return useTestAds ? unit.withTestUnitId() : unit;
-}
+// Banner: rebuild on developerAccess.changes and pass the served unit.
+final served = access.servesTestAds ? unit.withTestUnitId() : unit;
 ```
 
 **Android manifest** — the App ID follows the same rule. Flutter passes
@@ -88,6 +88,15 @@ like release.
 takes the hashed ID AdMob prints to logcat (32 hex characters, e.g.
 `33BE2250B43518CCDA7DE426D04EE231`); anything else is silently ignored and the
 device gets live ads.
+
+## Developer Devices in Production
+
+Store builds serve live ads, including to the developer's own phone — where a
+curious tap is invalid traffic on the account. The **developer-access** skill is
+mandatory reading: a phone listed by hash (hardcoded, env, or remote config), or
+unlocked with the hidden passcode, gets the developer tools **and** test ads, via
+`AdTestModeProvider`. Never put raw device IDs or advertising IDs in any list —
+every list is public.
 
 ### Host App AdMob App ID
 
@@ -212,7 +221,8 @@ Implementation rules:
 
 ## Checklist
 
-- [ ] Real ad unit IDs in env config; development builds swap them for sample units in code (`withTestAdUnits` / `withTestUnitId`)
+- [ ] Real ad unit IDs in env config; test ads follow `DeveloperAccessController` at runtime (provider `testMode`/`setTestMode`, banner `withTestUnitId`)
+- [ ] Developer devices in production handled per the **developer-access** skill
 - [ ] Android manifest App ID comes from a `manifestPlaceholders` value: sample App ID for debug and development env files, this app's own for release
 - [ ] Host iOS `Info.plist` contains this app's real `GADApplicationIdentifier` for release
 - [ ] `AdsBloc` provided in widget tree

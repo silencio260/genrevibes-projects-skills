@@ -47,6 +47,8 @@ project_root/
 | `posthog_api_key` | String | PostHog analytics API key |
 | `feed_back_nest_api_key` | String | Feedback Nest API key |
 | `disabled_firebase_analytics_in_debug_mode` | bool | Keeps development traffic out of Firebase Analytics. Optional, defaults to `false` |
+| `developer_passcode` | String | Passcode for the hidden developer unlock in store builds. Portfolio env files use `"7722"`; blank or missing falls back to `1234567`. See the developer-access skill |
+| `developer_device_hashes` | String | Comma-separated developer device **hashes** (never raw IDs — env values ship inside the binary). Listed phones get the developer tools and test ads. Usually `""` |
 
 ## Firebase Analytics Collection
 

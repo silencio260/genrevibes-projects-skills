@@ -28,7 +28,7 @@
     }
   },
   "version": {
-    "versionNumber": "4",
+    "versionNumber": "5",
     "updateTime": "2026-01-13T00:15:01.911197Z",
     "updateUser": {
       "email": "template@gmail.com"
@@ -93,6 +93,18 @@
           },
           "description": "Masks all rendered images. Same reasoning as session_replay_mask_text.",
           "valueType": "BOOLEAN"
+        }
+      }
+    },
+    "Developer Access Group": {
+      "description": "Phones that get the developer tools and test ads in the store build. Read by DeveloperAccessPolicyKeys.",
+      "parameters": {
+        "developer_device_hashes": {
+          "defaultValue": {
+            "value": "[]"
+          },
+          "description": "JSON array of developer device hashes (never raw device IDs: every install downloads this). Copy a hash from Settings > Developer Options or Starter Kit Lab > Developer access.",
+          "valueType": "JSON"
         }
       }
     }

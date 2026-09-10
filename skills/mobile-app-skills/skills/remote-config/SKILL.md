@@ -27,6 +27,8 @@ This file is the canonical Firebase Remote Config template for GenRevibes apps. 
 
 The defaults in the template match the keys' bundled defaults on purpose. A key whose console value differs from the code default is a value someone chose; a key that matches is indistinguishable from one nobody ever set, and the Starter Kit Lab's per-key origin is the only way to tell them apart. Importing this template is what makes the replay rollout adjustable at all — until the keys exist in the console there is nothing to turn down.
 
+It also carries the **Developer Access Group**: `developer_device_hashes`, a JSON array (default `[]`) read by `DeveloperAccessPolicyKeys` and applied live by `DeveloperAccessRemotePolicyBinder`. A phone whose hash is listed gets the developer tools and test ads in the store build on its next fetch. It must hold **hashes only** — every install downloads remote config, so a raw device ID here is published. See the **developer-access** skill.
+
 Keep parameter keys stable unless the app code and starter kit readers are updated together.
 
 ## Non-negotiable: something must call `refresh()`
@@ -138,6 +140,7 @@ if (currentVersion < minVersion) {
 - [ ] Remote Config defaults set in Firebase Console
 - [ ] `remote_config_template.json` used as the starting Firebase Remote Config template
 - [ ] Session Replay Group imported, if the app records replay — the rollout cannot be turned down until the keys exist in the console
+- [ ] Developer Access Group imported, and `DeveloperAccessRemotePolicyBinder` initialized before `refresh()` — `developer_device_hashes` holds hashes, never device IDs
 - [ ] **`refresh()` is called on the startup path, unawaited** — `grep -rn "\.refresh()" lib/bootstrap/` returns a hit
 - [ ] **`initialize()` is awaited before any consumer is composed**, and bounded by a timeout
 - [ ] Verified on device: Starter Kit Lab → Remote config shows keys with origin `remote`, not `defaultValue`

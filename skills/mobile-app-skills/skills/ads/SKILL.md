@@ -14,11 +14,80 @@ Ads are managed through the starter kit's `AdsBloc`. Supports Banner, Interstiti
 - Starter kit integrated
 - AdMob account + ad unit IDs configured
 - Ad IDs in env config (`AppEnv`): `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, `native_ad_id`
-- **Mandatory**: AdMob App ID configured in the host app `AndroidManifest.xml` and `Info.plist`.
-    - The starter kit includes a Google test App ID only as a fallback so local builds do not crash before the host app is configured.
-    - For any real app, especially release/Play Store builds, override the starter-kit default with the app's own AdMob App ID.
-    - Android Test App ID: `ca-app-pub-3940256099942544~3347511713`
-    - iOS Test App ID: `ca-app-pub-3940256099942544~1458002511`
+- **Mandatory**: AdMob App ID configured in the host app `AndroidManifest.xml` and `Info.plist` — Google's sample App ID for development builds, the app's own for release (see [Test Ads in Development](#test-ads-in-development-mandatory)).
+    - The modular kit (`genrevibes_ads_admob`) ships **no** manifest fallback. A missing App ID crashes at launch with "Missing application ID".
+    - Android Test App ID: `ca-app-pub-3940256099942544~3347511713` (`AdMobTestAds.androidAppId`)
+    - iOS Test App ID: `ca-app-pub-3940256099942544~1458002511` (`AdMobTestAds.iosAppId`)
+
+## Test Ads in Development (mandatory)
+
+Every non-store build must request Google's sample units, never the app's own —
+decided in code, not by what an env file happens to contain.
+
+**Why:** requesting a real unit from a development build is invalid traffic
+under the AdMob program policies and can get the account suspended. And once an
+account is suspended, real units serve nothing, so a project that relied on
+"put test IDs in `dev.json`" has no working ads to test with at all. Google's
+sample units "are not associated with your AdMob account", so they fill
+regardless of account standing.
+
+**Dart** — swap units at the environment boundary, so placements, policy, and
+call sites are identical to production:
+
+```dart
+bool get useTestAds => isDevelopment;
+
+GenRevibesAdMobConfiguration get adMob {
+  final configuration = GenRevibesAdMobConfiguration(adUnits: [...]);
+  return useTestAds ? configuration.withTestAdUnits() : configuration;
+}
+
+AdMobAdUnit get bannerAdUnit {
+  final unit = AdMobAdUnit(placement: AppPlacements.banner, adUnitId: bannerAdUnitId);
+  return useTestAds ? unit.withTestUnitId() : unit;
+}
+```
+
+**Android manifest** — the App ID follows the same rule. Flutter passes
+`--dart-define-from-file` values to Gradle as base64 `key=value` entries in the
+`dart-defines` property:
+
+```groovy
+// android/app/build.gradle
+def dartDefines = [:]
+if (project.hasProperty('dart-defines')) {
+    project.property('dart-defines').toString().split(',').each { entry ->
+        def pair = new String(entry.decodeBase64(), 'UTF-8').split('=', 2)
+        if (pair.length == 2) dartDefines[pair[0]] = pair[1]
+    }
+}
+def developmentDefines = ['development_mode', 'founders_version', 'special_version_mode']
+        .any { dartDefines[it] == 'true' }
+
+android {
+    defaultConfig {
+        manifestPlaceholders += [admobAppId: developmentDefines
+            ? 'ca-app-pub-3940256099942544~3347511713'
+            : 'ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY']
+    }
+    buildTypes {
+        debug { manifestPlaceholders += [admobAppId: 'ca-app-pub-3940256099942544~3347511713'] }
+    }
+}
+```
+
+```xml
+<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobAppId}"/>
+```
+
+Flutter's `profile` build type copies `debug` when the Flutter Gradle plugin is
+applied, which is before the `android {}` block, so profile follows the env file
+like release.
+
+**Test devices** are not a substitute. `RequestConfiguration.testDeviceIds`
+takes the hashed ID AdMob prints to logcat (32 hex characters, e.g.
+`33BE2250B43518CCDA7DE426D04EE231`); anything else is silently ignored and the
+device gets live ads.
 
 ### Host App AdMob App ID
 
@@ -84,8 +153,8 @@ StarterKit.adsBloc.add(const AdsShowAppOpen());
 ```
 
 ### AdMob IDs Management
-- **Test IDs**: During development, use Google's [Test Ad Unit IDs](https://developers.google.com/admob/android/test-ads#sample_ad_units).
-- **Production IDs**: Ensure real AdMob IDs are injected via the `EnvConfig` for production builds.
+- **Test IDs**: Development builds use Google's [sample units](https://developers.google.com/admob/android/test-ads#sample_ad_units) through `withTestAdUnits()` / `withTestUnitId()`, whatever the env file contains. See [Test Ads in Development](#test-ads-in-development-mandatory).
+- **Production IDs**: Real AdMob IDs are injected via the env file and only reach release builds.
 - **App ID vs Unit IDs**: The platform AdMob App ID belongs in Android/iOS native config. Banner, interstitial, app-open, rewarded, and native ad unit IDs belong in `AppEnv` or Remote Config and are passed into the starter kit APIs.
 - **Starter Kit Defaults**: Treat any starter-kit/default Google sample ID as development-only. Host apps must provide their own production App ID and ad unit IDs.
 - **Remote Config**: Ad IDs can also be dynamically managed via Remote Config for easier updates without app store releases.
@@ -143,8 +212,8 @@ Implementation rules:
 
 ## Checklist
 
-- [ ] Ad unit IDs in env config (test IDs for dev, real for release)
-- [ ] Host Android `AndroidManifest.xml` overrides the starter-kit AdMob test App ID with this app's real AdMob App ID for release
+- [ ] Real ad unit IDs in env config; development builds swap them for sample units in code (`withTestAdUnits` / `withTestUnitId`)
+- [ ] Android manifest App ID comes from a `manifestPlaceholders` value: sample App ID for debug and development env files, this app's own for release
 - [ ] Host iOS `Info.plist` contains this app's real `GADApplicationIdentifier` for release
 - [ ] `AdsBloc` provided in widget tree
 - [ ] Interstitial ads load on appropriate screens

@@ -14,7 +14,7 @@ Every GenRevibes project uses a **compile-time environment variable system** via
 ```
 project_root/
 ├── env/
-│   ├── dev.json              # Development environment (test ad IDs, debug flags)
+│   ├── dev.json              # Development environment (debug flags)
 │   ├── release.json          # Production environment (real ad IDs, analytics)
 │   └── special_dev.json      # Founders/special builds (founders_version = true)
 ├── env.example.json           # Template for new team members (committed to git)
@@ -92,7 +92,7 @@ AdMob uses two different ID types and both must be configured by the host app:
 - **AdMob App ID**: Native SDK identifier with `~` in the value. Put this in `android/app/src/main/AndroidManifest.xml` as `com.google.android.gms.ads.APPLICATION_ID` and in `ios/Runner/Info.plist` as `GADApplicationIdentifier`.
 - **Ad unit IDs**: Placement identifiers with `/` in the value. Put these in env keys such as `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, and `native_ad_id`.
 
-The starter kit ships a Google test AdMob App ID fallback so development builds do not crash before native config exists. Do not ship that fallback. Release builds must override it with the app's own AdMob App ID, and release env files must use this app's own production ad unit IDs.
+Env files hold the app's **real** ad unit IDs, including `dev.json`. Development builds never request them: the app swaps every unit for Google's sample unit in code, and the Android manifest names Google's sample App ID for the same builds. Test ads are therefore guaranteed by the build type and flags, not by someone remembering to paste test IDs into an env file — see the ads skill, "Test Ads in Development".
 
 ## Reading Env Vars in Dart
 

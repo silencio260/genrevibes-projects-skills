@@ -37,11 +37,9 @@ project_root/
 | `development_mode` | bool | Enables debug logging, test ads |
 | `firebase_api_key_android` | String | Firebase API key for Android |
 | `firebase_api_key_ios` | String | Firebase API key for iOS |
-| `banner_ad_id` | String | AdMob banner ad unit ID |
-| `interstitial_ad_id` | String | AdMob interstitial ad unit ID |
-| `app_open_ad_id` | String | AdMob app open ad unit ID |
-| `rewarded_ad_id` | String | AdMob rewarded ad unit ID |
-| `native_ad_id` | String | AdMob native ad unit ID |
+| `appodeal_app_key_android` | String | Appodeal app key for Android. Required in every environment, development included: test mode still initializes against the real app. See the ads skill |
+| `appodeal_app_key_ios` | String | Appodeal app key for iOS |
+| `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, `native_ad_id` | String | AdMob ad unit IDs, only for an app serving AdMob directly through `genrevibes_ads_admob`. Appodeal has no ad unit IDs |
 | `one_signal_app_id` | String | OneSignal push notifications app ID |
 | `revenue_cat_api_key_android` | String | RevenueCat API key for Android |
 | `posthog_api_key` | String | PostHog analytics API key |
@@ -87,14 +85,24 @@ adb shell setprop log.tag.FA VERBOSE
 adb logcat -s FA | grep -i "measurement enabled\|measurement disabled"
 ```
 
-## AdMob IDs
+## Ad IDs
 
-AdMob uses two different ID types and both must be configured by the host app:
+Portfolio apps mediate through **Appodeal**. The env files hold the Appodeal
+**app key** per platform (`appodeal_app_key_android`, `appodeal_app_key_ios`),
+and the same real key goes in `dev.json`. There are no ad unit IDs and no test
+IDs: test mode is a switch on the SDK, set from `DeveloperAccessController` for
+every development build — see the ads skill, "Test Ads".
 
-- **AdMob App ID**: Native SDK identifier with `~` in the value. Put this in `android/app/src/main/AndroidManifest.xml` as `com.google.android.gms.ads.APPLICATION_ID` and in `ios/Runner/Info.plist` as `GADApplicationIdentifier`.
-- **Ad unit IDs**: Placement identifiers with `/` in the value. Put these in env keys such as `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, and `native_ad_id`.
+The **AdMob App ID** (the value with `~`) still belongs in native config when
+Appodeal's AdMob adapter is in the build, because the Google Mobile Ads SDK it
+brings crashes at launch without one: `com.google.android.gms.ads.APPLICATION_ID`
+in `AndroidManifest.xml` (Google's sample App ID for development builds, via
+`manifestPlaceholders`) and `GADApplicationIdentifier` in `Info.plist`. It is
+never an env key.
 
-Env files hold the app's **real** ad unit IDs, including `dev.json`. Development builds never request them: the app swaps every unit for Google's sample unit in code, and the Android manifest names Google's sample App ID for the same builds. Test ads are therefore guaranteed by the build type and flags, not by someone remembering to paste test IDs into an env file — see the ads skill, "Test Ads in Development".
+An app serving AdMob directly through `genrevibes_ads_admob` uses the ad unit
+keys (`banner_ad_id` and the rest) instead, with the app's real units in every
+env file; the adapter swaps them for Google's sample units at runtime.
 
 ## Reading Env Vars in Dart
 
@@ -175,13 +183,14 @@ Each `.run.xml` file uses `--dart-define-from-file` to load the appropriate env 
 
 ## Interaction Map
 
-- **Ads** → reads `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, `native_ad_id`
+- **Ads and consent** → read `appodeal_app_key_android`, `appodeal_app_key_ios`
 - **Push Notifications** → reads `one_signal_app_id`
 - **IAP** → reads `revenue_cat_api_key_android`
 - **Analytics** → reads `posthog_api_key`, `disabled_firebase_analytics_in_debug_mode`
 - **Feedback** → reads `feed_back_nest_api_key`
 - **Firebase** → reads `firebase_api_key_android`, `firebase_api_key_ios`
 - **Content Locking / Paywall** → reads `founders_version`, `special_version_mode`
+- **Developer access** → reads `developer_passcode`, `developer_device_hashes`
 
 ## Checklist
 
@@ -192,5 +201,5 @@ Each `.run.xml` file uses `--dart-define-from-file` to load the appropriate env 
 - [ ] `.vscode/launch.json` created for VS Code
 - [ ] `AppEnv` class created to read env vars via `String.fromEnvironment`
 - [ ] All API keys filled in for dev environment
-- [ ] Test IDs used for ads in dev, real IDs in release
-- [ ] **AdMob App ID** added to host `AndroidManifest.xml` and `Info.plist`, overriding the starter-kit fallback for release
+- [ ] Real Appodeal app keys in every env file, `dev.json` included — test mode is decided in code, never by the env file
+- [ ] **AdMob App ID** in `AndroidManifest.xml` and `Info.plist` when Appodeal's AdMob adapter is in the build

@@ -85,22 +85,26 @@ Lab → **Developer access** → Copy device hash.
 
 ## Test ads follow access
 
-`DeveloperAccess.servesTestAds == isGranted`, always.
+`DeveloperAccess.servesTestAds == isGranted`, always. What that does depends on
+the ad provider's `AdTestModeProvider`:
 
-- **Full-screen:** `AdMobAdProvider(testMode: access.servesTestAds)` at startup,
-  then `setTestMode` on every change (`AdTestModeProvider` in `genrevibes_ads`).
-  Switching discards inventory loaded in the other mode, so a live creative
-  loaded before the phone was recognised is never shown.
-- **Banner/native:** rebuild on `developerAccess.changes` and pass
-  `unit.withTestUnitId()` when `servesTestAds`; the kit widget reloads on a unit
-  change.
-- **Mediation:** AdMob's sample units serve Google test ads only and never
-  mediate, so no network sees a tap. To test the real mediation waterfall on a
-  developer phone, also register its raw advertising ID in the **AdMob console**
-  (private, never in a list) and enable each network's own test mode.
-- **Release manifest keeps the real AdMob app ID.** Confirm on device that the
-  banner shows Google's **"Test Ad"** label before relying on it.
-- A future non-AdMob ad adapter must implement `AdTestModeProvider`.
+- **Appodeal (portfolio standard):** test mode is taken when the SDK
+  initializes, in the deferred ads module after consent's network round trip.
+  Access settled by then starts the SDK in test mode, and every mediated
+  network serves test ads. That normally covers a development build, a
+  hardcoded or env hash, and a remote hash activated on an earlier run.
+  **Access that changes after that withholds all ads until relaunch:** nothing
+  loads, nothing shows, and the banner view renders nothing. A phone never sees
+  a live ad after it is recognised, and gets test ads from its next launch.
+- **So on Appodeal the passcode hides ads but never shows test ads.** The grant
+  lasts one session and cannot survive the relaunch. A phone that needs test
+  ads in a store build goes on a list.
+- **AdMob adapter (`genrevibes_ads_admob`):** switches at runtime between the
+  app's units and Google's sample units, discarding inventory loaded in the
+  other mode. Its banner widgets rebuild on `developerAccess.changes` and pass
+  `unit.withTestUnitId()`.
+- Every ad adapter must implement `AdTestModeProvider`, and must never show
+  live inventory after a mode change it cannot apply.
 
 ## Wiring
 
@@ -115,9 +119,9 @@ final developerAccess = DeveloperAccessController(
 );
 await developerAccess.initialize();
 
-final ads = AdMobAdProvider(
-  configuration: env.adMob, // always the app's REAL units
-  testMode: developerAccess.current.servesTestAds,
+final ads = AppodealAdProvider(
+  configuration: env.appodeal, // the app's real key in every build
+  testMode: developerAccess.current.servesTestAds, // taken at SDK initialization
 );
 
 // After identity.resolve():
@@ -158,10 +162,12 @@ production analytics.
 
 1. Store build, unlisted phone: Settings shows no developer section; ads are live.
 2. Tap the Settings title 7 times → passcode prompt. Enter the passcode → the
-   developer section appears, and the banner reloads with a "Test Ad" label.
+   developer section appears, and on Appodeal every ad disappears for the rest
+   of the session.
 3. Copy Developer Device Hash → add it to `developer_device_hashes` in Remote
-   Config → publish → relaunch: Starter Kit Lab → Developer access shows
-   `Listed developer device · remote`.
+   Config → publish → relaunch until Starter Kit Lab → Developer access shows
+   `Listed developer device · remote`. Relaunch once more: the ads module shows
+   `sdkTestMode: true`, and the ads on screen are test ads.
 4. Three wrong passcodes on another phone → the gesture does nothing; a dev
    build launch or reinstall restores it.
 
@@ -173,6 +179,6 @@ production analytics.
 - [ ] `DeveloperAccessRemotePolicyBinder` initialized before `remoteConfig.refresh()`
 - [ ] `developer_device_hashes` (JSON, `[]`) in Remote Config — Developer Access Group imported
 - [ ] `developer_passcode` and `developer_device_hashes` present in every `env/*.json`
-- [ ] Ads follow access: provider `testMode` + `setTestMode` listener, banner rebuilds on changes
+- [ ] Ads follow access: provider `testMode` + `setTestMode` listener; on Appodeal, a mid-session change verified to hide ads until relaunch
 - [ ] Developer section and debug overrides gated on `isGranted`, not build flags
 - [ ] Passcode never logged; grant is session-only; lockout verified on device

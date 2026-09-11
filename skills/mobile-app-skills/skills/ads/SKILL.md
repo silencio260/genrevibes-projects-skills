@@ -1,235 +1,233 @@
 ---
 name: ads
-description: Banner, interstitial, rewarded, app open, and native ads via AdMob with starter kit, including ad revenue and ad click tracking
+description: Banner, interstitial, and rewarded ads through Appodeal mediation with the modular starter kit — app keys, network adapters, consent, test mode for development builds and developer devices, and ad revenue and click analytics. Read before touching ads in any GenRevibes app.
 ---
 
 # Ads
 
 ## Overview
 
-Ads are managed through the starter kit's `AdsBloc`. Supports Banner, Interstitial, Rewarded, App Open, and Native ad types via AdMob. Ad revenue is automatically tracked to Firebase Analytics and Mixpanel/PostHog, and ad clicks must be tracked as the exact `ad_click` event.
+GenRevibes apps mediate ads through **Appodeal**, using the kit's
+`genrevibes_ads_appodeal` adapter behind the provider-neutral `genrevibes_ads`
+contract. Appodeal runs the auction across every network whose adapter is in
+the build and enabled in the Appodeal dashboard. AdMob is one of those networks,
+not the ad server.
+
+| Package | Role |
+|---|---|
+| `genrevibes_ads` | Placements, formats, `AdProvider`, `AdCoordinator`, premium/suppression/frequency policy, `AdTestModeProvider` |
+| `genrevibes_ads_appodeal` | `AppodealAdProvider` (interstitial, rewarded) and `AppodealBannerView` |
+| `genrevibes_consent_appodeal` | `AppodealConsentProvider`, over Appodeal's UMP-based consent manager (IAB TCF v2) |
+| `genrevibes_developer_access` | Which phones get test ads in a store build |
+
+`genrevibes_ads_admob`, `genrevibes_ads_admob_ui` and `genrevibes_consent_ump`
+stay in the kit for an app that serves AdMob directly. An app on Appodeal
+depends on none of them and does not list `google_mobile_ads`.
 
 ## Prerequisites
 
-- Starter kit integrated
-- AdMob account + ad unit IDs configured
-- Ad IDs in env config (`AppEnv`): `banner_ad_id`, `interstitial_ad_id`, `app_open_ad_id`, `rewarded_ad_id`, `native_ad_id`
-- **Mandatory**: AdMob App ID configured in the host app `AndroidManifest.xml` and `Info.plist` — Google's sample App ID for development builds, the app's own for release (see [Test Ads in Development](#test-ads-in-development-mandatory)).
-    - The modular kit (`genrevibes_ads_admob`) ships **no** manifest fallback. A missing App ID crashes at launch with "Missing application ID".
-    - Android Test App ID: `ca-app-pub-3940256099942544~3347511713` (`AdMobTestAds.androidAppId`)
-    - iOS Test App ID: `ca-app-pub-3940256099942544~1458002511` (`AdMobTestAds.iosAppId`)
+- An Appodeal app per platform. Put the **app key** in every env file:
+  `appodeal_app_key_android`, `appodeal_app_key_ios`. Development builds need
+  the real key too, because test mode still initializes against the app.
+- Networks enabled in the Appodeal dashboard, and a Google UMP consent message
+  configured as Appodeal's GDPR and CCPA guide describes.
+- Placements: `default` always exists. Create any named placement in the
+  dashboard before using its name in code.
 
-## Test Ads in Development (mandatory)
+## Native Setup
 
-Every non-store build must request Google's sample units, never the app's own —
-decided in code, not by what an env file happens to contain.
+### Android
 
-**Why:** requesting a real unit from a development build is invalid traffic
-under the AdMob program policies and can get the account suspended. And once an
-account is suspended, real units serve nothing, so a project that relied on
-"put test IDs in `dev.json`" has no working ads to test with at all. Google's
-sample units "are not associated with your AdMob account", so they fill
-regardless of account standing.
-
-**Dart** — test ads follow `DeveloperAccessController`, which grants every
-development build (and, in store builds, listed developer phones or the
-passcode — see the **developer-access** skill). The environment always carries
-the app's real units; the switch happens at runtime, because a developer device
-can be recognised after startup:
-
-```dart
-final ads = AdMobAdProvider(
-  configuration: env.adMob, // real units
-  testMode: developerAccess.current.servesTestAds,
-);
-developerAccess.changes.listen((a) => ads.setTestMode(a.servesTestAds));
-
-// Banner: rebuild on developerAccess.changes and pass the served unit.
-final served = access.servesTestAds ? unit.withTestUnitId() : unit;
-```
-
-**Android manifest** — the App ID follows the same rule. Flutter passes
-`--dart-define-from-file` values to Gradle as base64 `key=value` entries in the
-`dart-defines` property:
+`android/build.gradle`:
 
 ```groovy
-// android/app/build.gradle
-def dartDefines = [:]
-if (project.hasProperty('dart-defines')) {
-    project.property('dart-defines').toString().split(',').each { entry ->
-        def pair = new String(entry.decodeBase64(), 'UTF-8').split('=', 2)
-        if (pair.length == 2) dartDefines[pair[0]] = pair[1]
-    }
-}
-def developmentDefines = ['development_mode', 'founders_version', 'special_version_mode']
-        .any { dartDefines[it] == 'true' }
-
-android {
-    defaultConfig {
-        manifestPlaceholders += [admobAppId: developmentDefines
-            ? 'ca-app-pub-3940256099942544~3347511713'
-            : 'ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY']
-    }
-    buildTypes {
-        debug { manifestPlaceholders += [admobAppId: 'ca-app-pub-3940256099942544~3347511713'] }
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://artifactory.appodeal.com/appodeal" }
     }
 }
 ```
 
-```xml
-<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobAppId}"/>
-```
+`android/app/build.gradle`. The plugin ships Appodeal core and the IAB adapter
+only, so every other network needs its adapter:
 
-Flutter's `profile` build type copies `debug` when the Flutter Gradle plugin is
-applied, which is before the `android {}` block, so profile follows the env file
-like release.
-
-**Test devices** are not a substitute. `RequestConfiguration.testDeviceIds`
-takes the hashed ID AdMob prints to logcat (32 hex characters, e.g.
-`33BE2250B43518CCDA7DE426D04EE231`); anything else is silently ignored and the
-device gets live ads.
-
-## Developer Devices in Production
-
-Store builds serve live ads, including to the developer's own phone — where a
-curious tap is invalid traffic on the account. The **developer-access** skill is
-mandatory reading: a phone listed by hash (hardcoded, env, or remote config), or
-unlocked with the hidden passcode, gets the developer tools **and** test ads, via
-`AdTestModeProvider`. Never put raw device IDs or advertising IDs in any list —
-every list is public.
-
-### Host App AdMob App ID
-
-Add the app's own AdMob App ID to `android/app/src/main/AndroidManifest.xml`:
-
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY" />
-    </application>
-</manifest>
-```
-
-The value with `~` is the AdMob **App ID**, not an ad unit ID. Do not ship the starter kit's default `ca-app-pub-3940256099942544~3347511713`.
-
-Also add the iOS AdMob App ID to `ios/Runner/Info.plist`:
-
-```xml
-<key>GADApplicationIdentifier</key>
-<string>ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY</string>
-```
-
-Ad unit IDs are separate values and must come from the app env config or an app-specific Remote Config setup.
-
-## Implementation
-
-### Load & Show Interstitial
-
-```dart
-// Load
-StarterKit.adsBloc.add(AdsLoadInterstitial(adUnitId: AppEnv.interstitialAdId));
-
-// Show (after loaded)
-StarterKit.adsBloc.add(const AdsShowInterstitial());
-```
-
-### Load & Show Rewarded
-
-```dart
-StarterKit.adsBloc.add(AdsLoadRewarded(adUnitId: AppEnv.rewardedAdId));
-StarterKit.adsBloc.add(const AdsShowRewarded());
-```
-
-### Banner Ad Widget
-
-```dart
-StarterKit.bannerAd(adUnitId: AppEnv.bannerAdId)
-```
-
-### Native Ad Widget
-
-```dart
-StarterKit.nativeAd(adUnitId: AppEnv.nativeAdId)
-```
-
-### App Open Ad
-
-```dart
-StarterKit.adsBloc.add(AdsLoadAppOpen(adUnitId: AppEnv.appOpenAdId));
-StarterKit.adsBloc.add(const AdsShowAppOpen());
-```
-
-### AdMob IDs Management
-- **Test IDs**: Development builds use Google's [sample units](https://developers.google.com/admob/android/test-ads#sample_ad_units) through `withTestAdUnits()` / `withTestUnitId()`, whatever the env file contains. See [Test Ads in Development](#test-ads-in-development-mandatory).
-- **Production IDs**: Real AdMob IDs are injected via the env file and only reach release builds.
-- **App ID vs Unit IDs**: The platform AdMob App ID belongs in Android/iOS native config. Banner, interstitial, app-open, rewarded, and native ad unit IDs belong in `AppEnv` or Remote Config and are passed into the starter kit APIs.
-- **Starter Kit Defaults**: Treat any starter-kit/default Google sample ID as development-only. Host apps must provide their own production App ID and ad unit IDs.
-- **Remote Config**: Ad IDs can also be dynamically managed via Remote Config for easier updates without app store releases.
-
-### AdsBloc Usage
-The `AdsBloc` is the central hub for all ad-related actions.
-
-```dart
-// Check if ads are enabled (hidden for premium)
-final adsEnabled = context.read<AdsBloc>().state.isEnabled;
-
-// Load an interstitial
-context.read<AdsBloc>().add(AdsLoadInterstitial(adUnitId: AppEnv.interstitialAdId));
-
-// Show an interstitial (e.g., after a chat session ends)
-if (adsEnabled) {
-  context.read<AdsBloc>().add(const AdsShowInterstitial());
+```groovy
+dependencies {
+    implementation "com.appodeal.ads.sdk.adapters:admob:24.7.0.0"
+    implementation "com.appodeal.ads.sdk.adapters:applovin:13.5.1.0"
+    // ... one line per network the dashboard uses
 }
 ```
 
-### Disable Ads for Subscribers
-The `starter_kit` handles this automatically if `IapBloc` and `AdsBloc` are correctly configured. When the `IapState` becomes `isActive`, the `AdsBloc` state is updated to `isEnabled: false`.
+- Copy adapter versions from the README of the `stack_appodeal_flutter` version
+  in `pubspec.lock`, and update them together with the plugin.
+- Leave out Appodeal's analytics adapters (Adjust, AppsFlyer, Facebook,
+  Firebase, Sentry): the app reports ad revenue itself.
+- Every adapter adds app size. Trim the list to the networks the dashboard
+  actually uses.
+- **minSdk 24.**
+- **Include the AdMob App ID in the manifest** whenever the AdMob adapter, or
+  any adapter that brings the Google Mobile Ads SDK, is included. That SDK
+  crashes at launch without one:
+
+  ```xml
+  <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobAppId}"/>
+  ```
+
+  Keep the `manifestPlaceholders` rule: Google's sample App ID
+  (`ca-app-pub-3940256099942544~3347511713`) for debug builds and development
+  env files, and the app's own for release.
+- **Allow cleartext traffic.** The plugin's manifest merges a network security
+  config that permits it. If the app declares its own `networkSecurityConfig`,
+  that config must permit cleartext too, or the manifest merge conflicts.
+
+### iOS
+
+Podfile sources. Naming any source replaces the default, so keep the CDN:
+
+```ruby
+source 'https://github.com/appodeal/CocoaPods.git'
+source 'https://github.com/bidon-io/CocoaPods-Specs.git'
+source 'https://cdn.cocoapods.org/'
+```
+
+Then add:
+
+- the adapter pods from the plugin README;
+- `GADApplicationIdentifier` and `SKAdNetworkItems` in `Info.plist`;
+- `NSUserTrackingUsageDescription`, if the app asks for tracking.
+
+iOS 13 or later is required, or 15 with the Firebase adapter.
+
+## Composition
+
+```dart
+// app_env.dart
+GenRevibesAppodealConfiguration get appodeal => GenRevibesAppodealConfiguration(
+      appKey: defaultTargetPlatform == TargetPlatform.iOS
+          ? appodealIosAppKey
+          : appodealAndroidAppKey,
+      placements: const <AppodealPlacement>[
+        AppodealPlacement(placement: AppPlacements.banner),
+        AppodealPlacement(placement: AppPlacements.interstitial),
+      ],
+      verboseLogging: isDevelopment,
+    );
+
+// bootstrap
+final consent = ConsentGate(
+  provider: AppodealConsentProvider(appKey: env.appodealAppKey, logger: logger),
+);
+final ads = AppodealAdProvider(
+  configuration: env.appodeal,
+  testMode: developerAccess.current.servesTestAds,
+  logger: logger,
+);
+
+// Both deferred, consent first: the form comes before the first ad request,
+// and neither may hold the first frame.
+StarterModuleRegistration.deferred(moduleId: AppModules.consent, create: () => consent),
+StarterModuleRegistration.deferred(moduleId: AppModules.ads, create: () => ads),
+```
+
+### Full-screen
+
+```dart
+// After deferredStartupComplete, never for a premium user.
+await ads.load(AppPlacements.interstitial);
+if (ads.isReady(AppPlacements.interstitial)) {
+  await coordinator.show(AppPlacements.interstitial); // policy applies
+}
+```
+
+Auto-cache is off for interstitial and rewarded, so nothing loads until `load`
+is called. A rewarded result carries `AdShowResult.reward` only when the video
+was finished.
+
+### Banner
+
+```dart
+AppodealBannerView(
+  provider: ads,
+  placement: AppPlacements.banner,
+  enabled: startupComplete && !isPremium && !suppressed,
+)
+```
+
+The view follows provider health by itself. It renders nothing before the SDK
+initializes, or while a test-mode change waits for a relaunch. Banner callbacks
+and revenue arrive on `ads.events`, not on the view.
+
+## Test Ads (mandatory)
+
+A live ad requested from a development build, or tapped on a developer's own
+phone, is invalid traffic for every network in the auction.
+
+- **Test mode follows `DeveloperAccessController`.** Every development build
+  gets it, plus listed developer phones in store builds (see
+  **developer-access**). Pass `AppodealAdProvider(testMode: …)` at construction
+  and call `setTestMode` from the access listener, as with any
+  `AdTestModeProvider`.
+- **Appodeal takes test mode when the SDK initializes.** That happens in the
+  deferred ads module, after consent's network round trip. By then bootstrap
+  has normally applied everything local, so these start in test mode: a
+  development build, or a hardcoded, env, or previously fetched remote hash.
+- **A change after initialization withholds all ads until relaunch.** A phone
+  never sees a live ad after it is recognised, and gets test ads from its next
+  launch.
+- **A passcode unlock hides ads but never produces test ads.** It lasts one
+  session. A phone that needs test ads in a store build goes on a list.
+- Env files hold the real app key everywhere. There are no test IDs to swap.
+- **Verify** with Appodeal's logcat output (`verboseLogging`) and the ads
+  module health in **Starter Kit Lab**: `testMode`, `sdkTestMode`,
+  `servesInventory`.
+
+## Consent
+
+Use `AppodealConsentProvider` through `ConsentGate`. The Appodeal SDK also
+requests consent by itself when it initializes. Resolving consent through the
+gate first does two things:
+
+- it keeps the form ahead of the first ad request;
+- it gives Settings a privacy-options entry point:
+  `ConsentGate.snapshot.privacyOptionsRequired`, then `showPrivacyOptions()`.
+
+Consent is never wired to analytics.
 
 ## Analytics Contract
 
-Ads must emit these standard events:
+Wire **one** listener on `ads.events`, in bootstrap. Appodeal reports banner and
+full-screen callbacks per format rather than per view, so a listener per widget
+counts every impression twice.
 
-| Event | Destination | Trigger |
+| Event | Trigger | Parameters |
 |---|---|---|
-| `ad_impression` | Firebase | AdMob `onPaidEvent` routed through `FirebaseAnalytics.logAdImpression`. |
-| `ad_revenue` | Mixpanel/PostHog | Same AdMob `onPaidEvent` routed as a custom revenue event. |
-| `ad_click` | Firebase + Mixpanel/PostHog | AdMob `onAdClicked` for banner/native and `FullScreenContentCallback.onAdClicked` for interstitial/rewarded/app-open. |
-| `ad_lifecycle` | Firebase + Mixpanel/PostHog | Dev/test lifecycle events such as load/show success/failure when the host app exposes a developer ads test screen. |
+| `ad_impression` | `AdEventType.paid` | `ad_platform`, `ad_source` (winning network), `ad_format`, `ad_unit_name`, `value`, `currency`, `value_micros` |
+| `ad_click` | `AdEventType.clicked` | `ad_type` (`banner`, `interstitial`, `rewarded`) |
 
-Required `ad_click` params:
-
-```dart
-{'ad_type': 'banner' | 'native' | 'interstitial' | 'rewarded' | 'app_open'}
-```
-
-Implementation rules:
-
-- `AdsRepository` should expose click listener/recording methods so all ad surfaces use one path.
-- Banner/native widgets should call `recordAdClick('banner')` or `recordAdClick('native')` from `onAdClicked`.
-- Interstitial, rewarded, and app-open ads should call the click listener from `FullScreenContentCallback.onAdClicked`.
-- Keep `ad_lifecycle` separate from `ad_click`; lifecycle is useful for developer testing, but dashboards often need the exact `ad_click` event name.
-- Test ads can fire callbacks, but normal Firebase/AdMob revenue dashboards may not show test revenue like production. Verify with Firebase DebugView and Mixpanel live events.
+`value` and `currency` on `ad_impression` are what Firebase counts as ad
+revenue. Filter developers' own sessions out with the `developer_access` user
+property.
 
 ## Interaction Map
 
-- **IAP** → Subscribers see no ads
-- **Analytics** → Ad revenue auto-tracked (Firebase `ad_impression` + Mixpanel/PostHog `ad_revenue`) and ad clicks tracked as `ad_click`
-- **Tracking** → Adjust ad frequency by engagement level
-- **Content Locking** → Show rewarded ads to unlock content
+- **IAP**: premium users load and see no ads (`AdCoordinator.setPremium`).
+- **Consent**: gathered before the ads module starts.
+- **Developer access**: decides test mode.
+- **Remote config**: interstitial pacing (`AdsPolicyKeys`).
 
 ## Checklist
 
-- [ ] Real ad unit IDs in env config; test ads follow `DeveloperAccessController` at runtime (provider `testMode`/`setTestMode`, banner `withTestUnitId`)
-- [ ] Developer devices in production handled per the **developer-access** skill
-- [ ] Android manifest App ID comes from a `manifestPlaceholders` value: sample App ID for debug and development env files, this app's own for release
-- [ ] Host iOS `Info.plist` contains this app's real `GADApplicationIdentifier` for release
-- [ ] `AdsBloc` provided in widget tree
-- [ ] Interstitial ads load on appropriate screens
-- [ ] Rewarded ads offered for content unlock
-- [ ] Banner ads placed in layouts
-- [ ] Ads disabled for subscribers
-- [ ] `ad_impression` verified in Firebase DebugView after paid callbacks
-- [ ] `ad_revenue` verified in Mixpanel/PostHog live events if configured
-- [ ] `ad_click` verified for each ad type that can be clicked
+- [ ] `appodeal_app_key_android` / `appodeal_app_key_ios` in every `env/*.json`
+- [ ] Appodeal maven repository and network adapters in Gradle, with versions matching the plugin
+- [ ] AdMob App ID in the manifest when the AdMob adapter is included, with the sample ID for development
+- [ ] iOS: Podfile sources, adapter pods, `GADApplicationIdentifier`, `SKAdNetworkItems`
+- [ ] No `google_mobile_ads`, `genrevibes_ads_admob*`, or `genrevibes_consent_ump` in the app
+- [ ] `ConsentGate(AppodealConsentProvider)` and `AppodealAdProvider` registered as deferred modules, consent first
+- [ ] `testMode` comes from `DeveloperAccessController`, and the `setTestMode` listener is wired
+- [ ] Banner rendered through `AppodealBannerView` with an app-owned `enabled`
+- [ ] One `ads.events` listener sends `ad_impression` (with `value`/`currency`) and `ad_click`
+- [ ] Development build shows `sdkTestMode: true` in Starter Kit Lab and test creatives on screen
+- [ ] Appodeal dashboard: networks enabled, UMP message configured

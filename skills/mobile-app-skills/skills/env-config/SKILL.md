@@ -96,9 +96,9 @@ every development build — see the ads skill, "Test Ads".
 The **AdMob App ID** (the value with `~`) still belongs in native config when
 Appodeal's AdMob adapter is in the build, because the Google Mobile Ads SDK it
 brings crashes at launch without one: `com.google.android.gms.ads.APPLICATION_ID`
-in `AndroidManifest.xml` (Google's sample App ID for development builds, via
-`manifestPlaceholders`) and `GADApplicationIdentifier` in `Info.plist`. It is
-never an env key.
+in `AndroidManifest.xml` and `GADApplicationIdentifier` in `Info.plist`. Use the
+app's real App ID in every build, development included: Appodeal's consent
+manager finds the app's consent messages under it. It is never an env key.
 
 An app serving AdMob directly through `genrevibes_ads_admob` uses the ad unit
 keys (`banner_ad_id` and the rest) instead, with the app's real units in every

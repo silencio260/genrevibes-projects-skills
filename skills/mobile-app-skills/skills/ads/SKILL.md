@@ -29,8 +29,11 @@ depends on none of them and does not list `google_mobile_ads`.
 - An Appodeal app per platform. Put the **app key** in every env file:
   `appodeal_app_key_android`, `appodeal_app_key_ios`. Development builds need
   the real key too, because test mode still initializes against the app.
-- Networks enabled in the Appodeal dashboard, and a Google UMP consent message
-  configured as Appodeal's GDPR and CCPA guide describes.
+- Networks enabled in the Appodeal dashboard.
+- Consent messages (European regulations, and US state regulations) created
+  and **published** in AdMob → Privacy & messaging, for the app whose App ID is
+  in the manifest. Without them no consent form is ever shown, and the Appodeal
+  dashboard reports "CMP not integrated yet".
 - Placements: `default` always exists. Create any named placement in the
   dashboard before using its name in code.
 
@@ -76,9 +79,10 @@ dependencies {
   <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobAppId}"/>
   ```
 
-  Keep the `manifestPlaceholders` rule: Google's sample App ID
-  (`ca-app-pub-3940256099942544~3347511713`) for debug builds and development
-  env files, and the app's own for release.
+  Use the app's **real** App ID in every build, development included.
+  Appodeal's consent manager finds the app's consent messages under it, and
+  Google's sample ID has none, so a development build could never show the
+  form. Test ads come from Appodeal's test mode, not from the ID.
 - **Allow cleartext traffic.** The plugin's manifest merges a network security
   config that permits it. If the app declares its own `networkSecurityConfig`,
   that config must permit cleartext too, or the manifest merge conflicts.
@@ -194,6 +198,22 @@ gate first does two things:
 - it gives Settings a privacy-options entry point:
   `ConsentGate.snapshot.privacyOptionsRequired`, then `showPrivacyOptions()`.
 
+**Seeing the form from outside a regulated region.** Appodeal's consent manager
+never passes debug settings to Google's User Messaging Platform, and Appodeal
+and Google each geolocate the device on their own, so a VPN can convince one
+and not the other. In a debug build, open Starter Kit Lab → Consent →
+**Preview consent form (EEA)**. It calls the platform directly with the EEA
+simulated. If it reports no form available, no consent message is published in
+AdMob for the app. The preview stores a real answer; **Reset consent** clears
+it.
+
+**What the networks see.** The answer reaches Appodeal and its networks as IAB
+strings (`IABTCF_TCString`, `IABTCF_gdprApplies`, `IABGPP_HDR_GppString`) in
+the app's default shared preferences, which the SDKs read for themselves. The
+app never passes them along. Starter Kit Lab → Consent → **Stored consent
+signals** shows them. Outside a regulated region the consent update at the next
+launch overwrites a preview's TC string.
+
 Consent is never wired to analytics.
 
 ## Analytics Contract
@@ -222,7 +242,7 @@ property.
 
 - [ ] `appodeal_app_key_android` / `appodeal_app_key_ios` in every `env/*.json`
 - [ ] Appodeal maven repository and network adapters in Gradle, with versions matching the plugin
-- [ ] AdMob App ID in the manifest when the AdMob adapter is included, with the sample ID for development
+- [ ] The app's real AdMob App ID in the manifest, in every build, when the AdMob adapter is included
 - [ ] iOS: Podfile sources, adapter pods, `GADApplicationIdentifier`, `SKAdNetworkItems`
 - [ ] No `google_mobile_ads`, `genrevibes_ads_admob*`, or `genrevibes_consent_ump` in the app
 - [ ] `ConsentGate(AppodealConsentProvider)` and `AppodealAdProvider` registered as deferred modules, consent first
@@ -230,4 +250,5 @@ property.
 - [ ] Banner rendered through `AppodealBannerView` with an app-owned `enabled`
 - [ ] One `ads.events` listener sends `ad_impression` (with `value`/`currency`) and `ad_click`
 - [ ] Development build shows `sdkTestMode: true` in Starter Kit Lab and test creatives on screen
-- [ ] Appodeal dashboard: networks enabled, UMP message configured
+- [ ] Appodeal dashboard networks enabled; consent messages published in AdMob → Privacy & messaging
+- [ ] Consent form verified from an EEA location (VPN) on a fresh install

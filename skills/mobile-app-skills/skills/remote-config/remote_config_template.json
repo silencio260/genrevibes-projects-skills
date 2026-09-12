@@ -119,6 +119,51 @@
           "valueType": "BOOLEAN"
         }
       }
+    },
+    "Splash Ad Group": {
+      "description": "The full-screen ad after the splash loader. Read by SplashAdPolicyKeys. AdMob disallows interstitials on app load and requires rewarded ads to be opted into; app_open is the launch format but Appodeal's Flutter plugin has none.",
+      "parameters": {
+        "splash_ad_format": {
+          "defaultValue": {
+            "value": "interstitial"
+          },
+          "description": "interstitial, rewarded, app_open or none. A format the app's ad provider does not serve shows nothing. Set none to take the splash ad off without a release.",
+          "valueType": "STRING"
+        },
+        "splash_ad_max_wait_seconds": {
+          "defaultValue": {
+            "value": "8"
+          },
+          "description": "The longest the splash waits for startup, the decision and the ad's load together, 1-30. An ad that has not loaded by then is skipped.",
+          "valueType": "NUMBER"
+        },
+        "splash_ad_on_first_launch": {
+          "defaultValue": {
+            "value": "true"
+          },
+          "description": "Whether a user's very first launch, before onboarding, gets the splash ad too.",
+          "valueType": "BOOLEAN"
+        }
+      }
+    },
+    "Exit Prompt Group": {
+      "description": "What Back does on the app's root screen. Read by ExitPromptPolicyKeys. Use a different value per A/B test arm.",
+      "parameters": {
+        "exit_prompt_style": {
+          "defaultValue": {
+            "value": "features_sheet"
+          },
+          "description": "features_sheet (default, no ad), offer_sheet, confirm_dialog, double_tap, none, or the ad styles ad_sheet and ad_dialog. Google Play's ads policy treats ads triggered by features designed for exiting the app as disruptive, so the ad styles are for deliberate tests. A style missing what it needs (an ad for a premium user, say) falls back to confirm_dialog.",
+          "valueType": "STRING"
+        },
+        "exit_prompt_exit_button": {
+          "defaultValue": {
+            "value": "standard"
+          },
+          "description": "standard (readable) or dimmed (muted grey). dimmed steers taps to the ad and risks accidental-click penalties; test it on a small share.",
+          "valueType": "STRING"
+        }
+      }
     }
   }
 }

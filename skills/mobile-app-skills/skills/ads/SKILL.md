@@ -186,10 +186,11 @@ AppodealNativeAdView(
   ),
 )
 
-// Native callbacks are not on ads.events. Send them through the same listener:
+// Native callbacks are not on ads.events. Send them through the same listener,
+// once for every native placement:
 if (ads is AppodealAdProvider) {
   AppodealNativeAds.instance
-      .adEvents(AppPlacements.onboardingNative)
+      .attributedAdEvents(fallback: AppPlacements.onboardingNative)
       .listen(trackAdEvent);
 }
 ```
@@ -208,6 +209,25 @@ if (ads is AppodealAdProvider) {
   `placeholder: AppodealNativeAdPlaceholder(style: style)`, so nothing moves
   when the ad loads.
 - Onboarding with a native ad: see the **onboarding** skill.
+- **More than one native placement:** listen once with
+  `attributedAdEvents(fallback:)`. Appodeal's native callbacks are app-wide;
+  it attributes each to the placement whose view asked for or took the ad. An
+  `adEvents(placement)` listener per placement counts every callback once per
+  listener.
+
+### Splash and exit
+
+- **Splash ad:** the full-screen ad after the launch loader. See
+  **splash-screen** (`SplashFlow`, `splash_ad_format`). Its placements
+  (`splash_interstitial`, `splash_rewarded`) are configured on the provider but
+  left out of `AdsRemotePolicyBinder`, and home requests no interstitial on
+  open. AdMob disallows interstitials on app load and requires rewarded ads to
+  be opted into; app open is the launch format, and Appodeal's Flutter plugin
+  4.2.0 has none.
+- **Exit prompt:** no ad by default (`features_sheet`). Google Play's ads
+  policy treats ads triggered by exiting the app as disruptive; `ad_sheet` and
+  `ad_dialog` remain for deliberate tests. See **exit-prompt**. Placement
+  `exit_native`, preloaded only when an ad style is selected.
 
 ## Test Ads (mandatory)
 
@@ -300,7 +320,8 @@ property.
 - **IAP**: premium users load and see no ads (`AdCoordinator.setPremium`).
 - **Consent**: gathered before the ads module starts.
 - **Developer access**: decides test mode.
-- **Remote config**: interstitial pacing (`AdsPolicyKeys`).
+- **Remote config**: interstitial pacing (`AdsPolicyKeys`), the splash ad
+  (`SplashAdPolicyKeys`), the exit prompt (`ExitPromptPolicyKeys`).
 
 ## Checklist
 
@@ -312,7 +333,8 @@ property.
 - [ ] `ConsentGate(AppodealConsentProvider)` and `AppodealAdProvider` registered as deferred modules, consent first
 - [ ] `testMode` comes from `DeveloperAccessController`, and the `setTestMode` listener is wired
 - [ ] Banner rendered through `AppodealBannerView` with an app-owned `enabled`
-- [ ] Native placements rendered through `AppodealNativeAdView`, and `AppodealNativeAds.adEvents` sent through the ad analytics listener
+- [ ] Native placements rendered through `AppodealNativeAdView`, and `AppodealNativeAds.attributedAdEvents` sent once through the ad analytics listener
+- [ ] Splash placements left out of the pacing binder; `exit_native` preloaded only for an ad exit style
 - [ ] One `ads.events` listener sends `ad_show`, `ad_impression` (with `value`/`currency`) and `custom_ad_click`
 - [ ] Development build shows `sdkTestMode: true` in Starter Kit Lab and test creatives on screen
 - [ ] Appodeal dashboard networks enabled; consent messages published in AdMob → Privacy & messaging

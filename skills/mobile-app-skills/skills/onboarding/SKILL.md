@@ -122,7 +122,7 @@ OnboardingFlow(
   penalize; watch for a high click rate with poor conversion.
 - **Placement.** Add `AdPlacement(id: 'onboarding_native', format:
   AdFormat.native)` to the Appodeal configuration and to the app's placement
-  list, and send `AppodealNativeAds.instance.adEvents(placement)` through the ad
+  list, and send `AppodealNativeAds.instance.attributedAdEvents(fallback: placement)` through the ad
   analytics listener.
 
 ## Interaction Map

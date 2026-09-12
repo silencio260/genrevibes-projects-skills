@@ -83,7 +83,7 @@ Starter-kit / shared events:
 - `retention_day_0_returned`, `retention_day_1_returned`, `retention_day_3_returned`, `retention_day_7_returned`, `retention_day_10_returned`, `retention_day_15_returned`, `retention_day_20_returned`, `retention_day_25_returned`, `retention_day_30_returned`
 - `retention_first_open` through `retention_fifth_open`
 - `retention_first_session` through `retention_fifth_session`
-- `ad_impression`, `ad_revenue`, `ad_click`
+- `ad_impression`, `ad_revenue`, `custom_ad_click` (never `ad_click`, which Firebase reserves)
 
 App-layer feature events:
 - Feature usage such as `search_performed`, `drawer_opened`, `mini_app_open`

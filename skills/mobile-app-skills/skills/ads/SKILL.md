@@ -225,10 +225,12 @@ counts every impression twice.
 | Event | Trigger | Parameters |
 |---|---|---|
 | `ad_impression` | `AdEventType.paid` | `ad_platform`, `ad_source` (winning network), `ad_format`, `ad_unit_name`, `value`, `currency`, `value_micros` |
-| `ad_click` | `AdEventType.clicked` | `ad_type` (`banner`, `interstitial`, `rewarded`) |
+| `custom_ad_click` | `AdEventType.clicked` | `ad_type` (`banner`, `interstitial`, `rewarded`) |
 
 `value` and `currency` on `ad_impression` are what Firebase counts as ad
-revenue. Filter developers' own sessions out with the `developer_access` user
+revenue. The click event is `custom_ad_click`, never `ad_click`: Firebase
+reserves that name, and `firebase_analytics` throws on it, so it would reach
+every sink except Firebase. Filter developers' own sessions out with the `developer_access` user
 property.
 
 ## Interaction Map
@@ -248,7 +250,7 @@ property.
 - [ ] `ConsentGate(AppodealConsentProvider)` and `AppodealAdProvider` registered as deferred modules, consent first
 - [ ] `testMode` comes from `DeveloperAccessController`, and the `setTestMode` listener is wired
 - [ ] Banner rendered through `AppodealBannerView` with an app-owned `enabled`
-- [ ] One `ads.events` listener sends `ad_impression` (with `value`/`currency`) and `ad_click`
+- [ ] One `ads.events` listener sends `ad_impression` (with `value`/`currency`) and `custom_ad_click`
 - [ ] Development build shows `sdkTestMode: true` in Starter Kit Lab and test creatives on screen
 - [ ] Appodeal dashboard networks enabled; consent messages published in AdMob → Privacy & messaging
 - [ ] Consent form verified from an EEA location (VPN) on a fresh install

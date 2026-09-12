@@ -68,11 +68,13 @@ No extra code needed after ads are initialized correctly. AdMob paid callbacks m
 
 ### Ad Clicks (Auto-Wired)
 
-Ad click callbacks must emit the exact `ad_click` event to Firebase and Mixpanel/PostHog with:
+Ad click callbacks must emit the exact `custom_ad_click` event to Firebase and Mixpanel/PostHog with:
 
 ```dart
 {'ad_type': 'banner' | 'native' | 'interstitial' | 'rewarded' | 'app_open'}
 ```
+
+Never `ad_click`. Firebase reserves it for the clicks it collects from AdMob itself, and `firebase_analytics` throws `Event name is reserved and cannot be used`, so the event reaches every sink except Firebase.
 
 Banner/native widgets should call `AdsRepository.recordAdClick(...)` from `onAdClicked`. Full-screen ads should call the repository click listener from `FullScreenContentCallback.onAdClicked`.
 
@@ -90,9 +92,11 @@ When a user asks to add "the standard Firebase/Mixpanel events" or refers to the
 | `app_remove` | Firebase automatic uninstall signal | Not client-side trackable after uninstall | Cannot be emitted by app code after uninstall; Mixpanel requires backend/push-provider uninstall detection. |
 | `ad_impression` | `logAdImpression` | Usually `ad_revenue` | Firebase event name is `ad_impression`; Mixpanel revenue event is `ad_revenue`. |
 | `ad_revenue` | Not the Firebase event name | Custom Mixpanel/PostHog event | Fired from AdMob `onPaidEvent`. |
-| `ad_click` | Custom event | Custom event | Fired from AdMob click callbacks. |
+| `custom_ad_click` | Custom event | Custom event | Fired from ad click callbacks. `ad_click` itself is reserved by Firebase. |
 | `notification_receive` | Firebase/FCM automatic only if FCM is integrated | Custom mirror if implemented | Do not claim this exists unless push notification handling is wired. |
 | `in_app_purchase` / subscription renewals | Provider/Firebase integration dependent | Custom mirror if IAP provider wired | Do not claim this exists without real IAP purchase/renewal callbacks. |
+
+**Firebase reserved event names.** `firebase_analytics` throws on these, so an event named with one fails for Firebase while every other sink accepts it: `ad_activeview`, `ad_click`, `ad_exposure`, `ad_query`, `ad_reward`, `adunit_exposure`, `app_background`, `app_clear_data`, `app_exception`, `app_remove`, `app_store_refund`, `app_store_subscription_cancel`, `app_store_subscription_convert`, `app_store_subscription_renew`, `app_uninstall`, `app_update`, `app_upgrade`, `dynamic_link_app_open`, `dynamic_link_app_update`, `dynamic_link_first_open`, `error`, `first_open`, `first_visit`, `in_app_purchase`, `notification_dismiss`, `notification_foreground`, `notification_open`, `notification_receive`, `os_update`, `session_start`, `session_start_with_rollout`, `user_engagement` (from `firebase_analytics` 11.6.0). The `firebase_`, `google_` and `ga_` prefixes are reserved too. Prefix a clashing name with `custom_`, as `custom_ad_click` does.
 
 For launcher apps that observe other apps being installed or removed, track privacy-safe app-management events without package names:
 

@@ -59,7 +59,18 @@ Malformed entries are ignored individually; one typo never voids a list.
 
 **Getting a phone's hash:** unlock with the passcode (or run a dev build), then
 Settings → Developer Options → **Copy Developer Device Hash**, or Starter Kit
-Lab → **Developer access** → Copy device hash.
+Lab → **Developer access**. That page shows the unhashed device ID (Android app
+set ID, iOS identifierForVendor), the device hash, and the advertising ID on
+screen, each with its own copy button. Only the hash goes in a list; the raw ID
+is shown there for checking, never for listing.
+
+**Getting a phone's advertising ID:** the same Lab page shows the Google
+advertising ID (Android) or IDFA (iOS) with **Copy advertising ID**, for
+registering the phone as a test device in an ad network. Pass
+`DevToolsHost(advertisingId: const PlatformAdvertisingIdSource())`. It is read
+only when the page asks, never stored, logged or sent, and never used for
+access. It is absent when the user deleted it or turned ad personalisation off
+(Android), or has not allowed tracking (iOS).
 
 ## Passcode unlock
 
@@ -149,7 +160,8 @@ UI:
 - Wrap the Settings title in `DeveloperUnlockGesture`.
 - Show the developer section with a `StreamBuilder` on `developerAccess.changes`
   when `isGranted`, never on a build flag.
-- Add a "Copy Developer Device Hash" row to that section.
+- Add a "Copy Developer Device Hash" row to that section, and a "Copy
+  Advertising ID" row reading `PlatformAdvertisingIdSource` on tap.
 - Pass `developerAccess` to `DevToolsHost`.
 - Gate any debug override (such as dev premium) on `isGranted`, not on
   `kDebugMode`.

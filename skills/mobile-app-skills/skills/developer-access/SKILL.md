@@ -149,6 +149,8 @@ void follow(DeveloperAccess access) {
   if (ads case final AdTestModeProvider testable) {
     unawaited(testable.setTestMode(access.servesTestAds));
   }
+  // Developers see the system navigation bar on every screen (immersive-ui skill).
+  navigationBar.setDeveloperMode(access.isGranted);
   unawaited(analytics.setUserProperties({'developer_access': access.reason.name}));
 }
 follow(developerAccess.current);
@@ -193,4 +195,5 @@ production analytics.
 - [ ] `developer_passcode` and `developer_device_hashes` present in every `env/*.json`
 - [ ] Ads follow access: provider `testMode` + `setTestMode` listener; on Appodeal, a mid-session change verified to hide ads until relaunch
 - [ ] Developer section and debug overrides gated on `isGranted`, not build flags
+- [ ] `NavigationBarController.setDeveloperMode(access.isGranted)` in the listener, so developers see the navigation bar everywhere
 - [ ] Passcode never logged; grant is session-only; lockout verified on device

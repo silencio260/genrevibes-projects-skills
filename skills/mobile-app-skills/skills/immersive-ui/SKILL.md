@@ -34,6 +34,7 @@ This skill defines the mandatory implementation pattern for achieving premium, e
 ### 5. Preference for Dart-Only Fixes
 - Prioritize Flutter/Dart solutions (like those above) for UI immersion.
 - Avoid modified native Android/Kotlin code unless the Dart-only approach is technically impossible on a specific platform version.
+- Hiding the navigation bar is that case: use the kit's `genrevibes_system_ui` (see "Hiding the Navigation Bar" below), never `SystemChrome`.
 
 ## Usage Scenarios
 
@@ -48,6 +49,35 @@ This skill defines the mandatory implementation pattern for achieving premium, e
 ### Scenario C: Nested Interactive Elements
 - **Applicable for**: Specific small widgets (like a "Close" button in a corner) that need to be "safe" without affecting the rest of the screen's layout.
 - **Technique**: You may use a targeted `SafeArea` *inside* the widget hierarchy for that specific element only.
+
+## Hiding the Navigation Bar
+
+GenRevibes apps hide the Android navigation bar — the back, home and recents
+buttons, or the gesture handle — on every screen by default, with the starter
+kit's `genrevibes_system_ui`. Do not use `SystemChrome.setEnabledSystemUIMode`
+for it: without Android's immersive behavior the first touch brings the bar
+back for good. The kit's plugin hides it so a swipe from the bottom edge shows
+it for a moment and it hides again by itself. The status bar stays.
+
+- **Wiring.** `NavigationBarController(store: store, logger: logger)`
+  registered as a kit module; `navigationBar.setDeveloperMode(access.isGranted)`
+  in the developer access listener; `NavigationBarScope` above `MaterialApp`;
+  `navigationBar.observer` in `navigatorObservers`; `navigationBar:` on
+  `DevToolsHost`.
+- **A screen that needs the bar** wraps itself:
+  `NavigationBarVisibility(visible: true, child: Scaffold(...))`. The request
+  lasts while that screen is on top; dialogs and sheets keep the bar of the
+  screen under them. Central alternative: `routes: {Routes.player: true}` on
+  the controller.
+- **Developers** see the bar on every screen while Starter Kit Lab → Navigation
+  bar → "Show on every screen" is on (on by default, remembered on the device).
+  Turn it off to check the app the way users see it.
+- **Layout.** A hidden bar takes no space, so `MediaQuery.padding.bottom`
+  shrinks and bottom content moves down. Pad with `MediaQuery` (rule 2), never a
+  fixed inset. With three-button navigation, Back is hidden too: every pushed
+  screen needs its own back control.
+- Keep `SystemUiMode.edgeToEdge` and the transparent navigation bar color in
+  `main()`; they cover the moments the bar is shown.
 
 ---
 

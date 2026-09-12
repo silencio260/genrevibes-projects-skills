@@ -91,6 +91,7 @@ When a user asks to add "the standard Firebase/Mixpanel events" or refers to the
 | `user_engagement` | Firebase automatic | Optional custom mirror | Usually leave Firebase-only unless product analytics needs a custom engagement event. |
 | `app_remove` | Firebase automatic uninstall signal | Not client-side trackable after uninstall | Cannot be emitted by app code after uninstall; Mixpanel requires backend/push-provider uninstall detection. |
 | `ad_impression` | `logAdImpression` | Usually `ad_revenue` | Firebase event name is `ad_impression`; Mixpanel revenue event is `ad_revenue`. |
+| `ad_show` | Custom event | Custom event | Every ad shown, from any network. `ad_impression` needs the winning network to report revenue, so only this counts impressions. |
 | `ad_revenue` | Not the Firebase event name | Custom Mixpanel/PostHog event | Fired from AdMob `onPaidEvent`. |
 | `custom_ad_click` | Custom event | Custom event | Fired from ad click callbacks. `ad_click` itself is reserved by Firebase. |
 | `notification_receive` | Firebase/FCM automatic only if FCM is integrated | Custom mirror if implemented | Do not claim this exists unless push notification handling is wired. |

@@ -225,12 +225,29 @@ counts every impression twice.
 | Event | Trigger | Parameters |
 |---|---|---|
 | `ad_impression` | `AdEventType.paid` | `ad_platform`, `ad_source` (winning network), `ad_format`, `ad_unit_name`, `value`, `currency`, `value_micros` |
+| `ad_show` | `AdEventType.impression` | `ad_platform`, `ad_format`, `placement` |
 | `custom_ad_click` | `AdEventType.clicked` | `ad_type` (`banner`, `interstitial`, `rewarded`) |
 
 `value` and `currency` on `ad_impression` are what Firebase counts as ad
 revenue. The click event is `custom_ad_click`, never `ad_click`: Firebase
 reserves that name, and `firebase_analytics` throws on it, so it would reach
-every sink except Firebase. Filter developers' own sessions out with the `developer_access` user
+every sink except Firebase.
+
+**`ad_impression` fires only when the winning network reports revenue.**
+Appodeal calls its revenue callback only when the adapter of the network that
+served the ad reports impression-level revenue. In Appodeal 4.2.0 on Android:
+
+- **Report revenue:** AdMob (only with impression-level ad revenue enabled in
+  the AdMob account), AppLovin MAX, BidMachine, Bidon, BIGO Ads, DT Exchange,
+  InMobi, LevelPlay, MobileFuse, Yandex.
+- **Never report it:** Amazon, AppLovin, Chartboost, IronSource, Meta,
+  Mintegral, Moloco, myTarget, Ogury, PubMatic, Smaato, Start.io, TaurusX,
+  Unity Ads, Verve, Vungle, and the IAB adapter that serves test ads.
+
+So test mode never produces `ad_impression`, and in production Firebase ad
+revenue is only as complete as the winners' reporting. `ad_show` fires for
+every ad shown, from any network, and is what counts impressions. The adapter
+logs each revenue report it receives, and any it cannot attribute. Filter developers' own sessions out with the `developer_access` user
 property.
 
 ## Interaction Map
@@ -250,7 +267,7 @@ property.
 - [ ] `ConsentGate(AppodealConsentProvider)` and `AppodealAdProvider` registered as deferred modules, consent first
 - [ ] `testMode` comes from `DeveloperAccessController`, and the `setTestMode` listener is wired
 - [ ] Banner rendered through `AppodealBannerView` with an app-owned `enabled`
-- [ ] One `ads.events` listener sends `ad_impression` (with `value`/`currency`) and `custom_ad_click`
+- [ ] One `ads.events` listener sends `ad_show`, `ad_impression` (with `value`/`currency`) and `custom_ad_click`
 - [ ] Development build shows `sdkTestMode: true` in Starter Kit Lab and test creatives on screen
 - [ ] Appodeal dashboard networks enabled; consent messages published in AdMob → Privacy & messaging
 - [ ] Consent form verified from an EEA location (VPN) on a fresh install

@@ -197,10 +197,16 @@ if (ads is AppodealAdProvider) {
 - Auto-cache is off for native. The view asks the provider to load an ad when
   none is cached and appears on the next load.
 - One view shows one ad for as long as it stays mounted. Keep it on screen
-  across page changes to count one impression.
+  across page changes to count one impression, or build a new view for a fresh
+  ad; `preloadNext: true` loads the next ad as soon as one is shown, so that
+  view appears at once.
 - Native revenue arrives on `ads.events` under the native placement, so
   `ad_impression` needs nothing extra.
 - Android only; elsewhere the view renders its placeholder.
+- Reserve the ad's space in layouts built around it: a box
+  `AppodealNativeAdStyle.resolvedHeight` tall, with
+  `placeholder: AppodealNativeAdPlaceholder(style: style)`, so nothing moves
+  when the ad loads.
 - Onboarding with a native ad: see the **onboarding** skill.
 
 ## Test Ads (mandatory)

@@ -94,6 +94,32 @@ OnboardingFlow(
 - **Layout.** The ad sits at the bottom with `controlsLayout: stacked` (dots
   above a centered Next), matching the portfolio design. Without an ad, use
   `row`.
+- **Whole screens, not a shared ad area.** Keep the default
+  `OnboardingPresentation.screens`: every page is a complete screen with its own
+  controls and its own ad, swiping in as a unit. A shared ad area that collapses
+  on pages without an ad reads as something missing and makes for bad UX.
+- **Edge-to-edge artwork.** Use `layout: OnboardingScreenLayout.edgeToEdge`
+  with artwork that covers (`BoxFit.cover`). The artwork runs across the top
+  under the status bar and takes the height the title, description, controls
+  and ad leave: the top half of an ad screen, most of a screen without one.
+  Set `artworkFadeHeight` (around 40) so it melts into the page above the
+  title. Tall portrait artwork with `BoxFit.cover` gives the full-bleed photo
+  look; square illustrations look better uncropped on a tinted background that
+  fills the area.
+- **Reserve the ad's space.** Set `OnboardingAdSlot.reservedHeight` to the
+  ad's height (`AppodealNativeAdStyle.resolvedHeight`) and give the ad view
+  `placeholder: AppodealNativeAdPlaceholder(style: style)`. Every ad screen is
+  then laid out with the ad as part of its design from the first frame, shows
+  a quiet text-free card until the ad loads, and nothing moves when it does.
+  An ad added after the screen, pushing content aside, reads as an
+  afterthought. Only choose the ad presentation where native ads render
+  (`AppodealNativeAds.instance.isSupported`), or the reserved space stays empty.
+- **Alternate screens.** Give every other page `showAd: false`, so it is a
+  full-screen page and each ad screen gets a fresh ad. Set `preloadNext: true` on `AppodealNativeAdView` so the next
+  ad loads during the full-screen page and appears at once.
+- **Accidental clicks.** Keep a clear gap between Next and the ad. An ad right
+  under a button users tap quickly draws accidental clicks, which networks
+  penalize; watch for a high click rate with poor conversion.
 - **Placement.** Add `AdPlacement(id: 'onboarding_native', format:
   AdFormat.native)` to the Appodeal configuration and to the app's placement
   list, and send `AppodealNativeAds.instance.adEvents(placement)` through the ad

@@ -66,6 +66,8 @@ Read every `BuildContext` value before the first `await`.
 
 | Key | Default | Meaning |
 |---|---|---|
+| `splash_ad_enabled` | `true` | Launch-only kill switch; false skips the ad |
+| `splash_ad_provider` | `appodeal` | Registered provider ID; unknown IDs skip, never fall back |
 | `splash_ad_format` | `interstitial` | `interstitial`, `rewarded`, `app_open` or `none` |
 | `splash_ad_max_wait_seconds` | `8` | Budget for startup, the decision and the load, 1–30 |
 | `splash_ad_on_first_launch` | `true` | Whether the very first launch, before onboarding, gets it |
@@ -129,3 +131,18 @@ time; a long `wait_ms` on `shown` costs retention.
 - [ ] Home no longer requests an interstitial on open
 - [ ] `splash_ad_result` tracked and in the analytics catalogue
 - [ ] Splash Ad Group imported into Firebase Remote Config
+
+## Switching launch providers
+
+Register `SplashAdRegistry` at app composition, independently of the ordinary
+`AdProvider`. Resolve the configured provider and format through that registry.
+Story Saver initially registers only `appodeal`; `splash_app_open` is reserved
+for an integrated App Open adapter. Unknown IDs or unsupported formats skip.
+A remote value cannot install an SDK: ship and initialize the adapter first.
+The app owns each provider's consent, premium gating, analytics and disposal.
+Pass `SplashAdRequest.canRequest` to recheck premium, global ads, launch enabled,
+provider, format and first-launch settings before both load and show. Never
+fall back from an unavailable App Open format to a startup interstitial.
+Set `splash_ad_enabled=false` (or format `none`) to turn launch ads off. Changes
+apply after config fetch/activation, not instantly to offline installations,
+and do not dismiss an already visible ad. Do not publish config unless asked.

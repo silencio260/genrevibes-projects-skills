@@ -123,6 +123,16 @@
     "Splash Ad Group": {
       "description": "The full-screen ad after the splash loader. Read by SplashAdPolicyKeys. AdMob disallows interstitials on app load and requires rewarded ads to be opted into; app_open is the launch format but Appodeal's Flutter plugin has none.",
       "parameters": {
+        "splash_ad_enabled": {
+          "defaultValue": { "value": "true" },
+          "description": "Launch-ad kill switch only. False skips splash ads without disabling in-app placements. Applies after config is fetched and activated.",
+          "valueType": "BOOLEAN"
+        },
+        "splash_ad_provider": {
+          "defaultValue": { "value": "appodeal" },
+          "description": "Provider registered in SplashAdRegistry. Currently appodeal. Unknown providers skip the ad; new SDKs need an app release before selection.",
+          "valueType": "STRING"
+        },
         "splash_ad_format": {
           "defaultValue": {
             "value": "interstitial"

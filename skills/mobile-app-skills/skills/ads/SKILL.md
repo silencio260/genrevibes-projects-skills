@@ -164,6 +164,45 @@ The view follows provider health by itself. It renders nothing before the SDK
 initializes, or while a test-mode change waits for a relaunch. Banner callbacks
 and revenue arrive on `ads.events`, not on the view.
 
+### Native
+
+Appodeal's Flutter plugin cannot render native ads, so
+`genrevibes_ads_appodeal_native` does, with its own Android plugin, in
+Appodeal's `NativeAdView`. Configure a native placement on the provider like
+any other; the SDK initializes the native ad type with the rest.
+
+```dart
+static const onboardingNative =
+    AdPlacement(id: 'onboarding_native', format: AdFormat.native);
+
+AppodealNativeAdView(
+  provider: ads,
+  placement: AppPlacements.onboardingNative,
+  enabled: startupComplete && adsAllowed && !isPremium,
+  style: const AppodealNativeAdStyle(
+    layout: AppodealNativeAdLayout.medium, // or small, without media
+    titleColor: brand,
+    callToActionColor: brand,
+  ),
+)
+
+// Native callbacks are not on ads.events. Send them through the same listener:
+if (ads is AppodealAdProvider) {
+  AppodealNativeAds.instance
+      .adEvents(AppPlacements.onboardingNative)
+      .listen(trackAdEvent);
+}
+```
+
+- Auto-cache is off for native. The view asks the provider to load an ad when
+  none is cached and appears on the next load.
+- One view shows one ad for as long as it stays mounted. Keep it on screen
+  across page changes to count one impression.
+- Native revenue arrives on `ads.events` under the native placement, so
+  `ad_impression` needs nothing extra.
+- Android only; elsewhere the view renders its placeholder.
+- Onboarding with a native ad: see the **onboarding** skill.
+
 ## Test Ads (mandatory)
 
 A live ad requested from a development build, or tapped on a developer's own
@@ -267,6 +306,7 @@ property.
 - [ ] `ConsentGate(AppodealConsentProvider)` and `AppodealAdProvider` registered as deferred modules, consent first
 - [ ] `testMode` comes from `DeveloperAccessController`, and the `setTestMode` listener is wired
 - [ ] Banner rendered through `AppodealBannerView` with an app-owned `enabled`
+- [ ] Native placements rendered through `AppodealNativeAdView`, and `AppodealNativeAds.adEvents` sent through the ad analytics listener
 - [ ] One `ads.events` listener sends `ad_show`, `ad_impression` (with `value`/`currency`) and `custom_ad_click`
 - [ ] Development build shows `sdkTestMode: true` in Starter Kit Lab and test creatives on screen
 - [ ] Appodeal dashboard networks enabled; consent messages published in AdMob → Privacy & messaging

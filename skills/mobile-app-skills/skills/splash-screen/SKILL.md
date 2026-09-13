@@ -146,3 +146,11 @@ fall back from an unavailable App Open format to a startup interstitial.
 Set `splash_ad_enabled=false` (or format `none`) to turn launch ads off. Changes
 apply after config fetch/activation, not instantly to offline installations,
 and do not dismiss an already visible ad. Do not publish config unless asked.
+
+## Story Saver first-use gate
+
+Launch ads wait for `SubscriptionManager.hasStatusFolderAccess`, set after a
+verified status-folder grant or restored valid access. Onboarding native ads
+have a separate screen-lifetime allowance. Premium, consent, remote configuration
+and active folder-picker suppression remain authoritative. First thumbnail
+rendering is an analytics milestone, not the ad eligibility trigger.

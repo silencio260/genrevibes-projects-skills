@@ -75,8 +75,11 @@ access. It is absent when the user deleted it or turned ad personalisation off
 ## Passcode unlock
 
 - **Gesture:** 7 taps within 3 seconds on the Settings title
-  (`DeveloperUnlockGesture`). Silent — no dialog, no hint — when access is
-  already granted or entry is locked out.
+  (`DeveloperUnlockGesture`) open the passcode page. Silent — no page, no
+  hint — when access is already granted or entry is locked out.
+- **Page, in the app's colors:** a full page, not a dialog. Pass
+  `DeveloperPasscodeTheme` with the Settings screen's colors, from the same
+  app-side style as the feedback page (Story Saver: `SettingsPageStyle`).
 - **Passcode:** `developer_passcode` in the env file. Portfolio env files set
   `"7722"`. A blank or missing value falls back to
   `DeveloperAccessDefaults.passcode` (`1234567`).
@@ -159,7 +162,8 @@ developerAccess.changes.listen(follow);
 
 UI:
 
-- Wrap the Settings title in `DeveloperUnlockGesture`.
+- Wrap the Settings title in `DeveloperUnlockGesture`, with `theme:` set to the
+  Settings screen's colors so the passcode page matches it.
 - Show the developer section with a `StreamBuilder` on `developerAccess.changes`
   when `isGranted`, never on a build flag.
 - Add a "Copy Developer Device Hash" row to that section, and a "Copy
@@ -182,8 +186,23 @@ production analytics.
 
 ## Verify
 
+**Testing the unlock in a debug build.** A development build grants access by
+itself, so the title taps do nothing there. Pass
+`--dart-define=developer_access_store_build=true` (read by `AppEnv`) to make
+developer access behave as in a store build while everything else stays a
+development build:
+
+```bash
+flutter run --dart-define-from-file=env/dev.json --dart-define=developer_access_store_build=true
+```
+
+The phone starts without access, and the taps and passcode work as in
+production. Ads stay on test inventory (`AppEnv.keepsTestAds`), so the debug
+run never requests live ads. Wrong attempts count towards the lockout; run once
+without the define to clear it. Release builds ignore the define.
+
 1. Store build, unlisted phone: Settings shows no developer section; ads are live.
-2. Tap the Settings title 7 times → passcode prompt. Enter the passcode → the
+2. Tap the Settings title 7 times → passcode page, in the Settings colors. Enter the passcode → the
    developer section appears, and on Appodeal every ad disappears for the rest
    of the session.
 3. Copy Developer Device Hash → add it to `developer_device_hashes` in Remote

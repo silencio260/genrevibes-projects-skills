@@ -72,6 +72,16 @@ it for a moment and it hides again by itself. The status bar stays.
 - **Developers** see the bar on every screen while Starter Kit Lab → Navigation
   bar → "Show on every screen" is on (on by default, remembered on the device).
   Turn it off to check the app the way users see it.
+- **Full-screen ads** are not Flutter screens: the ad SDK opens an activity of
+  its own, with its own window and both system bars. The controller shows every
+  such activity full screen from the moment it starts, before it is drawn: no
+  status bar and no navigation bar. The navigation bar shows over an ad only
+  while the developer switch above is on. Purchase, sign-in, Google Play,
+  notification and Flutter activities keep their bars
+  (`NavigationBarController.defaultOverlayExclusions`); add a class name prefix
+  to `overlayExclusions` for any other SDK screen that must keep them. Never
+  hide bars from an ad callback such as "shown": by then they have already
+  appeared.
 - **Layout.** A hidden bar takes no space, so `MediaQuery.padding.bottom`
   shrinks and bottom content moves down. Pad with `MediaQuery` (rule 2), never a
   fixed inset. With three-button navigation, Back is hidden too: every pushed

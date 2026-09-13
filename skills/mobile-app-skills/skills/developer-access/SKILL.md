@@ -165,6 +165,14 @@ UI:
 - Add a "Copy Developer Device Hash" row to that section, and a "Copy
   Advertising ID" row reading `PlatformAdvertisingIdSource` on tap.
 - Pass `developerAccess` to `DevToolsHost`.
+- Build `DeveloperAdSwitches(store:, access: developerAccess)`, `load()` it in
+  bootstrap, and pass it as `DevToolsHost.developerAdSwitches`. Starter Kit Lab
+  → Ads → Developer switches then turns interstitial, rewarded, app open,
+  native or banner ads off on that phone. Check `allows(format)` wherever the
+  app loads or shows that format: in-app interstitials, the splash ad, native
+  slots and their preloads, the exit prompt's ad, onboarding's native ad and
+  banners. Inline views listen to `changes` so they hide at once, taking no
+  space. The switches apply only while access is granted.
 - Gate any debug override (such as dev premium) on `isGranted`, not on
   `kDebugMode`.
 

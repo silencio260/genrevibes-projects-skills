@@ -209,6 +209,19 @@ if (ads is AppodealAdProvider) {
   `placeholder: AppodealNativeAdPlaceholder(style: style)`, so nothing moves
   when the ad loads.
 - Onboarding with a native ad: see the **onboarding** skill.
+- **Bottom natives instead of banners:** on main screens and full-screen media
+  viewers, a native in `Scaffold.bottomNavigationBar`. For click-through, the
+  `medium` card with the ad's image (media 120dp, Appodeal's minimum for
+  `NativeMediaView`; icon and CTA 48; about 319dp), which Story Saver shows
+  under image statuses. Where screen space matters more: `small` without media
+  (about 182dp; Story Saver's home and video statuses, or 153dp tightened) or
+  the `compact` one-row card (about 68dp). A style that follows the content,
+  such as image versus video, recreates the native view and takes a new ad on
+  each switch,
+  styled to match the screen (light on grids, dark on viewers), never a banner
+  overlaid on the content. The body then sits above the ad, floating actions
+  keep a clear gap from it, and the slot keeps the ad's space for every user
+  who can see ads (none for premium). Each screen has its own native placement.
 - **More than one native placement:** listen once with
   `attributedAdEvents(fallback:)`. Appodeal's native callbacks are app-wide;
   it attributes each to the placement whose view asked for or took the ad. An

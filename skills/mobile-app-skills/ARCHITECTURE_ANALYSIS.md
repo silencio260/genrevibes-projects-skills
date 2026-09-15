@@ -440,6 +440,31 @@ an equally explicit shared event contract, use the kit's event APIs, and add
 product events such as export completed or document opened. Do not invent paid
 amounts or assume a local dispatch proves remote reporting.
 
+Notification analytics uses an equally explicit contract. Every notification
+feature records that a notification was sent or posted, that the user opened it,
+and that the user can no longer be reached. Story Saver's current mapping:
+
+| Situation | App event | Meaning |
+|---|---|---|
+| Daily reminder posted (Android) | `local_notification_posted` with `campaign_id: daily_status_reminders` | `notify()` returned. It does not prove the user saw it. |
+| Daily reminder due but not posted | `daily_reminder_skipped` with `reason` | Notifications or the channel were blocked, or the alarm fired outside the three-hour delivery window. |
+| Local notification tapped | `local_notification_opened` | One event per tap, from a cold or warm start. |
+| Push tapped | `push_opened` | One event per message and action. |
+| Reminder switch turned off / on | `daily_reminders_unsubscribed` / `daily_reminders_enabled` | The user's choice inside the app. |
+| Reminder permission changed | `notification_permission_changed` | `allowed: false` means the OS permission was revoked. |
+| Android reminder channel changed | `notification_channel_changed` | The channel was blocked or unblocked in system settings. |
+| Push permission revoked | `push_permission_revoked`, plus `push_permission_changed` | The app had permission and now has `denied`. |
+| Push opt-out / opt-in | `push_unsubscribed` / `push_subscribed` | The provider subscription changed. |
+
+Operating systems do not tell an app when notifications are turned off in system
+settings. Save the last observed state and compare it at launch, on resume and,
+for Android reminders, when each alarm fires. The first observation is a baseline,
+not a change. iOS has no callback when it shows a scheduled local notification,
+so iOS reminders have open and permission events but no per-post event. Read the
+[push](skills/push-notifications/SKILL.md) and
+[local notifications](skills/local-notifications/SKILL.md) skills before changing
+these events.
+
 ### Remote config and session replay
 
 Build the shared portfolio schema and add only the app's extra keys/overrides.
@@ -531,6 +556,7 @@ this agents checkout is under the host's `agents` directory.
 | Exit UI | [HomeExitPrompt](../../../lib/features/home/presentation/widgets/home_exit_prompt.dart): shared config with app features, premium offer and remote style; default features sheet has no ad |
 | Local state | `MigratingKeyValueStore` over SharedPreferences for adopted kit state; app-specific direct preference users remain |
 | Other integrations | Crashlytics coordinator/hooks, device identity, retention, permission-handler provider, OneSignal, local notification scheduler, link/store actions, onboarding and navigation-bar controller |
+| Notifications | [DailyReminderService](../../../lib/features/notifications/daily_reminder_service.dart) owns the 11:00 and 18:00 local reminders; Android posts them from [DailyReminderReceiver.kt](../../../android/app/src/main/kotlin/com/genrevibes/whatsappstorysaver/DailyReminderReceiver.kt) without starting Flutter, and iOS schedules them through the tracked kit scheduler. [PushAnalyticsTracker](../../../lib/features/analytics/data/services/push_analytics_tracker.dart) owns OneSignal open, permission and subscription events. [TrackedLocalNotifications](../../../lib/features/analytics/data/services/tracked_local_notifications.dart) logs other local notification requests and taps |
 
 Onboarding is the required registered startup module; most other modules are
 optional for launch. Consent and ads are deferred in that order. Firebase is an
@@ -538,9 +564,12 @@ app preparation prerequisite outside that module list. Remote config and replay
 preferences are initialized early so PostHog setup sees their cached/default
 plan. Registration is therefore not the whole initialization story.
 
-Retention `recordAppOpen()` is launched near the end of bootstrap. The current
-root lifecycle listener tracks lifecycle events and refreshes notification timezone
-on resume; it is not a complete example of a custom resumed-session counting policy.
+Retention `recordAppOpen()` is launched near the end of bootstrap. After the first
+app frame, `main.dart` starts deferred modules, records the startup push state,
+initializes daily reminders and drains queued analytics. The root lifecycle
+listener tracks lifecycle events and, on resume, drains queued analytics and
+refreshes the notification timezone, push analytics state and daily reminders.
+It is not a complete example of a custom resumed-session counting policy.
 The Lab currently calls the same schema-building function again for its schema
 description; it reuses the actual remote coordinator. For a new composition,
 passing the already-built schema instance makes shared configuration ownership explicit.
@@ -603,6 +632,18 @@ the runtime scheduler. “One instance” means one per owning runtime/isolate, 
 one Dart object shared across independent isolates. Use this pattern only for
 apps with background work, and define their own tasks, permissions and data access.
 
+Android daily reminders are a third lifecycle. `DailyReminderReceiver` runs from
+an alarm, boot, app update, or clock/timezone change without starting Flutter. It
+reads the configuration Dart last saved through the `story_saver/daily_reminders`
+method channel (switch, analytics consent and text), posts or skips the reminder,
+schedules the next alarm, and writes analytics events as JSON files into the same
+`analytics_pending` queue that WorkManager uses. Those events reach Firebase and
+PostHog on the next launch, resume or reminder tap. `MainActivity` records a tap
+natively; Home then consumes it through `takePendingOpen()` on a cold start or the
+service's `opens` stream while running, and shows the Statuses tab. Use a native
+receiver like this only when a campaign must post while the app is closed and the
+kit scheduler cannot keep the repeat alive after process death.
+
 ## 15. Extending the portfolio baseline
 
 The baseline does not exhaust the likely app needs. Add these integrations when
@@ -612,7 +653,7 @@ the product requires them; retain the same contract/adapter/runtime boundaries.
 |---|---|
 | Account sign-in | [Auth](skills/auth/SKILL.md): selected neutral auth adapter; connect account changes to analytics, purchases and app data explicitly. |
 | Profile/backend data | [Profile](skills/profile/SKILL.md), [Firebase infrastructure](skills/firebase-infrastructure/SKILL.md): app-owned records/rules and repository models over selected adapters. |
-| Push and reminders | [Push](skills/push-notifications/SKILL.md), [local notifications](skills/local-notifications/SKILL.md): provider/scheduler plus permission, identity, channel/timezone, campaign and tap-routing ownership. |
+| Push and reminders | [Push](skills/push-notifications/SKILL.md), [local notifications](skills/local-notifications/SKILL.md): provider/scheduler plus permission, identity, channel/timezone, campaign and tap-routing ownership. Log each send or post, each open, and each opt-out or permission revocation (section 12); Story Saver's daily reminders are the scheduled-campaign example (section 14). |
 | Device permissions | [Permissions](skills/permissions/SKILL.md): shared coordinator for generic requests; app-owned resource grants for specialized access. |
 | External links | [Deep linking](skills/deep-linking/SKILL.md), [navigation](skills/navigation/SKILL.md): validate input and apply access checks before app routing. |
 | Offline data | [Offline caching](skills/offline-caching/SKILL.md), [storage migration](skills/storage-migration/SKILL.md): feature cache/pagination policy over suitable storage, preserving formats and history. |

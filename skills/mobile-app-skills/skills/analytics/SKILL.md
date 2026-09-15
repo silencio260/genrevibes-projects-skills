@@ -31,6 +31,14 @@ For ads, track shown callbacks separately from paid callbacks. Use
 and currency only when supplied by the provider. Avoid titles, message bodies,
 form contents, tokens, and arbitrary notification payloads in event properties.
 
+For every notification feature, log three outcomes: the notification was sent or
+posted, the user opened it, and the user can no longer be reached (in-app switch
+turned off, OS permission revoked, Android channel blocked, or provider
+unsubscribed). Operating systems do not tell the app about settings changes, so
+compare a saved state on launch and resume. Event names and owners are in
+[push notifications](../push-notifications/SKILL.md#log-push-engagement-and-opt-out)
+and [local notifications](../local-notifications/SKILL.md#log-what-happens-to-every-reminder).
+
 Use Kit Lab's delivery observer to inspect dispatch/results. Provider dashboards
 can lag; distinguish local dispatch, provider acceptance, and remote reporting.
 Check current SDK diagnostics for provider delivery problems instead of adding
@@ -68,6 +76,18 @@ across versions so dashboards remain comparable.
 Identity changes are runtime events, not screen lifecycle events. Register their
 listener once and dispose it once. Rebuilding a profile page must not attach
 another purchase, identity, or notification analytics listener.
+
+### Events recorded outside the Flutter runtime
+
+A WorkManager isolate, or an Android receiver running without Flutter, has no
+pipeline. Write each event to the app's pending queue instead: one JSON file with
+`name`, `occurred_at` (ISO-8601 UTC) and `properties`, written as `.tmp` and then
+renamed to `.json` so a half-written file is never read. In Story Saver the queue
+is `analytics_pending` under `getApplicationSupportDirectory()`, which is
+`filesDir` on Android. `AnalyticsService.drainPending()` sends the files on launch
+and resume, keeps the original time in `event_occurred_at`, and discards files
+older than seven days. Check collection consent before writing; do not queue
+events the user declined.
 
 ## Package references
 

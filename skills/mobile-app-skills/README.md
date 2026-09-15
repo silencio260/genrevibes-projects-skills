@@ -81,7 +81,7 @@ panel implementation is needed for each app.
 | [image-generation](skills/image-generation/SKILL.md) | Implement an app feature for image generation, results, and history through its backend. |
 | [immersive-ui](skills/immersive-ui/SKILL.md) | Configure edge-to-edge layout and optional kit navigation-bar controls. |
 | [kit-lab](skills/kit-lab/SKILL.md) | Connect the shared developer section, Kit Lab, logs, module health, and controls. |
-| [local-notifications](skills/local-notifications/SKILL.md) | Schedule local notifications and handle taps, timezones, and campaign ownership. |
+| [local-notifications](skills/local-notifications/SKILL.md) | Schedule local notifications and daily campaigns; handle taps, timezones, campaign ownership, and post/open/opt-out analytics. |
 | [localization](skills/localization/SKILL.md) | Localize app and shared kit labels using the app existing translation system. |
 | [logging](skills/logging/SKILL.md) | Connect structured kit logs and the shared Kit Lab recorder. |
 | [navigation](skills/navigation/SKILL.md) | Connect kit screens and external actions to the app router. |
@@ -91,7 +91,7 @@ panel implementation is needed for each app.
 | [permissions](skills/permissions/SKILL.md) | Request and recheck app permissions through the kit permission coordinator. |
 | [profile](skills/profile/SKILL.md) | Implement app-owned profile data using the selected database adapter. |
 | [project-structure](skills/project-structure/SKILL.md) | Organize Flutter app code while keeping shared kit packages separate. |
-| [push-notifications](skills/push-notifications/SKILL.md) | Connect OneSignal or another push provider with identity, permission, and tap routing. |
+| [push-notifications](skills/push-notifications/SKILL.md) | Connect OneSignal or another push provider with identity, permission, tap routing, and open/opt-out analytics. |
 | [quota-rate-limiting](skills/quota-rate-limiting/SKILL.md) | Implement app-owned usage limits with authoritative backend enforcement. |
 | [remote-config](skills/remote-config/SKILL.md) | Connect typed remote configuration, refresh, shared policy binders, and Kit Lab controls. |
 | [runtime-setup](skills/runtime-setup/SKILL.md) | Connect kit modules with bounded startup, deferred prompts, cleanup, and retry. |

@@ -1,132 +1,54 @@
 ---
 name: exit-prompt
-description: What Android Back does on a GenRevibes app's root screen — the starter kit's ExitGuard with remote-configured styles (native ad sheet, ad dialog, features sheet, offer sheet, plain confirmation, double tap, none) for A/B testing. Read before changing how an app exits.
+description: "Configure shared Android root-back behavior without duplicating exit dialogs."
 ---
 
-# Exit Prompt
+# Exit prompt
 
-## Overview
+Use `ExitGuard` around the root screen. The app supplies current config, labels,
+features, offers, and callbacks; nested routes retain normal Back behavior.
 
-`genrevibes_exit_prompt` replaces `double_tap_to_exit` and hand-written exit
-dialogs. `ExitGuard` wraps the root screen and, on Back, shows the style its
-config resolves. The style comes from remote config, so each variant is an A/B
-test arm in Firebase, not a release.
+- Read policy when Back is pressed so access and remote settings are current.
+- Shared styles include features/offer sheets, confirmation, double tap, none,
+  and ad variants. Missing required content falls back to confirmation.
+- Keep the default readable exit action. Do not recommend dimming Exit to steer
+  taps toward an ad or an offer.
+- Add ads only when deliberately requested and compatible with current platform
+  and network rules. The existence of an ad style is not a reason to enable it.
+- If an ad style is used, load only when selected and eligible, reserve its space,
+  and apply the common premium/developer/provider gates.
+- Pass the app's exit configuration to Kit Lab for preview. Preview must report
+  the action without closing the real app.
 
-The package is ad-agnostic: an ad is an `ExitPromptAd` (a builder and the
-height kept for it). A GenRevibes app passes `AppodealNativeAdView` (see
-**ads**, "Native").
+Use `onShown` and `onResult` once for analytics. Check rapid Back presses,
+missing content, changed premium state, and navigation to a featured destination.
+Do not force Android exit behavior onto iOS.
 
-## Styles
+## Place the guard at the actual navigation root
 
-| `exit_prompt_style` | Shows | Needs |
-|---|---|---|
-| `ad_sheet` | Bottom sheet: native ad above a full-width Exit bar | an ad |
-| `ad_dialog` | Dialog: exit question, native ad, Exit and Cancel | an ad |
-| `features_sheet` (default) | Tall sheet: feature carousel with Try Now buttons, the exit question, Exit and Cancel; no ad in portfolio apps | features |
-| `offer_sheet` | Dark sheet: one offer (premium, or "set as default" for a browser), its button, Exit under it | an offer |
-| `confirm_dialog` | Dialog: title, message, Exit and Cancel | — |
-| `double_tap` | "Press back again to exit", then exit on a second Back | — |
-| `none` | Back closes the app | — |
+Wrap the screen that owns Android root-back behavior, not every nested page.
+A detail page should return to its parent normally. Supply current configuration
+through the supported callback/state mechanism so changes in entitlements or
+remote policy are reflected on the next Back action.
 
-A style missing what it needs falls back to `confirm_dialog`: a premium user
-never gets an ad style, and a premium user on `offer_sheet` gets no offer.
+For each chosen style, provide the required content and callbacks. A feature
+sheet needs destinations that exist in this app; an offer needs the intended
+purchase flow; an ad variant needs an integrated eligible placement. Rely on the
+shared fallback for missing content instead of showing an empty sheet.
 
-`exit_prompt_exit_button`: `standard` (readable, default) or `dimmed` (muted
-grey, still labeled and working).
+Prevent concurrent prompts while one is active. When a user chooses a feature,
+close the prompt and navigate once through the app router. When previewed from
+Kit Lab, report the chosen action without invoking the real platform exit.
+Keep analytics at the shared shown/result callbacks so every button does not
+send duplicate outcome events.
 
-Pick per app type: `features_sheet` for apps with several features users miss
-(tools, utilities), `offer_sheet` for apps with one strong upsell, `ad_sheet`
-or `ad_dialog` for content apps, `double_tap` for apps where interruptions hurt
-(editors, games in progress).
+When adapting another app, choose the style, copy, destinations, and platform
+scope. Reuse the guard's behavior. Do not copy a media-saving app's offers or
+Android exit behavior into unrelated products or iOS.
 
-## Wiring
+## Package references
 
-```dart
-// home screen
-ExitGuard(
-  config: (context) => HomeExitPrompt.config(
-    context,
-    openGallery: () => tabController.animateTo(2),
-    openBusinessMode: () => switchBusinessMode(),
-  ),
-  onShown: (style) => AnalyticsService.track('exit_prompt_shown', {'style': style.wireName}),
-  onResult: (result) => AnalyticsService.track('exit_prompt_action', {
-    'style': result.style.wireName,
-    'action': result.action.name,
-    if (result.targetId case final target?) 'target': target,
-  }),
-  child: rootScreen,
-)
-```
+Read the public API and setup for the packages used by this task:
 
-`HomeExitPrompt.config` (app-owned, `features/home/presentation/widgets/`)
-reads `ExitPromptPolicyKeys.style` and `.exitButton`, and builds the ad, the
-features, the offer, the labels and the theme. `config` runs on every Back, so
-premium and remote config are always current.
-
-## The ad
-
-- **Only `ad_sheet` and `ad_dialog` carry an ad.** Pass `ad` only when the
-  requested style `needsAd`; the default `features_sheet` is built without one.
-- Placement `AdPlacement(id: 'exit_native', format: AdFormat.native)` in the
-  Appodeal configuration and `AppPlacements.all`.
-- Only for a user ads are allowed for: not premium, `SubscriptionManager().adsAllowed`,
-  `ads_enabled`, and `AppodealNativeAds.instance.isSupported`. Otherwise `ad`
-  is null and the style falls back.
-- **Preload** after `deferredStartupComplete` when the style uses an ad
-  (`ExitPromptStyle.needsAd`): `ads.load(AppPlacements.exitNative)`. Without it
-  the first prompt shows the placeholder while a user is already leaving.
-- `AppodealNativeAdView` with `placeholder: AppodealNativeAdPlaceholder(style:)`
-  and `preloadNext: true`; `ExitPromptAd.height` is the style's
-  `resolvedHeight`, so nothing moves when the ad loads.
-- Native events reach analytics through `AppodealNativeAds.instance.attributedAdEvents`,
-  which attributes each callback to the placement whose view showed it.
-
-## Ad policy
-
-**Why the default has no ad.** Google Play's ads policy lists as disruptive
-"Ads that are triggered by the home button or other features explicitly
-designed for exiting the app", with the example "The user attempts to exit the
-app and navigate to the home screen, but instead, the expected flow is
-interrupted by an ad." Back on the root screen is how a user exits. That rule
-applies whichever network serves the ad, and a Play violation lands on the
-developer account. `ad_sheet` and `ad_dialog` stay available for deliberate
-tests, at that risk.
-
-AdMob's implementation guidance: "Take extreme care when using AdMob ads in
-cases where your users might be more prone to accidental clicks." A user
-leaving the app taps quickly, and the ad sits where their thumb is going.
-
-- `standard` is the portfolio default. `dimmed` makes Exit look unavailable so
-  taps go to the ad or Cancel. That raises clicks that do not convert, which
-  networks treat as invalid traffic. Test it on a small share, watch
-  `custom_ad_click` against installs from that placement, and end the test at
-  the first policy notice.
-- Keep the sheet's ad and Exit bar visually separate, and never label Exit
-  anything misleading.
-
-## Analytics
-
-| Event | When | Parameters |
-|---|---|---|
-| `exit_prompt_shown` | A prompt or the double-tap hint shows | `style` |
-| `exit_prompt_action` | The user chooses | `style`, `action` (`exit`, `stay`, `feature`, `offer`), `target` |
-
-Compare arms by `exit_prompt_action` exit rate, `feature`/`offer` rate, and
-native `ad_show` / `custom_ad_click` on `exit_native`, alongside retention.
-
-## Verify
-
-Starter Kit Lab → **Exit prompt** previews every style with the app's own
-content and either Exit button, and reports the result instead of closing the
-app. Then change `exit_prompt_style` in Firebase and press Back on home.
-
-## Checklist
-
-- [ ] Root screen wrapped in `ExitGuard`; `double_tap_to_exit` removed
-- [ ] Default `exit_prompt_style` is `features_sheet`, without an ad; ad styles only as deliberate tests
-- [ ] `exit_native` placement configured; ad preloaded after startup
-- [ ] Ad only for non-premium users with ads allowed; styles fall back otherwise
-- [ ] `exit_prompt_shown` / `exit_prompt_action` tracked and in the analytics catalogue
-- [ ] Exit Prompt Group imported into Firebase Remote Config
-- [ ] `exitPrompt` passed to `DevToolsHost`
+- [genrevibes_exit_prompt](../../../../../packages/genrevibes_starter_kit/modules/exit_prompt/genrevibes_exit_prompt/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/exit_prompt/genrevibes_exit_prompt/lib/genrevibes_exit_prompt.dart).
+- [genrevibes_remote_policy](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/lib/genrevibes_remote_policy.dart).

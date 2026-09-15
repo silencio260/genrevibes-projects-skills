@@ -1,148 +1,55 @@
 ---
 name: refactor
-description: Step-by-step guide for refactoring an existing Flutter project to Clean Architecture + BLoC + Starter Kit
+description: "Adopt starter kit features in an existing app without replacing unrelated architecture."
 ---
 
-# Refactor Existing Project
+# Update an existing app
 
-## Overview
+1. Identify the feature being replaced, its provider, callers, stored keys, and
+   observable behavior. Record which behavior must stay the same.
+2. Follow [starter kit setup](../../starter-kit/SKILL.md) for only that feature.
+   Keep the existing router, state management, and dependency injection unless
+   changing them is part of the request.
+3. Reuse the shared provider/controller. Add a thin translation at the app
+   boundary only when the app uses different models or result types.
+4. Replace callers, then remove the old integration once nothing uses it.
+   Do not run old and new event listeners together.
+5. Preserve saved state using [storage migration](../../skills/storage-migration/SKILL.md).
+   Never clear all preferences to simplify an upgrade.
+6. Connect failure handling and cleanup using [runtime setup](../../skills/runtime-setup/SKILL.md).
+7. Check the changed feature before continuing to the next requested feature.
+   Report checks actually performed and any behavior that still needs a device.
 
-This skill provides a systematic approach to refactoring any existing Flutter project to match the GenRevibes Clean Architecture pattern with BLoC state management and Starter Kit integration.
+Do not impose a new folder structure across an app just to adopt a package.
+For an app already using the modular kit, use [kit upgrade](../kit-upgrade/SKILL.md).
 
-## Phase 1: Audit Current Structure
+## Example: replace an old subscription wrapper
 
-1. **Inventory features** — List all screens and their functionality
-2. **Identify data sources** — APIs, databases, local storage
-3. **Map dependencies** — Third-party packages in `pubspec.yaml`
-4. **Assess state management** — Current approach (setState, Provider, etc.)
-5. **Check for hardcoded values** — Strings, colors, API keys
+Start by reading its callers: settings, paywall, ad eligibility, feature locks,
+and developer premium. Record where it stores purchase state and which events it emits.
 
-## Phase 2: Create Clean Architecture Folders
+1. Add the current neutral IAP and selected provider/UI packages.
+2. Construct the provider once in bootstrap, using the app's real platform keys.
+3. Register it under `IapProvider`. Keep the app's existing repository interface
+   while translating the new KitResult at its data/repository boundary.
+4. Replace old SDK calls with `getEntitlements`, `presentPaywall`, and
+   `restorePurchases`. Keep every PurchaseStatus distinct.
+5. Connect one entitlementChanges listener to the app's existing access state.
+6. Move feature decisions to EntitlementAccessPolicy using the actual product IDs.
+7. Keep developer simulation separate and check its current action grant.
+8. Remove the old SDK listener only after all its callers are moved.
 
-Create the target structure without moving code yet:
+Read [IAP](../../skills/iap/SKILL.md) for signatures and result handling.
+The same method applies to feedback, permissions, and analytics, but each has
+its own state to preserve. Do not treat these as mechanical name replacements.
 
-```
-lib/
-├── main.dart
-├── bloc_observer.dart
-└── src/
-    ├── config/
-    │   ├── routes_manager.dart
-    │   └── theme_manager.dart
-    ├── core/
-    │   ├── api/
-    │   │   ├── interceptors.dart
-    │   │   ├── response_code.dart
-    │   │   └── response_message.dart
-    │   ├── error/
-    │   │   ├── error_handler.dart
-    │   │   └── failure.dart
-    │   ├── helpers/
-    │   │   └── dio_helper.dart
-    │   ├── network/
-    │   │   └── network_info.dart
-    │   ├── usecase/
-    │   │   └── base_usecase.dart
-    │   ├── utils/
-    │   │   ├── app_assets.dart
-    │   │   ├── app_colors.dart
-    │   │   ├── app_constants.dart
-    │   │   ├── app_enums.dart
-    │   │   ├── app_strings.dart
-    │   │   ├── font_manager.dart
-    │   │   └── styles_manager.dart
-    │   └── widgets/
-    ├── features/
-    │   └── {each_feature}/
-    │       ├── {feature}_injector.dart
-    │       ├── data/
-    │       │   ├── datasources/remote/
-    │       │   ├── models/
-    │       │   └── repositories/
-    │       ├── domain/
-    │       │   ├── entities/
-    │       │   ├── repositories/
-    │       │   ├── usecases/
-    │       │   └── mappers.dart
-    │       └── presentation/
-    │           ├── bloc/{feature}_bloc/
-    │           ├── screens/
-    │           └── widgets/
-    ├── container_injector.dart
-    └── my_app.dart
-```
+### Migration record
 
-## Phase 3: Set Up Core Infrastructure
+For each changed feature, record old caller → new call, old saved key → new key,
+old callback → new listener, and the owner that cancels the listener. Include
+unchanged product behavior such as when a paywall is shown. If no migration is
+needed, say why: for example, the feature has no persisted state.
 
-1. **Copy core files** from template or create fresh:
-   - `base_usecase.dart` with `Either<Failure, Output>`
-   - `failure.dart` with all failure types
-   - `error_handler.dart` for exception → Failure conversion
-   - `network_info.dart` for connectivity
-   - `dio_helper.dart` for HTTP client
-
-2. **Set up DI container** in `container_injector.dart`
-3. **Set up BLoC observer** in `bloc_observer.dart`
-
-## Phase 4: Migrate Features One at a Time
-
-For each feature (start with the simplest):
-
-1. **Create domain layer first**:
-   - Extract entities from existing models (remove framework dependencies)
-   - Define repository interfaces
-   - Create use cases (one per operation)
-   - Add mappers
-
-2. **Create data layer**:
-   - Create models that extend entities (add JSON serialization)
-   - Create data source abstractions and implementations
-   - Implement repositories (with network check + error handling)
-
-3. **Create presentation layer**:
-   - Create BLoC with events and states
-   - Refactor screens to use `BlocBuilder`/`BlocListener`
-   - Extract reusable widgets
-
-4. **Wire up DI**:
-   - Create feature injector (`{feature}_injector.dart`)
-   - Register in main container
-   - Provide BLoC in `MultiBlocProvider`
-
-5. **Add routes** in `routes_manager.dart`
-
-## Phase 5: Integrate Starter Kit
-
-1. Copy `packages/starter_kit/` into project
-2. Add path dependency in `pubspec.yaml`
-3. Initialize in `main.dart` (see `starter-kit/SKILL.md`)
-4. Set up env files (copy from `agents/templates/env/`)
-5. Set up IDE configs (copy from `agents/templates/.run/` and `.vscode/`)
-
-## Phase 6: Extract Strings & Constants
-
-1. Move hardcoded strings to `AppStrings` and feature string classes
-2. Move colors to `AppColors`
-3. Move text styles to `StylesManager`
-4. Move API keys to env config
-
-## Phase 7: Verify
-
-- [ ] All features follow Clean Architecture layers
-- [ ] All state management uses BLoC
-- [ ] All DI uses GetIt with feature injectors
-- [ ] All errors use Either<Failure, T> pattern
-- [ ] All routes go through AppRouter
-- [ ] Starter Kit initialized with required features
-- [ ] No hardcoded strings, colors, or API keys
-- [ ] Env configs for dev, release, special dev
-- [ ] IDE run configs for all environments
-
-## Common Pitfalls
-
-- **Don't refactor everything at once** — migrate one feature at a time
-- **Domain layer has zero framework dependencies** — no Flutter imports in entities
-- **BLoCs are factories, not singletons** — register with `registerFactory`
-- **Repositories, data sources, use cases are lazy singletons**
-- **Always check network before remote calls**
-- **Models extend entities** — entities are framework-agnostic
+Do not delete the old implementation merely because the replacement file exists.
+Search its imports and registrations, inspect native dependencies, and confirm
+no active caller still depends on it.

@@ -1,104 +1,45 @@
 ---
 name: navigation
-description: Route management using named routes, AppRouter, and route configuration
+description: "Connect kit screens and external actions to the app router."
 ---
 
 # Navigation
 
-## Overview
+Keep the app's existing router. Named routes, a declarative router, and direct
+Navigator calls can all host kit UI; kit adoption does not require replacing them.
 
-Navigation uses Flutter's `onGenerateRoute` with a centralized `AppRouter` class. All routes are defined as constants in a `Routes` class. The starter kit provides a `DoubleTapToExit` wrapper.
+- Supply app destinations/callbacks to kit features. The kit must not import
+  the app's route table.
+- Validate route arguments before constructing a screen. Handle missing or
+  invalid destinations without a cast failure.
+- After asynchronous work, check mounted/current ownership before navigating.
+  Prevent repeated callbacks from opening the same page twice.
+- Hold notification/deep-link destinations until startup and required
+  authentication/onboarding are ready. Apply access checks to external entries too.
+- Use [exit prompt](../exit-prompt/SKILL.md) for root Back behavior and
+  [system UI](../immersive-ui/SKILL.md) only when changing system-bar behavior.
 
-## Architecture
+Check Back, cancelled flows, cold external entry, and repeated taps.
+Do not force a reset-to-home navigation stack on every completed kit action.
 
-```
-config/
-└── routes_manager.dart    # Routes constants + AppRouter
-```
+## Register feature routes with their dependencies
 
-## Implementation
+The [worked example](../../references/feature-walkthrough.md) includes a complete
+route factory. It constructs a screen-owned BLoC with `BlocProvider(create: ...)`
+and triggers its initial load once. Use `BlocProvider.value` only when passing
+an existing BLoC whose lifetime belongs elsewhere; the receiving route must not
+close that shared instance.
 
-### Route Constants
+For a new portfolio app, follow the route organization shown in the architecture
+guide. In an existing app, keep its working router and express the same ownership
+rules using that router's APIs. Route arguments should be typed/validated before
+screen construction; provide a safe unknown-route result.
 
-```dart
-class Routes {
-  static const String splash = "/splash";
-  static const String onboarding = "/onboarding";
-  static const String auth = "/auth";
-  static const String home = "/home";
-  static const String settings = "/settings";
-  static const String chat = "/chat";
-  // ... add per feature
-}
-```
+Represent pending external destinations as app data, not a stale BuildContext.
+When startup and access gates complete, resolve that destination against the
+current session. A notification arriving twice or a repeated finish callback
+must not stack duplicate screens.
 
-### AppRouter
-
-```dart
-class AppRouter {
-  static Route? getRoute(RouteSettings routeSettings) {
-    switch (routeSettings.name) {
-      case Routes.splash:
-        return MaterialPageRoute(builder: (_) => const SplashScreen());
-      case Routes.home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
-      // ... other routes
-      default:
-        return null;
-    }
-  }
-}
-```
-
-### Wire in MyApp
-
-```dart
-MaterialApp(
-  initialRoute: Routes.splash,
-  onGenerateRoute: AppRouter.getRoute,
-)
-```
-
-### Navigate
-
-```dart
-Navigator.pushNamed(context, Routes.home);
-Navigator.pushReplacementNamed(context, Routes.home);
-Navigator.pushNamedAndRemoveUntil(context, Routes.home, (_) => false);
-```
-
-### Pass Arguments
-
-```dart
-// Navigate with args
-Navigator.pushNamed(context, Routes.chat, arguments: chatId);
-
-// Receive in AppRouter
-case Routes.chat:
-  final chatId = routeSettings.arguments as String;
-  return MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId));
-```
-
-## Starter Kit Integration
-
-Use `DoubleTapToExit` on the home screen:
-
-```dart
-StarterKit.doubleTapToExit(child: HomeScreen());
-```
-
-## Interaction Map
-
-- **Splash** → decides initial route (onboarding vs home)
-- **Auth** → redirects to home on success
-- **Onboarding** → redirects to home/auth on complete
-- **Settings** → navigates to sub-pages
-- **Deep Linking** → maps external links to routes
-
-## Checklist
-
-- [ ] `Routes` class with all route constants
-- [ ] `AppRouter.getRoute()` handles all routes
-- [ ] `MaterialApp` uses `onGenerateRoute`
-- [ ] Arguments passed correctly where needed
-- [ ] `DoubleTapToExit` wrapping home screen
+Opening a paywall, feedback form, or developer page should return to the caller
+unless the product explicitly changes the navigation stack. Check mounted state
+after awaited work, and keep navigation out of reusable repository code.

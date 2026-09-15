@@ -1,66 +1,86 @@
 ---
 name: gdpr-compliance
-description: Consent dialogs, data handling, and privacy compliance via starter kit
+description: "Connect regional consent prompts and privacy controls using the kit consent providers."
 ---
 
-# GDPR Compliance
+# Consent and privacy controls
 
-## Overview
+Use `ConsentGate` with the selected provider. Appodeal uses
+`AppodealConsentProvider`; a direct AdMob integration can use the UMP adapter.
 
-GDPR compliance handles consent dialogs and data privacy using the starter kit's `GdprRepository`.
+1. Register consent before ads in deferred startup, after a visible frame.
+2. For the portfolio continue-on-error behavior, use an eight-second budget on
+   the consent provider, gate, and module registration, with `failOpen: true`.
+3. Let the SDK determine whether a form is required. Do not force a form on every
+   user or infer region from language, locale, or a hand-written country list.
+4. If consent fails or times out, let ads initialization and the app continue.
+   Preserve the real consent snapshot. Do not mark consent granted or not required
+   to unblock startup, and do not add another app wait on `canRequestAds`.
+5. Keep the SDK's actual consent signals intact. SDK decisions and ad fill still
+   affect whether an ad appears; the app's timeout does not guarantee inventory.
+6. Expose `showPrivacyOptions()` when `snapshot.privacyOptionsRequired` is true.
+   Use debug preview/reset only for deliberate diagnostics, never normal startup.
 
-## Implementation
+Native forms can remain visible after a Dart timeout. Handle that limitation
+without repeatedly opening forms or blocking the app's recovery path.
 
-```dart
-final gdprRepo = StarterKit.sl<GdprRepository>();
+Ad consent is not an automatic policy for all analytics or replay. Apply the
+app's explicit collection choices to those integrations. Describe actual SDKs,
+permissions, storage, and recording in privacy documentation; this skill does
+not certify legal compliance.
 
-// Check consent status
-final hasConsent = await gdprRepo.hasUserConsented();
+Check required, not-required, failed, and timed-out paths. Keep their states
+separate in diagnostics.
 
-// Show consent dialog
-await gdprRepo.showConsentDialog();
+## Exact setup and state handling
 
-// Reset consent
-await gdprRepo.resetConsent();
-```
+The example `makeAppodealConsent` in
+[integration examples](../../references/integration-examples.md) passes
+`timeout: Duration(seconds: 8)` to both `AppodealConsentProvider` and `ConsentGate`,
+and `failOpen: true` to the gate. `makeRuntime` also gives the deferred consent
+registration eight seconds. The gate initializes its provider; do not separately
+register both as unrelated startup steps.
 
-### Show on First Launch
+Use the app key for the actual platform. With Appodeal mediation, check the
+native AdMob app identifier and configured consent messages where that demand
+integration requires them. A sample identifier from another app cannot locate
+this app's consent configuration.
 
-```dart
-// In splash/onboarding flow
-if (!await gdprRepo.hasUserConsented()) {
-  await gdprRepo.showConsentDialog();
-}
-```
+| SDK result | App behavior |
+|---|---|
+| Form required | Give the SDK its normal opportunity to present the form before ads start. |
+| Not required | Do not show a custom replacement form; continue. |
+| Prior usable answer | Preserve it and let the SDK decide whether it needs updating. |
+| Request/form failure | Record degraded/failure information; release startup after the attempt. |
+| Timeout | Release startup; do not pretend the SDK form was dismissed or consent was granted. |
 
-## Privacy Policy
+`failOpen` describes what the app does when the attempt fails. It does not change
+the user's answer. Do not write a fabricated granted/notRequired snapshot or
+clear the SDK's consent preferences to force ads to load.
 
-Every app published to the Play Store needs a privacy policy URL that matches its
-Play **Data safety** declaration field-for-field (mismatches are themselves a violation).
+### Settings privacy entry
 
-Generate a baseline with the free checkbox-based generator:
+Read `gate.snapshot.privacyOptionsRequired`. Show the privacy-options action
+when required and call `gate.showPrivacyOptions()`. Handle its returned result
+without rerunning the entire bootstrap. Follow snapshot changes if the settings
+screen is already visible.
 
-- https://app-privacy-policy-generator.firebaseapp.com
+### Debugging a missing form
 
-It covers the standard SDKs (Firebase, Crashlytics, AdMob, etc.). After generating,
-hand-add disclosures the generator does not template:
+First inspect module health, the platform key, native app identifier, and SDK
+regional/form status. A missing form outside applicable regions is expected.
+The Lab preview is a deliberate diagnostic path; it is not the normal startup
+path. A preview can write real SDK consent state, so record what was previewed
+and reset only when intentionally testing again. Never force EEA debug settings
+for all production users.
 
-- **Mixpanel Session Replay** — that screen interactions are recorded, what is masked,
-  and retention. Keep "mask all text and images" on by default.
-- **Local-only sensitive data** — vault / app-lock / app-hider PINs and patterns are
-  stored on-device and not transmitted.
-- **Sensitive permissions** — e.g. Usage Access (App Lock watcher), and why it is used.
+Do not promise that continuing initialization guarantees an ad. This removes an
+app-created indefinite wait; it does not bypass SDK inventory decisions.
 
-## Interaction Map
+## Package references
 
-- **Onboarding** → Show consent during onboarding
-- **Ads** → Personalized vs non-personalized ads based on consent
-- **Analytics** → Respect consent for tracking
-- **Settings** → Privacy settings tile
+Read the public API and setup for the packages used by this task:
 
-## Checklist
-
-- [ ] Consent dialog shown on first launch
-- [ ] Consent status persisted
-- [ ] Ads respect consent preference
-- [ ] Settings includes privacy management
+- [genrevibes_consent](../../../../../packages/genrevibes_starter_kit/modules/consent/genrevibes_consent/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/consent/genrevibes_consent/lib/genrevibes_consent.dart).
+- [genrevibes_consent_appodeal](../../../../../packages/genrevibes_starter_kit/modules/consent/genrevibes_consent_appodeal/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/consent/genrevibes_consent_appodeal/lib/genrevibes_consent_appodeal.dart).
+- [genrevibes_consent_ump](../../../../../packages/genrevibes_starter_kit/modules/consent/genrevibes_consent_ump/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/consent/genrevibes_consent_ump/lib/genrevibes_consent_ump.dart).

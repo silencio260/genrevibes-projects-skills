@@ -1,87 +1,45 @@
 ---
 name: localization
-description: Multi-language support with ARB files, feature-based string classes, and locale switching
+description: "Localize app and shared kit labels using the app existing translation system."
 ---
 
 # Localization
 
-## Overview
+Use the app's existing localization system. A static string class alone does
+not provide locale switching, plural rules, or translated formatting.
 
-All user-facing text is centralized in string classes, organized by feature. This enables easy translation via Flutter's ARB-based localization system.
+- Add user-facing text to the current translation resources. If the app uses
+  Flutter ARB files, preserve placeholder metadata and plural/select messages.
+- Pass localized labels into kit UI instead of editing shared English defaults
+  for one app. Keep backend IDs and analytics names unchanged.
+- Preserve language selection and fallback behavior. Use locale-aware dates,
+  numbers, and prices; keep store-supplied prices intact.
+- Check longer translations, right-to-left layout where supported, and text scaling.
+- Use the current app folder layout; do not create a separate `lib/src` tree
+  for localization or force a BLoC just to store a locale.
 
-## Architecture
+Report which labels remain untranslated. Do not claim a feature is localized
+because its English strings moved into constants.
 
-```
-lib/
-├── l10n/                          # ARB localization files
-│   ├── app_en.arb
-│   ├── app_es.arb
-│   └── ...
-└── src/
-    ├── core/utils/
-    │   └── app_strings.dart       # App-wide strings
-    └── features/{feature}/
-        └── presentation/l10n/
-            └── {feature}_strings.dart  # Feature strings
-```
+## Wire translations to the component's label API
 
-## Implementation
+Find the current translation resources and generation configuration. Add a key
+for each new user-facing label, error, accessibility description, and action.
+Use placeholder/plural metadata for dynamic text instead of joining English
+fragments in Dart. Keep the existing fallback locale and supported locale list.
 
-### String Classes (Phase 1 — No i18n yet)
+At the screen boundary, construct the kit's label configuration from the current
+localization object and pass it to the shared component. Rebuild that mapping
+when locale changes. Do not keep a singleton of translated labels captured at
+startup if the app allows changing language while running.
 
-```dart
-class AppStrings {
-  static const String appName = "My App";
-  static const String download = "Download";
-}
+Keep stable identifiers outside translation resources: product IDs, remote keys,
+route names, event names, and database fields must not change with the locale.
+Use store-provided localized purchase prices rather than formatting an assumed
+currency from a raw product amount.
 
-class ChatStrings {
-  static const String screenTitle = "Chat";
-  static const String inputHint = "Type a message...";
-  static const String sendButton = "Send";
-}
-```
-
-### ARB Files (Phase 2 — Full i18n)
-
-```json
-// lib/l10n/app_en.arb
-{
-  "@@locale": "en",
-  "appName": "My App",
-  "chatScreenTitle": "Chat",
-  "chatInputHint": "Type a message..."
-}
-```
-
-### Locale Switching
-
-```dart
-class LocaleCubit extends Cubit<Locale> {
-  LocaleCubit() : super(const Locale('en'));
-
-  void changeLocale(Locale locale) {
-    // Save to SharedPreferences
-    emit(locale);
-  }
-}
-```
-
-## Rules
-
-- **Never hardcode strings in UI** — always use string classes
-- **One string class per feature** — located in `presentation/l10n/`
-- **Descriptive names** — `screenTitle`, `downloadButton`, `errorMessage`
-
-## Interaction Map
-
-- **Settings** → Language selection
-- **All features** → Use string classes
-
-## Checklist
-
-- [ ] App-wide strings in `AppStrings`
-- [ ] Feature strings in `{Feature}Strings` classes
-- [ ] No hardcoded strings in UI
-- [ ] ARB files created (when activating i18n)
-- [ ] Locale switching via cubit/bloc
+For a changed flow, list the resources updated and any fallback English text
+that remains. Inspect long text and right-to-left behavior where the app supports
+it, including icons whose direction has meaning. Translation generation commands
+should follow the app's existing setup; do not introduce another localization
+package merely for one kit screen.

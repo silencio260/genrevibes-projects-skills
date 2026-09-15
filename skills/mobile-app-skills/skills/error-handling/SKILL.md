@@ -1,121 +1,58 @@
 ---
 name: error-handling
-description: Centralized error handling using Either pattern, Failure classes, and ErrorHandler
+description: "Translate kit and provider failures into useful app states without hiding errors."
 ---
 
-# Error Handling
+# Error handling
 
-## Overview
+The kit uses `KitResult<T>`, `KitSuccess<T>`, `KitFailure<T>`, and `KitError`.
+Keep these inside kit integrations. If the app uses `Either` or another result
+model, translate once at its repository boundary rather than rewriting the kit.
 
-All GenRevibes apps use **functional error handling** with the `dartz` package's `Either<Failure, Success>` pattern. Errors are never thrown — they flow as typed `Failure` objects through the architecture.
+- Handle provider failures, thrown exceptions, and timeouts at the operation
+  boundary. Preserve the original cause/stack for diagnostics.
+- Keep cancellation, pending work, permission denial, unconfigured services,
+  and unexpected failure distinct. Do not turn all failures into empty success.
+- Show a useful next action in UI and release busy state in every completion path.
+- A timeout does not prove cancellation. Avoid automatic retries for purchases,
+  submissions, and other operations that may already have reached the server.
+- Treat connectivity checks as hints, not proof a request can or cannot succeed.
+- Send unexpected failures through the existing crash path once. Do not log
+  tokens, passwords, form text, or private payloads.
 
-## Prerequisites
+Check both returned failures and thrown exceptions. Preserve an existing app's
+error model unless changing it is part of the request.
 
-- `dartz: ^0.10.1` in dependencies
-- `equatable: ^2.0.7` for Failure equality
+## Follow one failure from storage to the screen
 
-## Architecture
+The [complete feature example](../../references/feature-walkthrough.md) contains
+a repository that translates a `KitResult` into the app's `Either<Failure, T>`.
+Its BLoC handles both branches and preserves the displayed value if saving fails.
+Use that structure for this app and new portfolio features; keep an existing
+app's established result model when adopting the kit there.
 
-```
-core/error/
-├── error_handler.dart    # Converts exceptions → Failure objects
-└── failure.dart          # Failure class hierarchy
-```
+A missing preference can legitimately select a default. A failed read cannot
+be treated as the same event without a deliberate product recovery rule. The
+example therefore returns false for a missing bool and a failure for an
+unsuccessful store operation.
 
-## Error Flow
+At each boundary, decide what belongs there:
 
-```
-Exception → ErrorHandler.handle() → Failure → Either<Failure, T> → BLoC State → UI
-```
+| Boundary | Responsibility |
+|---|---|
+| Provider/adapter | Normalize vendor outcomes and preserve diagnostic cause. |
+| App repository | Translate into the app's failure types and domain data. |
+| Use case | Apply the operation's business rule. |
+| BLoC/controller | End busy state and expose a useful result or retry action. |
+| Widget | Render safe user-facing text; avoid raw exception strings. |
 
-## Failure Types
+Guard late completions after disposal/account change. In an event handler, check
+its supported completion/ownership mechanism before emitting after awaited work.
+For side effects with uncertain delivery, make retry a deliberate action using
+any server-supported deduplication, rather than a catch block that retries forever.
 
-| Failure | HTTP Code | Message |
-|---|---|---|
-| `BadRequestFailure` | 400 | Bad request |
-| `NotFoundFailure` | 404 | Not found |
-| `ServerFailure` | 500 | Internal server error |
-| `NoInternetConnectionFailure` | — | No internet connection |
-| `ConnectTimeOutFailure` | — | Connection timeout |
-| `CancelRequestFailure` | — | Request cancelled |
-| `TooManyRequestsFailure` | 429 | Too many requests |
-| `NotSubscribedFailure` | 403 | Subscription required |
-| `UnexpectedFailure` | — | Unexpected error |
+## Package references
 
-## Implementation
+Read the public API and setup for the packages used by this task:
 
-### Failure Base Class
-
-```dart
-abstract class Failure extends Equatable {
-  final String message;
-  const Failure(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
-
-class ServerFailure extends Failure {
-  const ServerFailure() : super(ResponseMessage.serverError);
-}
-// ... other failure classes
-```
-
-### ErrorHandler
-
-```dart
-class ErrorHandler implements Exception {
-  late Failure failure;
-
-  ErrorHandler.handle(dynamic error) {
-    if (error is DioException) {
-      failure = _handleDioError(error);
-    } else if (error is SocketException) {
-      failure = const NoInternetConnectionFailure();
-    } else {
-      failure = const UnexpectedFailure();
-    }
-  }
-}
-```
-
-### Usage in Repository
-
-```dart
-@override
-Future<Either<Failure, Entity>> getData(String id) async {
-  if (!await networkInfo.isConnected) {
-    return const Left(NoInternetConnectionFailure());
-  }
-  try {
-    final model = await remoteDataSource.getData(id);
-    return Right(model.toDomain());
-  } catch (error) {
-    return Left(ErrorHandler.handle(error).failure);
-  }
-}
-```
-
-### Usage in BLoC
-
-```dart
-final result = await useCase(params);
-result.fold(
-  (failure) => emit(FeatureError(failure.message)),
-  (data) => emit(FeatureSuccess(data)),
-);
-```
-
-## Interaction Map
-
-- **Every feature** uses this pattern in repositories and BLoCs
-- **Network Info** → Checked before API calls
-- **UI** → Displays `failure.message` in error states
-
-## Checklist
-
-- [ ] `Failure` base class and subclasses created in `core/error/`
-- [ ] `ErrorHandler` created to convert exceptions
-- [ ] All repositories return `Either<Failure, T>`
-- [ ] All BLoCs handle `.fold()` on results
-- [ ] Network connectivity checked before remote calls
+- [genrevibes_core](../../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_core/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_core/lib/genrevibes_core.dart).

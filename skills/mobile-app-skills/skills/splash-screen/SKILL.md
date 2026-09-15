@@ -1,156 +1,61 @@
 ---
 name: splash-screen
-description: Launch screen with a bounded loading bar, routing to onboarding or home, and the remote-configured full-screen ad after it — the starter kit's SplashFlow. Read before building or changing a splash screen or launch ads in a GenRevibes app.
+description: "Use the kit splash flow for bounded launch presentation and optional launch ads."
 ---
 
-# Splash Screen
+# Splash screen
 
-## Overview
+Use `SplashFlow` and `SplashLoadingView` for launch presentation. The app owns
+startup and destination selection; see [runtime setup](../runtime-setup/SKILL.md).
 
-`genrevibes_splash` gives every app the same launch screen:
+- Supply bounded `prepare`, optional `resolveAd`, and `onFinished` callbacks.
+  Show recovery when required startup fails. A splash deadline is not proof
+  that the app is ready or that native work stopped.
+- If the app uses launch ads, resolve the selected provider and format through
+  `SplashAdRegistry`. Unknown providers and unsupported formats skip the ad.
+- Wait for the consent attempt/deadline and known ad eligibility before a load.
+  A consent failure must not become another permanent gate.
+- Use `SplashAdRequest.canRequest` to recheck eligibility before load and show.
+  Include premium, developer switches, global/splash switches, and app-specific rules.
+- Keep dedicated launch placements separate from ordinary interstitial pacing
+  when the product uses launch ads. Do not show another interstitial on Home entry.
+- Use the configured `maxWait` for the flow; avoid unbounded stream waits in
+  preparation. Navigate once and only while the widget is mounted.
 
-| Piece | Role |
-|---|---|
-| `SplashFlow` | Waits for the app's work, decides and loads the ad, holds a minimum time, shows the ad, then calls `onFinished` |
-| `SplashLoadingView` | Logo and title, a progress line ("Loading 42%..."), a rounded bar, and "This action can contain ads" while an ad may follow |
-| `SplashAdRequest` / `SplashOutcome` | The ad to load, and what became of it |
+A remote key can select only a provider already integrated in the binary. Read
+current network/store placement rules when introducing or changing launch ads.
+Do not assume every supported full-screen format is suitable at launch.
+Story Saver's folder-access gate is app-specific.
 
-`maxWait` bounds everything together: a slow startup, a consent form or an ad
-that does not fill never keeps a user on the splash.
+Check no-ad launch, required failure, timeout, backgrounding, premium changes,
+and unavailable providers. Record `SplashOutcome` accurately.
 
-## Implementation
+## Keep preparation results separate from the animation
 
-```dart
-Scaffold(
-  body: SplashFlow(
-    maxWait: Duration(seconds: config.read(SplashAdPolicyKeys.maxWaitSeconds)),
-    minDuration: const Duration(seconds: 2),
-    prepare: waitForDestination,      // SplashBloc: onboarding or home
-    resolveAd: resolveSplashAd,       // null = no ad this launch
-    adExpected: SplashAdPolicyKeys.formatOf(config) != null && !isPremium,
-    onFinished: (outcome) {
-      AnalyticsService.track('splash_ad_result', {
-        'status': outcome.adStatus.name,
-        if (outcome.placement case final p?) 'placement': p.id,
-        'wait_ms': outcome.elapsed.inMilliseconds,
-      });
-      navigateToDestination();
-    },
-    builder: (context, progress) => SplashLoadingView(
-      progress: progress,
-      logo: Image.asset('assets/images/app-logo.png', width: 120),
-      title: AppStrings.appName,
-      style: const SplashLoadingStyle(progressColor: brand, titleStyle: ...),
-    ),
-  ),
-)
-```
+The app startup owner constructs and initializes the runtime. `SplashFlow`
+presents that work and any configured launch ad. A completed animation must not
+be used as evidence that required dependencies are available.
 
-```dart
-Future<SplashAdRequest?> resolveSplashAd() async {
-  final format = SplashAdPolicyKeys.formatOf(config);        // null for none
-  if (format == null || !config.read(AdsPolicyKeys.adsEnabled)) return null;
-  if (firstLaunch && !config.read(SplashAdPolicyKeys.onFirstLaunch)) return null;
-  final placement = AppPlacements.splashFor(format);
-  if (placement == null || !ads.supportedFormats.contains(format)) return null;
-  await kit.deferredStartupComplete;                         // consent first
-  await iapBloc.stream.firstWhere(entitlementsKnown);        // never a premium user
-  if (isPremium || !SubscriptionManager().adsAllowed) return null;
-  return SplashAdRequest(provider: ads, placement: placement);
-}
-```
+Define the destination from real state: required initialization outcome,
+onboarding completion, and any app-specific gate. If preparation fails, expose
+a retry route/state that disposes the failed attempt before constructing another.
+A late completion from that failed attempt must not navigate over the new one.
 
-Read every `BuildContext` value before the first `await`.
+For a launch ad, resolve the placement through the existing registry and policy.
+Check eligibility before loading and again before showing because purchases,
+consent completion/deadline, or developer switches may change while loading.
+Skip unsupported or unavailable ads and continue according to the bounded flow.
+Do not introduce a second endless “ad ready” wait after the splash deadline.
 
-## The splash ad
+Use one navigation owner. Guard repeated completion callbacks and check the
+screen is still mounted. If a native ad is already being displayed, respect its
+lifecycle rather than navigating unrelated UI underneath it due to an arbitrary
+short timer. Report whether launch proceeded without an ad, showed one, timed
+out, or failed required preparation; these are different outcomes.
 
-| Key | Default | Meaning |
-|---|---|---|
-| `splash_ad_enabled` | `true` | Launch-only kill switch; false skips the ad |
-| `splash_ad_provider` | `appodeal` | Registered provider ID; unknown IDs skip, never fall back |
-| `splash_ad_format` | `interstitial` | `interstitial`, `rewarded`, `app_open` or `none` |
-| `splash_ad_max_wait_seconds` | `8` | Budget for startup, the decision and the load, 1–30 |
-| `splash_ad_on_first_launch` | `true` | Whether the very first launch, before onboarding, gets it |
+## Package references
 
-Import the **Splash Ad Group** from `remote_config_template.json`.
+Read the public API and setup for the packages used by this task:
 
-- **Own placements per format**: `splash_interstitial`, `splash_rewarded`, in
-  the Appodeal configuration and `AppPlacements.all` (so premium discards
-  them), but **not** in the placements given to `AdsRemotePolicyBinder`
-  (`AppPlacements.paced`). `time_before_first_insta_ad` would otherwise block
-  an ad meant for launch.
-- **Appodeal has no app open format** (Flutter plugin 4.2.0), so `app_open`
-  shows nothing on Appodeal. It works with a provider that serves
-  `AdFormat.appOpen`, such as `genrevibes_ads_admob`.
-- **Home requests no interstitial on open.** The splash ad is the launch ad;
-  an interstitial right after it is an ad on top of an ad.
-- A load that times out keeps going. Its ad stays cached and serves the next
-  in-app interstitial.
-- The ad shows only after 100% has been on screen, and only with the app in
-  the foreground.
-
-## Ad policy
-
-Decide the default knowingly:
-
-- AdMob, Disallowed interstitial implementations: "Do not place interstitial
-  ads on app load and when exiting apps as interstitials should only be placed
-  in between pages of app content." Mediation does not change this: when AdMob
-  wins the auction, the ad is served against the AdMob account, which every
-  portfolio app shares.
-- App open ads are the format made for launch and loading screens. The loading
-  screen plus "This action can contain ads" is Google's recommended pattern
-  for them.
-- AdMob rewarded ads "must only be served after a user affirmatively and
-  unambiguously opts in", so `rewarded` on the splash is not allowed with
-  AdMob demand.
-- Story Saver ships `interstitial` by the owner's decision. At a policy
-  notice, set `splash_ad_format` to `none`; no release is needed.
-
-## Analytics
-
-`splash_ad_result`: `status` (`notRequested`, `shown`, `timedOut`, `notReady`,
-`blocked`, `failed`, `appInBackground`), `placement`, `wait_ms`. A high
-`timedOut` share means `splash_ad_max_wait_seconds` is too short for the fill
-time; a long `wait_ms` on `shown` costs retention.
-
-## Interaction Map
-
-- **Onboarding**: `prepare` decides onboarding or home.
-- **Consent / ads**: `deferredStartupComplete` before any ad request.
-- **IAP**: entitlements known before the ad; premium gets none.
-- **Remote config**: format, wait and first launch.
-- **Navigation bar**: hidden on the splash like every screen by default.
-
-## Checklist
-
-- [ ] Splash screen built on `SplashFlow` and `SplashLoadingView`
-- [ ] `prepare` waits for the destination; `onFinished` navigates
-- [ ] Splash placements configured on the provider and left out of the pacing binder
-- [ ] Ad resolved after consent, with entitlements known, never for premium
-- [ ] Home no longer requests an interstitial on open
-- [ ] `splash_ad_result` tracked and in the analytics catalogue
-- [ ] Splash Ad Group imported into Firebase Remote Config
-
-## Switching launch providers
-
-Register `SplashAdRegistry` at app composition, independently of the ordinary
-`AdProvider`. Resolve the configured provider and format through that registry.
-Story Saver initially registers only `appodeal`; `splash_app_open` is reserved
-for an integrated App Open adapter. Unknown IDs or unsupported formats skip.
-A remote value cannot install an SDK: ship and initialize the adapter first.
-The app owns each provider's consent, premium gating, analytics and disposal.
-Pass `SplashAdRequest.canRequest` to recheck premium, global ads, launch enabled,
-provider, format and first-launch settings before both load and show. Never
-fall back from an unavailable App Open format to a startup interstitial.
-Set `splash_ad_enabled=false` (or format `none`) to turn launch ads off. Changes
-apply after config fetch/activation, not instantly to offline installations,
-and do not dismiss an already visible ad. Do not publish config unless asked.
-
-## Story Saver first-use gate
-
-Launch ads wait for `SubscriptionManager.hasStatusFolderAccess`, set after a
-verified status-folder grant or restored valid access. Onboarding native ads
-have a separate screen-lifetime allowance. Premium, consent, remote configuration
-and active folder-picker suppression remain authoritative. First thumbnail
-rendering is an analytics milestone, not the ad eligibility trigger.
+- [genrevibes_splash](../../../../../packages/genrevibes_starter_kit/modules/splash/genrevibes_splash/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/splash/genrevibes_splash/lib/genrevibes_splash.dart).
+- [genrevibes_remote_policy](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/lib/genrevibes_remote_policy.dart).

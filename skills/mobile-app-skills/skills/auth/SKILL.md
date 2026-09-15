@@ -1,139 +1,63 @@
 ---
 name: auth
-description: Firebase Auth sign-in/sign-up with Clean Architecture, BLoC, and starter kit integration
+description: "Connect neutral kit authentication and a selected adapter to app identity flows."
 ---
 
 # Authentication
 
-## Overview
+Use `AuthProvider` and the chosen adapter. Firebase uses `FirebaseAuthProvider`
+and requires host Firebase initialization first.
 
-Authentication handles user sign-in and sign-up using Firebase Auth. The system auto-detects whether a user is new or existing based on email. The starter kit provides an `AuthRepository` interface.
+1. Select the requested sign-in methods. Federated requests carry tokens;
+   acquire Google/Apple tokens through the app's selected sign-in integration.
+2. Follow authentication changes and map the current identity into app state.
+   Handle normalized `AuthFailureReason` values instead of vendor message strings.
+3. Link credentials when converting an anonymous account. Signing into a separate
+   account can otherwise orphan guest data; define any merge in the app/backend.
+4. Handle reauthentication when deletion or another sensitive operation requires
+   a recent login. Keep passwords and tokens out of analytics/replay/logs.
+5. Connect purchase, analytics, and push identity changes explicitly. Reset them
+   on logout and prevent older asynchronous results from restoring the old user.
+6. Cancel listeners with the runtime.
 
-## Prerequisites
+Profiles and backend authorization belong to the app. Signing in does not
+create a universal profile schema or automatically restore purchases.
+Check cancellation, wrong credentials, account linking, logout, and account switch.
 
-- Firebase project configured (see `skills/firebase-infrastructure/SKILL.md`)
-- `firebase_auth` dependency (via starter kit)
-- Starter kit integrated with `authRepository` provided
+## Implement authentication as a feature and an identity source
 
-## Architecture
+Keep sign-in screens and BLoC in the auth feature, credential acquisition in its
+data layer, and the selected neutral provider in the runtime. Register the
+provider once. The app's identity/session owner subscribes to auth changes and
+updates routing; a sign-in screen is not the owner of the whole app session.
 
-```
-features/auth/
-├── auth_injector.dart
-├── data/
-│   ├── datasources/
-│   │   └── remote/
-│   │       └── auth_remote_data_source.dart
-│   ├── models/
-│   │   └── user_model.dart
-│   └── repositories/
-│       └── auth_repo.dart
-├── domain/
-│   ├── entities/
-│   │   └── user_entity.dart
-│   ├── repositories/
-│   │   └── auth_base_repo.dart
-│   └── usecases/
-│       ├── sign_in_usecase.dart
-│       ├── sign_up_usecase.dart
-│       ├── sign_out_usecase.dart
-│       └── get_current_user_usecase.dart
-└── presentation/
-    ├── bloc/
-    │   └── auth_bloc/
-    │       ├── auth_bloc.dart
-    │       ├── auth_event.dart
-    │       └── auth_state.dart
-    ├── screens/
-    │   └── auth_screen.dart
-    └── widgets/
-        └── auth_form.dart
-```
+Before implementing a method, establish which platform configuration and token
+acquisition it needs. The kit's federated request accepts credentials from that
+integration; it does not create a Google or Apple sign-in UI automatically.
+Use the installed adapter's exported request types and normalized failure reasons.
 
-## Implementation Steps
+### Handle a change of account in order
 
-### 1. Domain Layer
+1. Stop subscriptions and in-flight UI updates associated with the old account.
+2. Update the app session and attach the new account's repositories/subscriptions.
+3. Identify the new account in the selected purchases, analytics, and push
+   integrations; handle each result rather than assuming all succeeded.
+4. On logout, reset those identities and remove only account-owned cached data.
+5. Use an account/session generation check for late asynchronous results so an
+   old profile or entitlement result cannot replace the new account's state.
 
-```dart
-// Entity
-class UserEntity extends Equatable {
-  final String uid;
-  final String? email;
-  final String? displayName;
-  const UserEntity({required this.uid, this.email, this.displayName});
-}
+Account creation, profile creation, purchase identity, and authentication are
+separate operations. If profile creation fails after sign-in, offer recovery
+without repeatedly creating new authentication accounts. If converting a guest,
+choose link-versus-merge behavior before implementing the button.
 
-// Repository Interface
-abstract class AuthBaseRepo {
-  Future<Either<Failure, UserEntity>> signIn(SignInParams params);
-  Future<Either<Failure, UserEntity>> signUp(SignUpParams params);
-  Future<Either<Failure, void>> signOut();
-  Future<Either<Failure, UserEntity?>> getCurrentUser();
-}
-```
+Deletion needs an explicit backend/data policy as well as authentication removal.
+Use reauthentication when required, report partial failure, and do not claim all
+user data was removed merely because the authentication account disappeared.
 
-### 2. Data Layer
+## Package references
 
-```dart
-class AuthRemoteDataSource {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+Read the public API and setup for the packages used by this task:
 
-  Future<UserModel> signIn(String email, String password) async {
-    final credential = await _auth.signInWithEmailAndPassword(
-      email: email, password: password,
-    );
-    return UserModel.fromFirebaseUser(credential.user!);
-  }
-}
-```
-
-### 3. BLoC Events & States
-
-```dart
-// Events
-class AuthSignIn extends AuthEvent { final String email, password; }
-class AuthSignUp extends AuthEvent { final String email, password, name; }
-class AuthSignOut extends AuthEvent {}
-class AuthCheckStatus extends AuthEvent {}
-
-// States
-class AuthInitial extends AuthState {}
-class AuthLoading extends AuthState {}
-class AuthAuthenticated extends AuthState { final UserEntity user; }
-class AuthUnauthenticated extends AuthState {}
-class AuthError extends AuthState { final String message; }
-```
-
-## Starter Kit Integration
-
-Provide your auth repository to the starter kit:
-
-```dart
-await StarterKit.initialize(
-  authRepository: MyAuthRepository(),
-);
-```
-
-## Firebase / Cloud
-
-- **Firestore**: Creates user profile document on sign-up at `users/{uid}`
-- **Firebase Auth**: Handles email/password, Google Sign-In, Apple Sign-In
-
-## Interaction Map
-
-- **Profile** → Created on successful sign-up
-- **Analytics** → Logs `sign_in`, `sign_up` events
-- **Push Notifications** → Sets user ID for targeted notifications
-- **IAP** → Restores purchases for authenticated user
-- **Tracking** → `isFirstTimeUser()` checks after auth
-
-## Checklist
-
-- [ ] Auth feature folder structure created
-- [ ] Domain entities, repositories, use cases defined
-- [ ] Data sources implement Firebase Auth
-- [ ] BLoC handles sign-in, sign-up, sign-out, check status
-- [ ] Auth screen UI with form validation
-- [ ] User profile created in Firestore on sign-up
-- [ ] Auth repository provided to StarterKit
-- [ ] Analytics events logged for auth actions
+- [genrevibes_auth](../../../../../packages/genrevibes_starter_kit/modules/auth/genrevibes_auth/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/auth/genrevibes_auth/lib/genrevibes_auth.dart).
+- [genrevibes_auth_firebase](../../../../../packages/genrevibes_starter_kit/modules/auth/genrevibes_auth_firebase/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/auth/genrevibes_auth_firebase/lib/genrevibes_auth_firebase.dart).

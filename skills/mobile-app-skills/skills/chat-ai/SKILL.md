@@ -1,77 +1,47 @@
 ---
 name: chat-ai
-description: Chat UI with AI streaming, message history, Firebase backend, and Genkit Cloud Functions
+description: "Implement app-owned AI chat, streaming, history, and backend integration."
 ---
 
-# Chat / AI
+# AI chat
 
-## Overview
+Chat content and backend behavior belong to the app. Reuse kit auth, analytics,
+purchases, and storage interfaces where needed; do not assume a kit chat module.
 
-The chat feature provides a conversational AI interface with real-time streaming responses. Messages are stored in Firestore. The backend uses Firebase Genkit Cloud Functions for AI processing.
+- Inspect the existing endpoint and message/session schema. Use the app's API
+  layer and chosen backend; Firebase/Genkit is one option.
+- Keep model credentials on the backend. Enforce session ownership and quota there.
+- Define stream states: connecting, receiving, completed, cancelled, and failed.
+  Preserve partial output when useful and cancel work when its owner closes.
+- Keep request IDs stable across retries where supported to avoid duplicate work.
+- Persist messages with explicit ordering and account/session ownership. Do not
+  treat every authenticated user as authorized for every conversation.
+- Keep typing state and retry controls accurate when a stream stops unexpectedly.
+- Log counts and normalized outcomes rather than messages/prompts. Mask chat
+  content if screen recording is enabled.
 
-## Architecture
+Add model selection, attachments, or history features only within the request.
+Check cancellation, partial stream failure, duplicate send, and account switch.
 
-```
-features/chat/
-├── chat_injector.dart
-├── data/
-│   ├── datasources/
-│   │   └── remote/
-│   │       └── chat_remote_data_source.dart    # Calls Cloud Functions
-│   ├── models/
-│   │   ├── message_model.dart
-│   │   └── session_model.dart
-│   └── repositories/
-│       ├── chat_repo.dart
-│       └── chat_history_repo.dart              # Firestore persistence
-├── domain/
-│   ├── entities/
-│   │   ├── message_entity.dart
-│   │   └── session_entity.dart
-│   ├── repositories/
-│   │   ├── chat_base_repo.dart
-│   │   └── chat_history_base_repo.dart
-│   └── usecases/
-│       ├── send_message_usecase.dart
-│       ├── get_chat_history_usecase.dart
-│       └── create_session_usecase.dart
-└── presentation/
-    ├── bloc/
-    │   └── chat_bloc/
-    ├── screens/
-    │   └── chat_screen.dart
-    └── widgets/
-        ├── message_bubble.dart
-        ├── typing_indicator.dart
-        └── chat_input.dart
-```
+## Map the feature to concrete layers
 
-## Firebase / Cloud
+Keep conversation/message models and repository interfaces in the domain layer.
+Use cases send, retry, cancel, and load history. The data layer talks to the actual
+backend and maps its stream events. The BLoC owns the visible message list and
+request state; widgets render messages and dispatch user actions.
 
-**Firestore collections:**
-- `chats/{sessionId}` — Session metadata
-- `chats/{sessionId}/messages/{messageId}` — Individual messages
+Define a stable conversation ID, message/request ID, ordering field, role,
+content, and completion status using the existing schema. Persist partial and
+completed output deliberately. Do not append a new assistant message for every
+stream chunk or confuse a disconnected stream with a completed answer.
 
-**Cloud Functions (Genkit):**
-- `chat.flow.ts` — Processes chat messages, returns AI responses
-- `system-prompts.ts` — System prompt configuration
+On send, prevent duplicate submission of the same action. On retry, reuse the
+operation ID only if the backend supports that contract. On cancellation, stop
+the local subscription and request server cancellation if supported; closing a
+Dart stream does not prove remote generation and billing stopped.
 
-## Interaction Map
-
-- **Firebase** → Firestore for persistence, Cloud Functions for AI
-- **Auth** → Messages linked to authenticated user
-- **Quota** → Rate-limit message sends for free users
-- **Analytics** → Log chat sessions, message counts
-- **Content Locking** → Gate advanced AI models behind subscription
-
-## Checklist
-
-- [ ] Chat feature folder structure with Clean Architecture
-- [ ] Message and session entities/models
-- [ ] Firestore persistence for chat history
-- [ ] Cloud Function calls for AI responses
-- [ ] Streaming response display
-- [ ] Typing indicator during AI response
-- [ ] Chat input with send button
-- [ ] Chat history browsable
-- [ ] Quota checks before sending
+On account/session change, detach the old stream and prevent its late chunks
+from entering the new conversation. The backend checks conversation ownership
+and quota for every relevant operation. Keep model/provider secrets there.
+Expose useful recovery for partial failure without sending prompts or message
+bodies into unrelated logging and analytics systems.

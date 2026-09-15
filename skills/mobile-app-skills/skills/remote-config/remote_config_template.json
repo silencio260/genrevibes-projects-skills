@@ -1,177 +1,216 @@
 {
-  "parameters": {
-    "min_app_open_ad": {
-      "defaultValue": {
-        "value": "1"
-      },
-      "valueType": "NUMBER"
-    },
-    "time_before_first_rewared_ad": {
-      "defaultValue": {
-        "value": "10"
-      },
-      "valueType": "NUMBER"
-    },
-    "should_show_app_open_ad": {
-      "defaultValue": {
-        "value": "true"
-      },
-      "description": "Should Show App Open Ads",
-      "valueType": "BOOLEAN"
-    },
-    "min_rewarded_ad_interval": {
-      "defaultValue": {
-        "value": "13"
-      },
-      "description": "Minimum intervals btw showing Rewarded interstitial ads in  seconds",
-      "valueType": "NUMBER"
-    }
-  },
-  "version": {
-    "versionNumber": "5",
-    "updateTime": "2026-01-13T00:15:01.911197Z",
-    "updateUser": {
-      "email": "template@gmail.com"
-    },
-    "updateOrigin": "CONSOLE",
-    "updateType": "INCREMENTAL_UPDATE"
-  },
+  "parameters": {},
   "parameterGroups": {
-    "Ads Group": {
-      "description": "The settings for ads",
+    "Ads": {
       "parameters": {
-        "min_insta_ad_interval": {
+        "ads_enabled": {
           "defaultValue": {
-            "value": "7"
+            "value": "true"
           },
-          "description": "Minimum intervals btw showing interstitial ads in  seconds",
-          "valueType": "NUMBER"
-        },
-        "min_banner_ad_interval": {
-          "defaultValue": {
-            "value": "3"
-          },
-          "description": "Minimum intervals btw showing banner ads in  seconds",
-          "valueType": "NUMBER"
+          "valueType": "BOOLEAN",
+          "description": "Allows ads globally. App access and provider availability still apply."
         },
         "time_before_first_insta_ad": {
           "defaultValue": {
             "value": "3"
           },
-          "description": "Time before dispalying first insta ad",
-          "valueType": "NUMBER"
+          "valueType": "NUMBER",
+          "description": "Seconds before the first paced interstitial."
+        },
+        "time_before_first_rewared_ad": {
+          "defaultValue": {
+            "value": "0"
+          },
+          "valueType": "NUMBER",
+          "description": "Seconds before the first paced rewarded ad. Preserve this existing key spelling."
+        },
+        "min_insta_ad_interval": {
+          "defaultValue": {
+            "value": "5"
+          },
+          "valueType": "NUMBER",
+          "description": "Minimum seconds between paced interstitial ads."
+        },
+        "min_banner_ad_interval": {
+          "defaultValue": {
+            "value": "3"
+          },
+          "valueType": "NUMBER",
+          "description": "Minimum seconds between paced banner refreshes."
+        },
+        "min_rewarded_ad_interval": {
+          "defaultValue": {
+            "value": "0"
+          },
+          "valueType": "NUMBER",
+          "description": "Minimum seconds between paced rewarded ads."
+        },
+        "min_native_interval": {
+          "defaultValue": {
+            "value": "0"
+          },
+          "valueType": "NUMBER",
+          "description": "Minimum seconds between paced native ads."
+        },
+        "min_app_open_ad": {
+          "defaultValue": {
+            "value": "0"
+          },
+          "valueType": "NUMBER",
+          "description": "Minimum seconds between paced app-open ads."
+        },
+        "should_show_app_open_ad": {
+          "defaultValue": {
+            "value": "true"
+          },
+          "valueType": "BOOLEAN",
+          "description": "Allows app-open ads when an integrated provider supports them."
+        },
+        "banner_ad_id": {
+          "defaultValue": {
+            "value": ""
+          },
+          "valueType": "STRING",
+          "description": "Optional ad unit override for a provider that supports unit IDs. Empty keeps the bundled unit."
+        },
+        "interstitial_ad_id": {
+          "defaultValue": {
+            "value": ""
+          },
+          "valueType": "STRING",
+          "description": "Optional ad unit override for a provider that supports unit IDs. Empty keeps the bundled unit."
+        },
+        "rewarded_ad_id": {
+          "defaultValue": {
+            "value": ""
+          },
+          "valueType": "STRING",
+          "description": "Optional ad unit override for a provider that supports unit IDs. Empty keeps the bundled unit."
+        },
+        "native_ad_id": {
+          "defaultValue": {
+            "value": ""
+          },
+          "valueType": "STRING",
+          "description": "Optional ad unit override for a provider that supports unit IDs. Empty keeps the bundled unit."
+        },
+        "app_open_ad_id": {
+          "defaultValue": {
+            "value": ""
+          },
+          "valueType": "STRING",
+          "description": "Optional ad unit override for a provider that supports unit IDs. Empty keeps the bundled unit."
         }
       }
     },
-    "Session Replay Group": {
-      "description": "Who gets recorded, and what the recording shows. Read by SessionReplayPolicyKeys in genrevibes_remote_policy. Recording changes take effect without a relaunch; masking changes land on the device's next launch, because the SDK fixes masking when it is configured.",
+    "Session replay": {
       "parameters": {
         "session_replay_enabled": {
           "defaultValue": {
             "value": "true"
           },
-          "description": "Kill switch. false stops replay on every device regardless of the percentage below, without a release.",
-          "valueType": "BOOLEAN"
+          "valueType": "BOOLEAN",
+          "description": "Replay master switch. Changes apply after fetch and activation."
         },
         "session_replay_percent": {
           "defaultValue": {
-            "value": "100"
+            "value": "0"
           },
-          "description": "Share of installs recorded, 0-100. Each install draws a stable bucket once and keeps it, so lowering this narrows the recorded group rather than picking a different one - the same users stay recorded before and after whatever changed. Start at 100 and come down while watching the bill.",
-          "valueType": "NUMBER"
+          "valueType": "NUMBER",
+          "description": "Percentage of installs eligible for replay, from 0 to 100. Uses a stable install bucket."
         },
         "session_replay_mask_text": {
           "defaultValue": {
-            "value": "false"
+            "value": "true"
           },
-          "description": "Masks all rendered text. Off by default: a masked replay is grey boxes moving around and cannot show where a user got stuck, which is the only thing replay is paid for. Turn on to mask every device immediately if a screen renders something that should not be recorded.",
-          "valueType": "BOOLEAN"
+          "valueType": "BOOLEAN",
+          "description": "Masks text. Changing SDK masking requires restart; stricter pending masking pauses replay."
         },
         "session_replay_mask_images": {
           "defaultValue": {
-            "value": "false"
+            "value": "true"
           },
-          "description": "Masks all rendered images. Same reasoning as session_replay_mask_text.",
-          "valueType": "BOOLEAN"
+          "valueType": "BOOLEAN",
+          "description": "Masks images. Changing SDK masking requires restart; stricter pending masking pauses replay."
         }
       }
     },
-    "Developer Access Group": {
-      "description": "Phones that get the developer tools and test ads in the store build. Read by DeveloperAccessPolicyKeys.",
+    "Developer access": {
       "parameters": {
         "developer_device_hashes": {
           "defaultValue": {
             "value": "[]"
           },
-          "description": "JSON array of developer device hashes (never raw device IDs: every install downloads this). Copy a hash from Settings > Developer Options or Starter Kit Lab > Developer access.",
-          "valueType": "JSON"
+          "valueType": "JSON",
+          "description": "JSON array of developer device hashes. Never include raw device identifiers."
         }
       }
     },
-    "Onboarding Group": {
-      "description": "Onboarding presentation. Read by OnboardingPolicyKeys.",
+    "Onboarding": {
       "parameters": {
         "onboarding_ads_enabled": {
           "defaultValue": {
             "value": "true"
           },
-          "description": "Whether onboarding may show a native ad. Premium, consent and the ad provider still decide whether one is shown. Set false to take ads off onboarding without a release.",
-          "valueType": "BOOLEAN"
+          "valueType": "BOOLEAN",
+          "description": "Allows onboarding ad slots; app access, startup, and provider rules still apply."
         }
       }
     },
-    "Splash Ad Group": {
-      "description": "The full-screen ad after the splash loader. Read by SplashAdPolicyKeys. AdMob disallows interstitials on app load and requires rewarded ads to be opted into; app_open is the launch format but Appodeal's Flutter plugin has none.",
+    "Splash ads": {
       "parameters": {
         "splash_ad_enabled": {
-          "defaultValue": { "value": "true" },
-          "description": "Launch-ad kill switch only. False skips splash ads without disabling in-app placements. Applies after config is fetched and activated.",
-          "valueType": "BOOLEAN"
+          "defaultValue": {
+            "value": "true"
+          },
+          "valueType": "BOOLEAN",
+          "description": "Launch-ad switch. Does not control ordinary in-app placements."
         },
         "splash_ad_provider": {
-          "defaultValue": { "value": "appodeal" },
-          "description": "Provider registered in SplashAdRegistry. Currently appodeal. Unknown providers skip the ad; new SDKs need an app release before selection.",
-          "valueType": "STRING"
+          "defaultValue": {
+            "value": "appodeal"
+          },
+          "valueType": "STRING",
+          "description": "ID of a provider already integrated in the app. Unknown IDs skip the launch ad."
         },
         "splash_ad_format": {
           "defaultValue": {
             "value": "interstitial"
           },
-          "description": "interstitial, rewarded, app_open or none. A format the app's ad provider does not serve shows nothing. Set none to take the splash ad off without a release.",
-          "valueType": "STRING"
+          "valueType": "STRING",
+          "description": "interstitial, rewarded, app_open, or none. Unsupported formats skip. Select placements according to the app and current network requirements."
         },
         "splash_ad_max_wait_seconds": {
           "defaultValue": {
             "value": "8"
           },
-          "description": "The longest the splash waits for startup, the decision and the ad's load together, 1-30. An ad that has not loaded by then is skipped.",
-          "valueType": "NUMBER"
+          "valueType": "NUMBER",
+          "description": "Startup, decision, and ad-load wait budget for the splash, from 1 to 30 seconds."
         },
         "splash_ad_on_first_launch": {
           "defaultValue": {
             "value": "true"
           },
-          "description": "Whether a user's very first launch, before onboarding, gets the splash ad too.",
-          "valueType": "BOOLEAN"
+          "valueType": "BOOLEAN",
+          "description": "Allows a launch ad on first use, subject to the app eligibility rules."
         }
       }
     },
-    "Exit Prompt Group": {
-      "description": "What Back does on the app's root screen. Read by ExitPromptPolicyKeys. Use a different value per A/B test arm.",
+    "Exit prompt": {
       "parameters": {
         "exit_prompt_style": {
           "defaultValue": {
             "value": "features_sheet"
           },
-          "description": "features_sheet (default, no ad), offer_sheet, confirm_dialog, double_tap, none, or the ad styles ad_sheet and ad_dialog. Google Play's ads policy treats ads triggered by features designed for exiting the app as disruptive, so the ad styles are for deliberate tests. A style missing what it needs (an ad for a premium user, say) falls back to confirm_dialog.",
-          "valueType": "STRING"
+          "valueType": "STRING",
+          "description": "features_sheet, offer_sheet, confirm_dialog, double_tap, none, ad_sheet, or ad_dialog. App content and eligibility determine the result."
         },
         "exit_prompt_exit_button": {
           "defaultValue": {
             "value": "standard"
           },
-          "description": "standard (readable) or dimmed (muted grey). dimmed steers taps to the ad and risks accidental-click penalties; test it on a small share.",
-          "valueType": "STRING"
+          "valueType": "STRING",
+          "description": "Exit button emphasis: standard or dimmed. Standard is the readable default."
         }
       }
     }

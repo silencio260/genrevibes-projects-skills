@@ -1,180 +1,59 @@
 ---
 name: tracking-retention
-description: RetentionTracker, UserTargetingManager, D0/D1/D3/D7/D10/D15/D20/D25/D30 milestones, first five opens/sessions, user segmentation, and engagement analytics
+description: "Reuse retention history, milestones, and targeting rules from genrevibes_engagement."
 ---
 
-# Tracking & Retention
+# Retention and targeting
 
-## Overview
+Use `RetentionTracker`, `EngagementSnapshot`, and `UserTargetingPolicy` from
+`genrevibes_engagement`. Replace copied trackers instead of keeping two counters.
 
-The starter kit includes a comprehensive user tracking and retention system mirrored from the Status Saver template. It automatically tracks app opens, sessions, daily active days, first-five open/session milestones, and retention milestones (D0, D1, D3, D7, D10, D15, D20, D25, D30). It also provides user segmentation for targeted offers.
+1. Initialize storage with `EngagementKeys.legacyKeys` through
+   `MigratingKeyValueStore` when adopting existing history.
+2. Create the tracker with the store and an `EngagementObserver`. Use
+   `AnalyticsEngagementObserver` when sending shared events to the pipeline.
+3. Call `recordAppOpen` once for a logical launch. Wire `recordSession` according
+   to the app's session lifecycle; initialization alone does not record either.
+   `recordAppOpen` already adds the initial session; do not count it again on launch.
+4. Derive targeting from the current snapshot with `UserTargetingPolicy`.
+   Keep thresholds/defaults in the shared policy, app-specific offers in the app.
+5. Cancel lifecycle listeners on shutdown and avoid counting startup retries as
+   extra launches.
 
-## Prerequisites
+The shared tracker reports retention milestones once per install. Preserve its
+stored flags so upgrades do not replay them. Onboarding completion has its own
+controller; do not infer it from retention counts.
 
-- Starter Kit integrated (see `starter-kit/SKILL.md`)
-- Analytics initialized (see `skills/analytics/SKILL.md`)
-- `LocalStorage` initialized in starter kit core
+Check retained installs, repeated opens, session resumes, and upgrades from old
+keys. Inspect emitted events without claiming a local history is a portfolio-wide
+retention percentage.
 
-## Architecture
+## Record actual use without counting it twice
 
-The tracking system lives entirely in the starter kit:
+Construct one `RetentionTracker` with the shared migrated store and initialize
+it before consumers inspect its history. The runtime owns this tracker; screens
+should not each construct one. Record a real app open at the app's chosen launch
+boundary. `recordAppOpen` already records a session, so do not call
+`recordSession` beside it for the same launch.
 
-```
-starter_kit/lib/features/analytics/domain/services/
-├── analytics_service.dart         # Unified analytics facade
-├── retention_tracker.dart         # Core retention tracking (singleton)
-└── user_targeting_manager.dart    # User segmentation (singleton)
+Define what later counts as a session for this product, including any background
+duration threshold. Apply that rule in one lifecycle owner. Widget rebuilds and
+route changes are not automatically new sessions.
 
-starter_kit/lib/features/analytics/domain/utils/
-└── analytics_names.dart           # Event name constants
-```
+Use the stored history for the kit's milestone/eligibility rules. App features
+can consume the resulting eligibility, but should not maintain competing open
+counters for rating, onboarding, and notification campaigns. Onboarding has its
+own completion flag and must not be inferred from a retention count.
 
-## Components
+During adoption, map the old key names and types before the first tracker read.
+Check first install, existing history, a repeated lifecycle event, and a changed
+calendar date. A failed persistence operation must be visible diagnostically;
+it must not stop the user entering the app. Keep local retention history separate
+from a claim that an analytics provider received the corresponding event.
 
-### RetentionTracker
+## Package references
 
-Singleton that tracks:
-- **First install date** — When the app was first opened
-- **Last open date** — Most recent app open
-- **Total app opens** — Lifetime open count
-- **Session timestamps** — Every session start
-- **Daily open dates** — Unique days the app was opened
+Read the public API and setup for the packages used by this task:
 
-**Key Methods:**
-
-| Method | Returns | Description |
-|---|---|---|
-| `trackAppOpen(analytics)` | `Future<void>` | Called automatically by `StarterKit.initialize` unless `autoTrackAppOpen: false` |
-| `trackSession(analytics)` | `Future<void>` | Call on app resume from background if session-resume analytics are required |
-| `getTotalAppOpens()` | `int` | Lifetime opens |
-| `getSessionCountToday()` | `int` | Sessions in current day |
-| `getDaysSinceInstall()` | `int` | Days since first install |
-| `getDaysSinceLastOpen()` | `int` | Days since last open |
-| `getActiveDays()` | `List<String>` | List of active day dates |
-| `hasReturnedOnDay(day)` | `bool` | Whether user opened on day N |
-| `getD7RetentionRate()` | `double` | 7-day retention percentage |
-| `getEngagementMetrics()` | `Map` | All metrics as a map |
-
-**Automatic Events Logged:**
-
-| Event | Trigger |
-|---|---|
-| `retention_app_opened` | Every `trackAppOpen()` call |
-| `retention_session_started` | Every `trackSession()` call |
-| `retention_first_open` | First retained app open |
-| `retention_second_open` | Second retained app open |
-| `retention_third_open` | Third retained app open |
-| `retention_fourth_open` | Fourth retained app open |
-| `retention_fifth_open` | Fifth retained app open |
-| `retention_first_session` | First retained session |
-| `retention_second_session` | Second retained session |
-| `retention_third_session` | Third retained session |
-| `retention_fourth_session` | Fourth retained session |
-| `retention_fifth_session` | Fifth retained session |
-| `retention_day_0_returned` | User opens app on install day / day 0 |
-| `retention_day_1_returned` | User opens app on day 1 after install |
-| `retention_day_3_returned` | User opens app on day 3 after install |
-| `retention_day_7_returned` | User opens app on day 7 after install |
-| `retention_day_10_returned` | User opens app on day 10 after install |
-| `retention_day_15_returned` | User opens app on day 15 after install |
-| `retention_day_20_returned` | User opens app on day 20 after install |
-| `retention_day_25_returned` | User opens app on day 25 after install |
-| `retention_day_30_returned` | User opens app on day 30 after install |
-
-### Firebase Automatic Event Mirrors
-
-Firebase automatically logs `first_open`; Mixpanel/PostHog do not. `StarterKit.initialize` should mirror it once when `RetentionTracker.getTotalAppOpens() == 1` after automatic `trackAppOpen(...)` completes.
-
-Do not create a fake Firebase `first_open` event with app code. Firebase already owns that automatic event name.
-
-Firebase also infers `app_remove` when this app is uninstalled. The app cannot emit an uninstall event after it has been removed. For Mixpanel/PostHog, use backend or push-provider uninstall detection if that signal is required.
-
-### UserTargetingManager
-
-Segmentation logic using RetentionTracker data:
-
-**Engagement Levels:**
-- `FIRST_TIME` — First session ever
-- `LOW` — <3 days active or <5 total opens
-- `MEDIUM` — 3-6 days active or 5-15 opens
-- `HIGH` — 7-20 days active or 15-50 opens
-- `POWER_USER` — 20+ days active or 50+ opens
-
-**Key Methods:**
-
-| Method | Returns | Description |
-|---|---|---|
-| `startTracking(analytics)` | `Future<void>` | Initialize and begin tracking |
-| `isFirstTimeUser()` | `bool` | Only 1 open ever |
-| `isNewUser()` | `bool` | Installed < 7 days ago |
-| `isReturningUser()` | `bool` | More than 1 open |
-| `isLoyalUser()` | `bool` | 7+ active days |
-| `isPowerUser()` | `bool` | 20+ active days or 50+ opens |
-| `getEngagementLevel()` | `UserEngagementLevel` | Current engagement tier |
-| `getUserSegment()` | `String` | Segment label |
-| `getUserProfile()` | `Map` | Full profile map for analytics |
-| `logUserSegment()` | `Future<void>` | Log segment to analytics |
-| `logOfferShown(type)` | `Future<void>` | Log when offer shown to user |
-
-## Implementation
-
-### Initialize in main.dart
-
-```dart
-void main() async {
-  // ... Firebase + StarterKit init ...
-
-  await StarterKit.initialize(
-    analyticsUserId: installId,
-    mixpanelToken: AppEnv.mixpanelToken,
-    mixpanelDistinctId: installId,
-  );
-
-  runApp(const MyApp());
-}
-```
-
-Do not call `RetentionTracker.trackAppOpen(...)` or `UserTargetingManager.startTracking(...)` separately for startup tracking unless `autoTrackAppOpen: false` is set and the host app intentionally owns the lifecycle.
-
-### Use for Targeted Features
-
-```dart
-// Show paywall only to returning non-subscribers
-final targeting = UserTargetingManager.instance;
-if (targeting.isReturningUser() && !isSubscribed) {
-  showPaywall();
-}
-
-// Show special offer to loyal users
-if (targeting.isLoyalUser()) {
-  showLoyaltyReward();
-  targeting.logOfferShown('loyalty_reward');
-}
-
-// Adjust ad frequency by engagement
-final level = targeting.getEngagementLevel();
-if (level == UserEngagementLevel.POWER_USER) {
-  // Fewer ads for power users
-} else if (level == UserEngagementLevel.LOW) {
-  // More aggressive monetization
-}
-```
-
-## Interaction Map
-
-- **Analytics** → All retention events flow through `AnalyticsService` to Firebase + Mixpanel/PostHog
-- **Ads** → Use engagement level to adjust ad frequency
-- **Paywall / IAP** → Use user segment to target offers
-- **Onboarding** → `isFirstTimeUser()` determines whether to show onboarding
-- **Push Notifications** → Segment tags for targeted notifications
-- **Remote Config** → Can combine with remote config for A/B testing
-
-## Checklist
-
-- [ ] `StarterKit.initialize` receives `analyticsUserId` and Mixpanel config when Mixpanel startup events are required
-- [ ] Analytics service properly initialized
-- [ ] Retention events appearing in Firebase DebugView and Mixpanel/PostHog live events when configured
-- [ ] `first_open` is mirrored only outside Firebase if the exact event name is required
-- [ ] `app_remove` is treated as Firebase automatic / backend-only, not client-side app code
-- [ ] User segments logged on app open
-- [ ] Targeting logic integrated with paywall/ads decisions
+- [genrevibes_engagement](../../../../../packages/genrevibes_starter_kit/modules/engagement/genrevibes_engagement/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/engagement/genrevibes_engagement/lib/genrevibes_engagement.dart).
+- [genrevibes_analytics](../../../../../packages/genrevibes_starter_kit/modules/analytics/genrevibes_analytics/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/analytics/genrevibes_analytics/lib/genrevibes_analytics.dart).

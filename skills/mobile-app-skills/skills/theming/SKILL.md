@@ -1,80 +1,45 @@
 ---
 name: theming
-description: Dark/light mode, design tokens, color constants, text styles, and theme configuration
+description: "Apply the app theme to shared kit UI without copying another app brand."
 ---
 
 # Theming
 
-## Overview
+Use the app's existing ThemeData, ColorScheme, typography, and theme extensions.
+Keep repeated design values together; do not add a second set of hardcoded colors
+for kit pages.
 
-Theming centralizes all visual design tokens (colors, fonts, text styles) and provides dark/light mode support through Flutter's `ThemeData`.
+- Pass app theme/labels through the kit component's supported configuration.
+- Keep feedback and developer-passcode pages visually consistent with Settings.
+  A shared app style is useful; Story Saver's class name is not a kit requirement.
+- Follow current light/dark/system mode behavior and persist explicit user choice
+  only when the app offers it.
+- Check disabled, loading, error, and selected states, including readable text
+  contrast and larger text sizes.
+- Keep app-specific artwork/colors out of neutral kit packages.
 
-## Architecture
+Do not introduce dark mode, fonts, or a new design system just to use one kit
+widget. Check both existing themes and the changed widget's small-screen layout.
 
-```
-core/utils/
-├── app_colors.dart        # Color constants
-├── font_manager.dart      # Font families, sizes, weights
-└── styles_manager.dart    # Text style generators
+## Map the app theme into shared components
 
-config/
-└── theme_manager.dart     # ThemeData configuration
-```
+Find the app's current theme builder, typography, spacing, and any theme
+extensions before adding a kit page. Read the selected component's theme/config
+fields and map those app values there. Keep this mapping in a small app-owned
+style helper when several entry points share it.
 
-## Implementation
+A shared feedback or developer page should use the same surfaces, text hierarchy,
+button treatment, and error colors as its surrounding settings screen. Do not
+copy an entire kit widget into the app to change a color the API already exposes.
+If a genuinely reusable styling option is missing, extend the shared API with
+a sensible default and preserve existing callers.
 
-### Colors
+For a persisted theme choice, store the user's selection separately from the
+resolved platform brightness. “System” must remain system mode after a restart,
+not become whichever brightness happened to be active when it was saved.
+Follow the preference ownership pattern in the worked feature.
 
-```dart
-class AppColors {
-  static const Color primary = Color(0xFF6C63FF);
-  static const Color secondary = Color(0xFF03DAC6);
-  static const Color background = Color(0xFFF5F5F5);
-  static const Color surface = Colors.white;
-  static const Color error = Color(0xFFB00020);
-  // Dark mode
-  static const Color darkBackground = Color(0xFF121212);
-  static const Color darkSurface = Color(0xFF1E1E1E);
-}
-```
-
-### Theme Manager
-
-```dart
-class ThemeManager {
-  static ThemeData lightTheme() => ThemeData(
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.background,
-    // ... complete theme
-  );
-
-  static ThemeData darkTheme() => ThemeData.dark().copyWith(
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.darkBackground,
-  );
-}
-```
-
-### Wire in MyApp
-
-```dart
-MaterialApp(
-  theme: ThemeManager.lightTheme(),
-  darkTheme: ThemeManager.darkTheme(),
-  themeMode: ThemeMode.system, // or managed via BLoC
-)
-```
-
-## Interaction Map
-
-- **Settings** → Dark mode toggle
-- **All screens** → Use `AppColors`, `StylesManager` consistently
-
-## Checklist
-
-- [ ] `AppColors` defined with light and dark variants
-- [ ] `FontManager` with font sizes and weights
-- [ ] `StylesManager` for reusable text styles
-- [ ] `ThemeManager` with light and dark themes
-- [ ] `MaterialApp` uses both themes
-- [ ] All UI uses design tokens, no hardcoded colors/styles
+Inspect complete states: normal, disabled, busy, error, focused, and selected.
+Check text scaling and both themes the app actually supports. A screenshot of
+one light-mode idle screen does not establish that the component works in dark
+mode or with a visible validation error.

@@ -1,63 +1,47 @@
 ---
 name: image-generation
-description: AI image studio with generation, variations, history, and Cloud Function backend
+description: "Implement an app feature for image generation, results, and history through its backend."
 ---
 
-# Image Generation
+# Image-generation feature
 
-## Overview
+This skill implements the product feature. For creating development artwork or
+icons, use [app icon generation](../app-icon-generation/SKILL.md) or
+[app promotions](../app-promotions/SKILL.md).
 
-The image generation feature provides an AI image studio where users create images from prompts, generate variations, and browse generation history. Backend uses Genkit Cloud Functions.
+- Inspect the app's backend, job model, and supported generation options.
+  Do not assume a specific Cloud Function filename already exists.
+- Keep provider credentials and quota enforcement on the backend.
+- Define pending, running, completed, cancelled, and failed states. Use job/request
+  IDs for retry and reconnect without starting duplicate paid work.
+- Save results with account ownership and a defined retention policy. Handle
+  expired URLs and downloads separately from generation failure.
+- Reuse kit auth, purchase access, and analytics where selected. Keep generation
+  models, history, and UI in the app.
+- Track durations/counts/outcomes without sending prompts or generated content
+  to unrelated analytics. Mask sensitive content when recording screens.
 
-## Architecture
+Add variations, styles, or history only when required by the feature request.
+Check duplicate taps, timeout, reconnect, quota exhaustion, and result expiry.
 
-```
-features/image_generation/   # (or within chat feature)
-├── data/
-│   ├── datasources/remote/
-│   │   └── image_gen_remote_data_source.dart
-│   ├── models/
-│   │   └── generated_image_model.dart
-│   └── repositories/
-│       └── image_gen_repo.dart
-├── domain/
-│   ├── entities/
-│   │   └── generated_image_entity.dart
-│   ├── repositories/
-│   │   └── image_gen_base_repo.dart
-│   └── usecases/
-│       ├── generate_image_usecase.dart
-│       └── get_image_history_usecase.dart
-└── presentation/
-    ├── bloc/image_gen_bloc/
-    ├── screens/
-    │   ├── image_generator_screen.dart
-    │   └── history_screen.dart
-    └── widgets/
-        ├── style_selector.dart
-        ├── ratio_selector.dart
-        └── image_preview.dart
-```
+## Treat generation as a job with a separate result
 
-## Firebase / Cloud
+Define the backend job ID, authenticated owner, accepted parameters, status,
+result references, and failure code. The feature repository maps those records
+to domain models; use cases create/resume/cancel jobs; the BLoC renders progress
+and result state. Keep vendor-specific response parsing in the data layer.
 
-- **Cloud Functions:** `image-generate.flow.ts` — Takes prompt, style, ratio → returns image URL
-- **Cloud Storage:** `images/generated/{userId}/{imageId}.png`
-- **Firestore:** `images/{imageId}` — Generation metadata
+Creating a job, generating an image, downloading it, and saving it to the user's
+chosen location are separate operations. Preserve a successful generation when
+a later download fails so Retry does not start another paid job. Request a local
+save permission only when the chosen platform operation needs it.
 
-## Interaction Map
+If the request times out, first determine whether the server accepted a job.
+Use the established request ID and backend deduplication/resume contract. Do not
+blindly create a new job on every timeout. Explain whether cancellation stops
+only local waiting or also the server's generation work.
 
-- **Firebase** → Cloud Functions for generation, Storage for images, Firestore for metadata
-- **Quota** → Rate-limit generations for free users
-- **Content Locking** → Gate styles/features behind subscription
-- **Analytics** → Log generation events, styles used
-- **Offline/Caching** → Cache generated images locally
-
-## Checklist
-
-- [ ] Image generation feature structure created
-- [ ] Cloud Function endpoint for generation
-- [ ] Style and ratio selectors implemented
-- [ ] History screen with cached images
-- [ ] Variation generation support
-- [ ] Quota checks before generation
+Resolve expired result URLs through the backend's supported mechanism. Persist
+stable result IDs rather than assuming a temporary URL lasts forever. Enforce
+account ownership and retention on the backend, and keep history queries scoped
+to the current account. Reuse the app's image/cache component for presentation.

@@ -1,62 +1,52 @@
 ---
 name: logging
-description: A centralized, styled logging system for real-time observability and debugging.
+description: "Connect structured kit logs and the shared Kit Lab recorder."
 ---
 
-# Logging System (StarterLog)
+# Logging
 
-The logging system is a core utility provided in the `starter_kit` to ensure high observability and beautiful debugging outputs in the console. It uses the `logger` package to provide framed, color-coded, and emoji-enhanced logs.
+Use `KitLogger` for kit code and the app's existing logger at app boundaries.
+`StarterLog` is not a current shared kit API.
 
-## 📁 Key File
-- `lib/core/utils/starter_log.dart`
+- Include the module, operation, normalized outcome, and useful timing/context.
+- Keep original errors/stacks for unexpected failures without dumping private payloads.
+- Never log passcodes, credentials, raw device IDs, tokens, form text, or chat content.
+- If Kit Lab history is wanted, pass one `RecordingKitLogger` to the coordinator,
+  compatible providers, and host. Creating a recorder only inside Lab captures
+  none of the earlier module logs.
+- Choose release retention explicitly. A console logger and an in-memory Lab
+  buffer are separate destinations.
+- Dispose the recorder with the runtime; late callbacks must not revive it.
 
-## 🏷️ Standard Tags
-Use these tags to stay consistent with the existing logging structure:
-- `[CONFIG]` - Remote Config fetch/activation events.
-- `[ADS]` - Advertisements (loading, showing, events).
-- `[IAP]` - In-App Purchases (validation, receipts, events).
-- `[ANALYTICS]` - Direct analytics firing events.
-- `[GDPR]` - Consent status and form updates.
-- `[DATABASE]` - Firestore/Storage interactions.
+Logs help diagnose a failure; they do not replace handling it. Check that a
+representative module event reaches the intended destination once.
 
-## 🚀 Usage
+## Share one recorder across the runtime
 
-### 1. Basic Debug Log
-```dart
-StarterLog.d('Something happened');
-```
+Create `RecordingKitLogger` before constructing providers if startup history
+should appear in Lab. Its `forwardTo` destination can preserve the app's existing
+logging output while the recorder keeps its bounded in-memory history. Pass the
+same logger to each compatible provider and the Lab host. Creating a separate
+recorder when Lab opens cannot recover previous events.
 
-### 2. Tagged Log with Values
-```dart
-StarterLog.i(
-  'Fetch Success',
-  tag: 'CONFIG',
-  values: {
-    'count': 5,
-    'source': 'remote',
-    'duration': '342ms',
-  },
-);
-```
+Use an operation name and safe context to make messages useful. For example,
+identify a failed remote refresh or reminder ID and duration; do not dump the
+entire remote response or notification payload. Keep log severity tied to the
+outcome so expected cancellation does not look like a fatal failure.
 
-### 3. Error Logging
-```dart
-try {
-  // logic
-} catch (e, stack) {
-  StarterLog.e('Failed to load data', tag: 'FEATURE', error: e, stackTrace: stack);
-}
-```
+Avoid duplicate reporting chains: if the repository already reports an unexpected
+exception, the screen should render its failure without reporting it again.
+If a logger destination fails, do not recursively send that failure back through
+the same failing destination.
 
-### 4. Specialized Loggers
-There are pre-defined helper methods for common events:
-- `StarterLog.logAdEvent(...)`
-- `StarterLog.logPurchaseEvent(...)`
-- `StarterLog.logAnalyticsEvent(...)`
-- `StarterLog.logRemoteConfigEvent(...)`
+During runtime retry, dispose the old recorder/listeners with their owner and
+construct the new runtime's recorder deliberately. The Lab host must point to
+the current instance. In the handover, distinguish a local log entry from
+confirmed delivery to any remote logging or crash-reporting service.
 
-## 🎨 Best Practices
-- **Never use `print()`** directly; always use `StarterLog`.
-- **Use tags** for easy filtering in the terminal.
-- **Pass structured values** via the `values` map for easier reading (it will auto-format them into a frame).
-- **Include StackTrace** for critical errors in `StarterLog.e`.
+## Package references
+
+Read the public API and setup for the packages used by this task:
+
+- [genrevibes_core](../../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_core/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_core/lib/genrevibes_core.dart).
+- [genrevibes_devtools](../../../../../packages/genrevibes_starter_kit/modules/devtools/genrevibes_devtools/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/devtools/genrevibes_devtools/lib/genrevibes_devtools.dart).

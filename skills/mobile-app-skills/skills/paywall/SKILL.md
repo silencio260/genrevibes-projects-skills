@@ -1,98 +1,68 @@
 ---
 name: paywall
-description: Subscription gate screen showing products and triggering IAP purchases
+description: "Present hosted or app-owned paywalls using the existing IAP provider."
 ---
 
 # Paywall
 
-## Overview
+Configure purchases using [IAP](../iap/SKILL.md) first.
 
-The paywall is a full-screen subscription gate shown to free users when they try to access premium features. It displays available products from RevenueCat and triggers purchases via the IAP BLoC.
+- For RevenueCat-hosted paywalls/customer center, add
+  `genrevibes_iap_revenuecat_ui` and supply `RevenueCatUiAdapter` when constructing
+  the provider. Use its [example](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap_revenuecat_ui/example/main.dart).
+- For an app-owned paywall, use the same provider's products, purchase, and
+  restore operations. Do not add hosted UI dependencies unnecessarily.
 
-## Prerequisites
+Show real localized product prices and the benefits of the feature being gated.
+Include restore and a usable close/back action. Explain unavailable products
+rather than showing a permanent spinner.
 
-- IAP configured (see `skills/iap/SKILL.md`)
-- Products set up in RevenueCat + App Store / Play Store
+Return the actual paywall outcome to the caller. Refresh access from the shared
+entitlement snapshot; do not unlock solely because the paywall closed. Keep
+pending payment separate from success and show a restore error when it fails.
 
-## Architecture
+The app chooses when to show a paywall. Onboarding and Settings should call the
+same integration. An optional paywall failure must not trap onboarding.
+Record display/action events once without duplicating provider purchase events.
 
-```
-features/paywall/
-├── presentation/
-│   ├── screens/
-│   │   └── paywall_screen.dart
-│   └── widgets/
-│       ├── product_card.dart
-│       ├── feature_comparison.dart
-│       └── pricing_toggle.dart
-```
+Check cancelled, pending, purchased, restored, missing products, and failure UI.
 
-The paywall is primarily a **presentation-only** feature — it delegates to the starter kit `IapBloc` for business logic.
+## Hosted and custom UI are different integrations
 
-## Implementation
+For hosted RevenueCat UI, construct the provider with `uiPresenter:
+const RevenueCatUiAdapter(displayCloseButton: true)`. Then call the existing
+provider's `presentPaywall`. Installing the UI package alone does not attach it
+to the provider. A customer-center action also needs supported hosted UI.
 
-```dart
-class PaywallScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<IapBloc, IapState>(
-      builder: (context, state) {
-        if (state is IapInitialized) {
-          return Column(
-            children: [
-              // Feature highlights
-              FeatureComparisonWidget(),
-              // Product list
-              ...state.products.map((product) => ProductCard(
-                product: product,
-                onPurchase: () {
-                  StarterKit.iapBloc.add(IapPurchaseProduct(productId: product.id));
-                },
-              )),
-              // Restore purchases
-              TextButton(
-                onPressed: () => StarterKit.iapBloc.add(const IapRestorePurchases()),
-                child: Text('Restore Purchases'),
-              ),
-            ],
-          );
-        }
-        return CircularProgressIndicator();
-      },
-    );
-  }
-}
-```
+For custom UI, call `getProducts`, render actual localized prices, let the user
+select a product ID from those results, then call `purchase`. Do not hardcode a
+price or send a display label where a product identifier is required.
 
-## When to Show
+### App screen behavior
 
-```dart
-// Check before accessing premium features
-void accessPremiumFeature(BuildContext context) {
-  final iapState = StarterKit.iapBloc.state;
-  final isSubscribed = iapState is IapInitialized && iapState.subscriptionStatus.isActive;
+1. Enter with a feature/placement reason, not an automatic purchase action.
+2. Load products or open supported hosted UI. Handle missing offering/configuration.
+3. Disable competing purchase/restore actions while one is active.
+4. Interpret KitFailure and every PurchaseStatus as described by the IAP skill.
+5. Update the shared entitlement holder, then re-evaluate the requested feature.
+6. Return the actual outcome to the caller. Closing a page does not imply paid access.
 
-  if (!isSubscribed) {
-    Navigator.pushNamed(context, Routes.paywall);
-    return;
-  }
-  // Proceed with feature
-}
-```
+A timeout on an interactive native paywall can end an app wait while the native
+page remains open. Do not navigate a second route behind it or start another
+purchase. Let the integration's actual close/result lifecycle drive navigation.
+For a blocked optional onboarding paywall, use a defined recovery path without
+marking it as a purchase.
 
-## Interaction Map
+### Verify the caller as well as the page
 
-- **IAP** → Delegates purchases to `IapBloc`
-- **Content Locking** → Triggers paywall when locked content accessed
-- **Tracking** → Show different offers by user segment (`logOfferShown()`)
-- **Analytics** → Log `paywall_shown`, `paywall_dismissed`, `purchase_initiated`
-- **Ads** → Show rewarded ad as alternative to subscription
+Settings restore, onboarding upsell, and locked-feature entry should use the
+same purchase provider. Check that each caller handles cancellation and pending
+payment correctly. Confirm the close button remains available and a failed
+product load does not leave the entire app behind a spinner.
 
-## Checklist
+## Package references
 
-- [ ] Paywall screen created with product display
-- [ ] Purchase buttons wired to `IapBloc`
-- [ ] Restore purchases button included
-- [ ] Feature comparison or benefits displayed
-- [ ] Analytics events logged
-- [ ] Targeted by user segment via `UserTargetingManager`
+Read the public API and setup for the packages used by this task:
+
+- [genrevibes_iap](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap/lib/genrevibes_iap.dart).
+- [genrevibes_iap_revenuecat_ui](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap_revenuecat_ui/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap_revenuecat_ui/lib/genrevibes_iap_revenuecat_ui.dart).

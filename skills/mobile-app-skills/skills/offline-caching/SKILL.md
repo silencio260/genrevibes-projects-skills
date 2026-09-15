@@ -1,87 +1,55 @@
 ---
 name: offline-caching
-description: Network-aware repositories, local caching, and connectivity checking
+description: "Add feature-specific caching and offline behavior without duplicating kit storage."
 ---
 
-# Offline & Caching
+# Offline data and caching
 
-## Overview
+Inspect the feature's existing repository and storage before adding a cache.
+Use kit key-value storage for small settings/state; keep structured app data in
+the app's chosen database or file store.
 
-Repositories check network connectivity before API calls and use local caching for offline support. The `NetworkInfo` abstraction wraps `InternetConnectionChecker`.
+1. Define what can be cached, its lifetime, size limit, and invalidation rule.
+2. Decide whether the feature serves cached data first or only after a request
+   fails. Label stale data when its age matters.
+3. Bound requests and handle their actual errors. A connectivity precheck is
+   only a hint and should not permanently block otherwise reachable services.
+4. Separate caches by account and clear only the relevant data on logout.
+5. For queued writes, define ordering, retry limits, and duplicate prevention.
+   Do not blindly replay non-idempotent operations.
+6. Preserve existing serialization IDs/fields during changes. Follow
+   [storage migration](../storage-migration/SKILL.md) for kit key adoption.
 
-## Architecture
+Keep the app's existing code-generation approach. For manual Hive adapters,
+maintain stable type/field IDs; choosing manual adapters is not permission to
+change stored formats. Reuse the existing network-image component.
+Check stale cache, empty cache, request failure, account switch, and storage limits.
 
-```
-core/network/
-└── network_info.dart          # Abstract + implementation
+## Define the cache contract in the repository
 
-core/helpers/
-└── dio_helper.dart            # HTTP client with timeouts
-```
+Write down the cache key, account scope, serialized version, freshness period,
+maximum size, and deletion policy. Store small preferences with the kit store;
+choose the existing app database/file layer for collections and large content.
+A cache is an implementation detail of the data repository, not a second source
+of truth that widgets read independently.
 
-## Implementation
+Choose one read sequence deliberately. A cache-first feature can show saved data
+immediately and refresh; a network-first feature may use cached data only after
+a request fails. In either case, distinguish empty, stale, refreshing, and failed
+states in the BLoC. Do not erase usable cached content just because refresh failed.
 
-### Network Info
+For queued writes, persist an operation ID and define conflict handling before
+adding automatic retry. A repeated request to create a paid job or send feedback
+may perform the action twice unless the server supports deduplication. Retrying
+a read and retrying a charge are different decisions.
 
-```dart
-abstract class NetworkInfo {
-  Future<bool> get isConnected;
-}
+During account changes, stop old reads/writes from updating the new account's
+cache. During format changes, migrate existing serialized values explicitly;
+changing a Hive type/field ID or JSON field meaning can break installed users.
+Document whether an old app version can still read the updated cache.
 
-class NetworkInfoImpl implements NetworkInfo {
-  final InternetConnectionChecker connectionChecker;
-  NetworkInfoImpl(this.connectionChecker);
+## Package references
 
-  @override
-  Future<bool> get isConnected => connectionChecker.hasConnection;
-}
-```
+Read the public API and setup for the packages used by this task:
 
-### Repository Pattern
-
-```dart
-@override
-Future<Either<Failure, Data>> getData(String id) async {
-  if (!await networkInfo.isConnected) {
-    // Try local cache first
-    final cached = await localDataSource.getCached(id);
-    if (cached != null) return Right(cached.toDomain());
-    return const Left(NoInternetConnectionFailure());
-  }
-  try {
-    final remote = await remoteDataSource.getData(id);
-    await localDataSource.cache(remote);  // Cache for offline
-    return Right(remote.toDomain());
-  } catch (error) {
-    return Left(ErrorHandler.handle(error).failure);
-  }
-}
-### Hive Storage
-
-**Critical Rule**: Use **Manual TypeAdapters** (not `@HiveType` generators).
-1. Avoid `hive_generator` and `build_runner`.
-2. Extends `TypeAdapter<T>` for each Hive model.
-3. Manually implement `read` and `write` with numbered fields.
-
-**Benefits**:
-- Faster builds (no codegen).
-- Clearer logic and more predictable serialization.
-- Less project noise (no `*.g.dart` files).
-
-
-Use `AppNetworkImage` or `CachedNetworkImage` for consistent image caching across all screens.
-
-## Interaction Map
-
-- **Every feature** → Repositories use `NetworkInfo`
-- **Error Handling** → `NoInternetConnectionFailure` returned
-- **Chat** → Offline message queue
-- **Image Generation** → Cached generated images
-
-## Checklist
-
-- [ ] `NetworkInfo` registered in DI
-- [ ] All repositories check connectivity
-- [ ] Local caching for frequently accessed data
-- [ ] `AppNetworkImage` used for all network images
-- [ ] Graceful offline handling in UI
+- [genrevibes_storage](../../../../../packages/genrevibes_starter_kit/modules/storage/genrevibes_storage/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/storage/genrevibes_storage/lib/genrevibes_storage.dart).

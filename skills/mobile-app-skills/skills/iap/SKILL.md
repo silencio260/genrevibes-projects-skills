@@ -1,141 +1,97 @@
 ---
 name: iap
-description: Subscription and one-time purchase management via RevenueCat with Clean Architecture
+description: "Connect purchases, restores, entitlement updates, and feature access through the kit IAP interfaces."
 ---
 
-# In-App Purchases (IAP)
+# Purchases and subscriptions
 
-## Overview
+Use `IapProvider` with the chosen adapter. RevenueCat uses
+`RevenueCatIapProvider` and `RevenueCatConfiguration`. Supply public SDK keys
+for each supported platform, product IDs, offerings, and exact entitlement IDs.
 
-IAP handles subscriptions and one-time purchases using RevenueCat. The starter kit provides a complete BLoC-based implementation. The app feature layer wraps the starter kit's IAP with app-specific logic.
+1. Create one provider and initialize it through app startup.
+2. Read its entitlement snapshot and subscribe once to `entitlementChanges`.
+   Store one authoritative snapshot for the app's access decisions.
+3. Define feature rules with `EntitlementAccessPolicy` and
+   `FeatureEntitlementRule`. Do not equate any purchase with every premium feature.
+4. Let the app choose anonymous or signed-in purchase identity. Connect login
+   and logout explicitly; Firebase identity is not linked automatically.
+5. Keep developer simulation separate from actual entitlements and require
+   `DeveloperAction.premiumSimulation` whenever applying it.
+6. Preserve distinct purchased, restored, cancelled, pending, and failure outcomes.
+   A restore failure must reach the UI; a cancelled paywall is not a purchase.
+7. Prevent concurrent purchase/restore actions, restore UI controls on failure,
+   and cancel entitlement listeners on shutdown.
 
-## Prerequisites
+Use [paywall](../paywall/SKILL.md) for hosted or app-owned presentation.
+Subscription state belongs in app state management; the kit does not supply an
+app-specific IAP BLoC. Keep unknown/loading state distinct from known free state
+when deciding whether to request ads.
 
-- Starter kit integrated (see `starter-kit/SKILL.md`)
-- RevenueCat account + API key configured
-- `revenue_cat_api_key_android` and `revenue_cat_api_key_ios` in env config (see `skills/env-config/SKILL.md`)
-- Entitlements, Offerings, and Products configured in RevenueCat dashboard
-- App Store / Play Store products configured
+Use actual provider amounts/currency for revenue. A completion event without
+price data must omit revenue rather than report zero USD. Backend-paid access
+must be verified by the backend, not a client developer switch.
 
-## Architecture
+Check purchase, cancellation, pending payment, restore, account switching, and
+entitlement changes. State which flows still need a store sandbox/device.
 
-The starter kit handles the IAP infrastructure:
+## Exact provider operations
 
-```
-starter_kit/lib/features/iap/
-├── data/datasources/   # RevenueCat data source
-├── domain/repositories/ # IAP repository interface
-└── presentation/bloc/   # IapBloc with events/states
-```
+| Operation | Result |
+|---|---|
+| `getProducts(productIds: ..., placementId: ...)` | `KitResult<List<IapProduct>>`; empty IDs can select the current offering. |
+| `purchase(productId)` | `KitResult<PurchaseResult>`. |
+| `presentPaywall(requiredEntitlementId: ..., placementId: ...)` | Same purchase result; requires hosted UI support. |
+| `getEntitlements(forceRefresh: ...)` | `KitResult<EntitlementSnapshot>`. |
+| `restorePurchases()` | `KitResult<EntitlementSnapshot>`, not a PurchaseResult. |
+| `identify(appUserId)` / `resetIdentity()` | New entitlement snapshot for the resulting customer identity. |
+| `entitlementChanges` | Live snapshots; attach once and dispose the subscription. |
 
-App-level wrapper (if needed):
+See complete typed functions in [integration examples](../../references/integration-examples.md).
+The app supplies the actual entitlement ID; a blank string is not a safe default.
 
-```
-features/iap/
-├── iap_injector.dart
-├── presentation/
-│   ├── screens/
-│   │   └── subscription_screen.dart
-│   └── widgets/
-│       └── product_card.dart
-```
+### Setup across app files
 
-## Implementation
+Create `RevenueCatConfiguration` from platform SDK keys in app_env. Construct
+`RevenueCatIapProvider` in bootstrap; supply `RevenueCatUiAdapter` only when the
+app uses hosted paywalls/customer center. Register the existing provider under
+IapProvider. The app data source calls this interface, its repository maps
+KitResult to app Failure/results, and its BLoC drives busy/result UI.
 
-### Access via Starter Kit
+Keep one holder for the current entitlement snapshot. Subscribe to changes and
+fetch the initial state. Guard results by runtime/account identity so a late
+refresh for the previous account cannot overwrite the new account's access.
+If the app already has a subscription manager, update it instead of creating
+another independently cached premium flag.
 
-```dart
-// Initialize (automatic with StarterKit)
-StarterKit.iapBloc.add(const IapInitialize());
+### Interpret both levels of result
 
-// Purchase a product
-StarterKit.iapBloc.add(IapPurchaseProduct(productId: 'premium_monthly'));
+An outer KitFailure is a provider/configuration/network failure. An outer
+KitSuccess can still contain `cancelled`, `pending`, or `notPurchased`.
+`purchased` and `restored` are positive outcomes, but feature access still comes
+from the entitlement snapshot and its policy. Show cancellation as cancellation,
+not an error and not a success toast. Pending payment stays pending until later
+provider state grants access.
 
-// Restore purchases
-StarterKit.iapBloc.add(const IapRestorePurchases());
+A restore returns a snapshot directly. Apply it through the same holder and
+explain whether the required entitlement is present. Do not report successful
+restoration when the provider returned a failure or when no access was found.
 
-// Listen to state
-BlocListener<IapBloc, IapState>(
-  listener: (context, state) {
-    if (state is IapInitialized) {
-      final isSubscribed = state.subscriptionStatus.isActive;
-      final products = state.products;
-    }
-  },
-)
-```
+### Product access and analytics
 
-### Check Subscription Status
+Use `FeatureEntitlementRule(featureId: ..., anyOf: {...})` for each product rule.
+One entitlement can unlock several features; another can unlock only exports.
+Do not reduce that mapping to “has any active entitlement.” Developer simulation
+is a separate input permitted by the action grant, never a rewritten purchase record.
 
-```dart
-final iapState = StarterKit.iapBloc.state;
-if (iapState is IapInitialized) {
-  return iapState.subscriptionStatus.isActive;
-}
-return false;
-```
+Use provider purchase data for revenue. A paywall completion without price data
+can emit an outcome event with no amount. Renewals often happen outside the app;
+do not claim a button listener captures them. Retain the app's event contract
+when replacing old wrappers.
 
-## ProGuard / R8 (Android)
+## Package references
 
-To prevent RevenueCat classes from being stripped during release builds, keep rules are required. While the `starter_kit` package provides these automatically via `consumerProguardFiles`, it is **highly recommended** to also include them in your app's `android/app/proguard-rules.pro` for redundancy and visibility.
+Read the public API and setup for the packages used by this task:
 
-1. Ensure `minifyEnabled true` is set in your app's `build.gradle`.
-2. Add the following to your app's `proguard-rules.pro`:
-
-```proguard
-# RevenueCat Proguard Rules
--keep class com.revenuecat.purchases.** { *; }
--keep class com.revenuecat.purchases.ui.** { *; }
--keep class com.revenuecat.** { *; }
-
-# Prevent obfuscation
--keepattributes Signature
--keepattributes *Annotation*
--keepattributes SourceFile,LineNumberTable
-```
-
-## Interaction Map
-
-- **Paywall** → Shows products, triggers purchase
-- **Content Locking** → Checks subscription status
-- **Ads** → Disable ads for subscribers
-- **Analytics** → Log purchase events, revenue
-- **Settings** → Restore purchases, manage subscription
-- **Tracking** → Target offers by user segment
-
-## Special Features
-
-### RevenueCat Linking
-- **Setup**: `StarterKit` initializes RevenueCat using platform-specific API keys from `EnvConfig`.
-- **User Mapping**: The `appUserId` is automatically tied to the `Firebase Auth` UID.
-
-### Entitlement Checks
-- **Source of Truth**: Always check `subscriptionStatus.isActive` for the most reliable entitlement check.
-- **Cache**: Subscritpion status is cached locally by RevenueCat, allowing for offline entitlement verification.
-
-### Triggering the Paywall
-- **Automatic**: Use the `PaywallGate` widget from `starter_kit` to wrap features that require premium. It handles the subscription check and shows the paywall if needed.
-- **Manual**:
-  ```dart
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const PaywallScreen()),
-  );
-  ```
-
-### Manage Subscription
-- **Implementation**: In `SettingsPanelScreen`, the subscription section dynamically switches between "Go Pro" and "Manage Subscription" based on `StarterKit.subscriptionManager.isPremium`.
-- **Functionality**: 
-  - Displays "Premium Active" status.
-  - Provides a "Manage" button that opens the respective store's subscription page (Google Play or Apple App Store).
-- **Debug Support**: Fully integrated with "Debug Premium" for testing the premium UI state.
-
-## Checklist
-
-- [ ] RevenueCat API key in env config
-- [ ] Products configured in App Store / Play Store
-- [ ] Products configured in RevenueCat dashboard
-- [ ] `IapBloc` provided in widget tree
-- [ ] Subscription status checked for content locking
-- [ ] Purchase and restore flows tested
-- [ ] Analytics events logged for purchases
+- [genrevibes_iap](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap/lib/genrevibes_iap.dart).
+- [genrevibes_iap_revenuecat](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap_revenuecat/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/iap/genrevibes_iap_revenuecat/lib/genrevibes_iap_revenuecat.dart).

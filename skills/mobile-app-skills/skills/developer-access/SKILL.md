@@ -1,226 +1,131 @@
 ---
 name: developer-access
-description: Developer tools and test ads on store builds for your own phones — hashed developer device lists (hardcoded, env, remote config), a hidden passcode unlock with lockout, and the ads test-mode switch that follows both. Read before adding any "dev menu in production", test-device list, or debug unlock to a GenRevibes app.
+description: "Reuse the kit developer unlock, device lists, action permissions, and ad test-mode controls."
 ---
 
-# Developer Access
+# Developer access
 
-## Overview
+Reuse `DeveloperAccessController`, `DeveloperUnlockGesture`, and
+`DeveloperAdSwitches`. Apps configure shared behavior instead of writing another unlock.
 
-A development build always has the developer tools and serves test ads. A
-**store build** grants the same to a phone in one of two ways:
+## App choices
 
-1. **Listed developer device** — the phone's hash is on any of three lists.
-2. **Passcode** — a hidden gesture opens a prompt; the right passcode unlocks
-   until the app closes.
+| Option | Effect |
+|---|---|
+| Omit overrides | Keep kit passcode, device handling, diagnostics, and premium simulation. |
+| `enabled: false` | Disable kit developer access, including development-build grants. |
+| `allowPasscode: false` | Disable passcode entry; retain listed-device access. |
+| `passcode` | Replace the shared fallback. Blank keeps `DeveloperAccessDefaults.passcode`. |
+| `actions` | Limit actions for all grants. |
+| `passcodeActions` | Further limit passcode sessions, such as diagnostics only. |
 
-Whatever grants access also switches that phone to **test ads**, so a developer
-experimenting in production can never tap a live ad. Everything lives in the
-kit (`genrevibes_developer_access`, `genrevibes_remote_policy`,
-`genrevibes_devtools`, `genrevibes_ads`), so every app behaves identically.
+Use `allows(DeveloperAction.diagnostics)` for developer UI and
+`allows(DeveloperAction.premiumSimulation)` for simulated premium. Recheck on
+access changes. `isGranted` alone does not authorize every action.
 
-## Non-negotiable: lists hold hashes, never device IDs
+## Connect it
 
-Every list ships to strangers. Hardcoded and env values are compiled into the
-binary; remote config is downloaded by every install. A raw device identifier in
-any of them is published.
+1. Initialize the controller with the app's store and config before ads.
+   Supply the platform install marker if available for reinstall/lockout handling.
+2. Resolve vendor identity and pass `vendorId` to `setDeviceId`. Lists contain
+   `DeveloperDeviceHash` values, never raw IDs. Android app-set IDs and iOS vendor
+   IDs can change; copy the hash from the installation actually being used.
+   Do not promise one permanent identifier across all installs or distribution channels.
+3. If using remote config, initialize `DeveloperAccessRemotePolicyBinder` before
+   refresh and dispose it with the runtime. Env lists are comma-separated;
+   remote lists are JSON arrays.
+4. Wrap the chosen Settings target with `DeveloperUnlockGesture`. Use the app's
+   colors through `DeveloperPasscodeTheme`. For PostHog, supply `protectContent`
+   with `PostHogMaskWidget` so the passcode route is masked.
+5. Pass the controller to `DevToolsHost`; follow [Kit Lab](../kit-lab/SKILL.md).
+6. Load the shared ad switches once. Apply `allows(format)` at every load/show
+   and inline view. Cancel their listeners and dispose the switches at shutdown.
 
-`DeveloperDeviceHash.of(id)` is a salted SHA-256 of the identifier. The device
-hashes its own identifier and compares. The identifiers are random UUIDs, so a
-hash can be neither reversed nor produced by another phone. The salt is
-portfolio-wide, so one hash covers a phone in every app.
+The default gesture is seven taps. The default wrong-attempt limit is three.
+A passcode grant lasts for the process; `lockSession()` revokes that grant
+without removing a listed phone. Preserve kit lockout handling. Never log passcodes.
+The shared passcode is compiled into the app; it is not backend authorization.
 
-## Which identifier, and why
+## Ad test mode
 
-| Identifier | Used? | Why |
-|---|---|---|
-| Android **app set ID** (developer scope) | **Yes** | Google documents it for "analytics or fraud prevention". Shared by every app from one Play developer account on a device, so the hash is portfolio-wide. The user cannot reset it. It changes only after 13 months unused, when the last app from the account is uninstalled, or on factory reset. |
-| iOS **identifierForVendor** | **Yes** | The iOS counterpart: vendor-scoped, needs no tracking prompt. |
-| Advertising ID (AAID / IDFA) | **No** | Play Ads policy: "must only be used for advertising and user analytics". Unlocking dev tools is neither. Users can also delete it (apps then get zeros), and iOS needs ATT consent. |
-| Kit install ID | No | Changes on every reinstall. |
-| AdMob hashed test device ID | No | Printed to logcat only; the app has no official way to read its own. |
+Pass initial test mode to the ad provider and follow access changes through
+`AdTestModeProvider.setTestMode`. Development runs must remain on test inventory,
+including when the app simulates an unlisted store-build phone.
 
-The Android app set ID is read by the kit's own plugin in
-`genrevibes_device_identity_platform`. It is `DeviceIdentity.vendorId`, the value
-bootstrap passes to `developerAccess.setDeviceId`.
+Appodeal fixes test mode at SDK initialization. A later incompatible change
+withholds inventory until relaunch. A passcode entered after SDK startup can
+therefore hide ads for that session; list the phone for test mode on future
+launches. Do not claim a session-only passcode survives relaunch.
 
-**A sideloaded install has an app-scoped ID**, so its hash differs from the
-Play-installed app's. Copy the hash from the build the phone will actually run.
+Check disabled access, listed phones, passcode lockout, diagnostics-only grants,
+and immediate revocation of simulated premium.
 
-## The three lists
+## Configuration examples and their meaning
 
-| List | Where | Format | Use for |
-|---|---|---|---|
-| Hardcoded | `AppDeveloperDevices.hashes` in `app_env.dart` | `const <String>[...]` | The developer's own phones, permanently |
-| Env | `developer_device_hashes` in `env/*.json` | Comma-separated string | Per-build lists (e.g. a tester's phone in `special_dev.json`) |
-| Remote | `developer_device_hashes` in Remote Config (**Developer Access Group** in `remote_config_template.json`) | JSON array | Adding/removing a phone **without a release** — applies on the next fetch |
-
-Malformed entries are ignored individually; one typo never voids a list.
-
-**Getting a phone's hash:** unlock with the passcode (or run a dev build), then
-Settings → Developer Options → **Copy Developer Device Hash**, or Starter Kit
-Lab → **Developer access**. That page shows the unhashed device ID (Android app
-set ID, iOS identifierForVendor), the device hash, and the advertising ID on
-screen, each with its own copy button. Only the hash goes in a list; the raw ID
-is shown there for checking, never for listing.
-
-**Getting a phone's advertising ID:** the same Lab page shows the Google
-advertising ID (Android) or IDFA (iOS) with **Copy advertising ID**, for
-registering the phone as a test device in an ad network. Pass
-`DevToolsHost(advertisingId: const PlatformAdvertisingIdSource())`. It is read
-only when the page asks, never stored, logged or sent, and never used for
-access. It is absent when the user deleted it or turned ad personalisation off
-(Android), or has not allowed tracking (iOS).
-
-## Passcode unlock
-
-- **Gesture:** 7 taps within 3 seconds on the Settings title
-  (`DeveloperUnlockGesture`) open the passcode page. Silent — no page, no
-  hint — when access is already granted or entry is locked out.
-- **Page, in the app's colors:** a full page, not a dialog. Pass
-  `DeveloperPasscodeTheme` with the Settings screen's colors, from the same
-  app-side style as the feedback page (Story Saver: `SettingsPageStyle`).
-- **Passcode:** `developer_passcode` in the env file. Portfolio env files set
-  `"7722"`. A blank or missing value falls back to
-  `DeveloperAccessDefaults.passcode` (`1234567`).
-- **Grant lasts until the app process ends.** Never persisted — a phone left
-  unlocked does not stay unlocked. A phone that should always have access goes
-  on a list.
-- **Lockout:** 3 wrong attempts lock entry permanently. Only two things clear
-  it: launching a **development build** on the phone, or **reinstalling**. The
-  failure count is tied to Android's first-install time (`InstallMarker`), so
-  Auto Backup restoring shared preferences into a reinstall does not bring the
-  lockout back.
-- **Never logged:** the passcode, attempts, and device identifiers are never
-  logged, stored, or reported. Storage holds only a wrong-attempt count and its
-  install marker.
-- **Limitation:** like every define, the passcode is inside the binary. It stops
-  casual discovery, not someone decompiling the APK; the lockout stops guessing.
-
-## Test ads follow access
-
-`DeveloperAccess.servesTestAds == isGranted`, always. What that does depends on
-the ad provider's `AdTestModeProvider`:
-
-- **Appodeal (portfolio standard):** test mode is taken when the SDK
-  initializes, in the deferred ads module after consent's network round trip.
-  Access settled by then starts the SDK in test mode, and every mediated
-  network serves test ads. That normally covers a development build, a
-  hardcoded or env hash, and a remote hash activated on an earlier run.
-  **Access that changes after that withholds all ads until relaunch:** nothing
-  loads, nothing shows, and the banner view renders nothing. A phone never sees
-  a live ad after it is recognised, and gets test ads from its next launch.
-- **So on Appodeal the passcode hides ads but never shows test ads.** The grant
-  lasts one session and cannot survive the relaunch. A phone that needs test
-  ads in a store build goes on a list.
-- **AdMob adapter (`genrevibes_ads_admob`):** switches at runtime between the
-  app's units and Google's sample units, discarding inventory loaded in the
-  other mode. Its banner widgets rebuild on `developerAccess.changes` and pass
-  `unit.withTestUnitId()`.
-- Every ad adapter must implement `AdTestModeProvider`, and must never show
-  live inventory after a mode change it cannot apply.
-
-## Wiring
+The [integration file](../../references/integration-examples.md) includes
+`makeDeveloperAccess` with complete imports. It limits passcode sessions to
+diagnostics. To retain all kit defaults, omit `passcodeActions`; do not copy
+that restriction automatically into every app.
 
 ```dart
-// Bootstrap, after the store and identity resolver exist, BEFORE the ad provider.
-final developerAccess = DeveloperAccessController(
-  store: store,
-  config: env.developerAccess, // isDevelopmentBuild, hardcoded, env list, passcode
-  installMarker: await InstallMarker.read()
-      .timeout(const Duration(seconds: 2), onTimeout: () => null),
-  logger: logger,
-);
-await developerAccess.initialize();
+// Config arguments, not a complete controller construction:
+// Default behavior: only isDevelopmentBuild is required.
+DeveloperAccessConfig(isDevelopmentBuild: isDevelopmentBuild);
 
-final ads = AppodealAdProvider(
-  configuration: env.appodeal, // the app's real key in every build
-  testMode: developerAccess.current.servesTestAds, // taken at SDK initialization
-);
+// Listed phones still work, but passcode entry is disabled.
+DeveloperAccessConfig(isDevelopmentBuild: isDevelopmentBuild, allowPasscode: false);
 
-// After identity.resolve():
-developerAccess.setDeviceId(identity.vendorId);
-
-// After remote config is initialized, before refresh():
-await DeveloperAccessRemotePolicyBinder.forCoordinator(
-  remoteConfig,
-  controller: developerAccess,
-).initialize();
-
-void follow(DeveloperAccess access) {
-  // Bind by pattern: `is` cannot narrow an AdProvider to an unrelated interface.
-  if (ads case final AdTestModeProvider testable) {
-    unawaited(testable.setTestMode(access.servesTestAds));
-  }
-  // Developers see the system navigation bar on every screen (immersive-ui skill).
-  navigationBar.setDeveloperMode(access.isGranted);
-  unawaited(analytics.setUserProperties({'developer_access': access.reason.name}));
-}
-follow(developerAccess.current);
-developerAccess.changes.listen(follow);
+// No kit developer access, even in development builds.
+DeveloperAccessConfig(isDevelopmentBuild: isDevelopmentBuild, enabled: false);
 ```
 
-UI:
+In these fragments `isDevelopmentBuild` is the app's computed build policy.
+An environment flag has no effect unless the app reads it into this config.
+The default passcode is `1234567`; a blank override preserves it. Defaults allow
+both diagnostics and premium simulation. `actions` restricts every grant;
+`passcodeActions` only narrows passcode sessions within that allowed set.
 
-- Wrap the Settings title in `DeveloperUnlockGesture`, with `theme:` set to the
-  Settings screen's colors so the passcode page matches it.
-- Show the developer section with a `StreamBuilder` on `developerAccess.changes`
-  when `isGranted`, never on a build flag.
-- Add a "Copy Developer Device Hash" row to that section, and a "Copy
-  Advertising ID" row reading `PlatformAdvertisingIdSource` on tap.
-- Pass `developerAccess` to `DevToolsHost`.
-- Build `DeveloperAdSwitches(store:, access: developerAccess)`, `load()` it in
-  bootstrap, and pass it as `DevToolsHost.developerAdSwitches`. Starter Kit Lab
-  → Ads → Developer switches then turns interstitial, rewarded, app open,
-  native or banner ads off on that phone. Check `allows(format)` wherever the
-  app loads or shows that format: in-app interstitials, the splash ad, native
-  slots and their preloads, the exit prompt's ad, onboarding's native ad and
-  banners. Inline views listen to `changes` so they hide at once, taking no
-  space. The switches apply only while access is granted.
-- Gate any debug override (such as dev premium) on `isGranted`, not on
-  `kDebugMode`.
+### Device recognition and lockout
 
-The `developer_access` user property (`none`, `developmentBuild`,
-`listedDevice`, `passcode`) lets a developer's own sessions be filtered out of
-production analytics.
+The controller compares hashes from hardcoded, environment, and remote lists.
+Pass the resolved vendor identity into `setDeviceId`; do not hash an advertising
+ID as the access identity. Copy the displayed device hash from the installation
+being registered, because sideload/store scope and reinstall behavior can differ.
+Env lists use comma-separated hashes; remote configuration uses a JSON list.
 
-## Verify
+Initialize with the available platform install marker so restored preferences
+can be distinguished from a new install for lockout handling. The kit owns wrong
+attempts, session grants, and lockout reset logic. Do not make a second counter
+in Settings. Do not persist a successful passcode grant as a permanent premium flag.
 
-**Testing the unlock in a debug build.** A development build grants access by
-itself, so the title taps do nothing there. Pass
-`--dart-define=developer_access_store_build=true` (read by `AppEnv`) to make
-developer access behave as in a store build while everything else stays a
-development build:
+### Connect every consumer
 
-```bash
-flutter run --dart-define-from-file=env/dev.json --dart-define=developer_access_store_build=true
-```
+| Consumer | Check/input |
+|---|---|
+| Lab entry and developer pages | `allows(DeveloperAction.diagnostics)`; keep built-in page guards. |
+| Simulated premium | `allows(DeveloperAction.premiumSimulation)` each time access is derived. |
+| Ad provider at construction | Initial test mode from access/build policy. |
+| Later ad-mode changes | `AdTestModeProvider.setTestMode`; preserve Appodeal relaunch limitation. |
+| Inline/load/show placement | Shared `DeveloperAdSwitches.allows(format)` plus other ad eligibility. |
+| Hidden entry | `DeveloperUnlockGesture` and its theme/mask hooks. |
 
-The phone starts without access, and the taps and passcode work as in
-production. Ads stay on test inventory (`AppEnv.keepsTestAds`), so the debug
-run never requests live ads. Wrong attempts count towards the lockout; run once
-without the define to clear it. Release builds ignore the define.
+Listen for access changes so already-visible UI updates and simulated premium
+is revoked immediately. Register listener cancellation with the runtime scope.
+A valid listed phone can retain its grant after `lockSession()` because that
+method ends the passcode session, not the device registration.
 
-1. Store build, unlisted phone: Settings shows no developer section; ads are live.
-2. Tap the Settings title 7 times → passcode page, in the Settings colors. Enter the passcode → the
-   developer section appears, and on Appodeal every ad disappears for the rest
-   of the session.
-3. Copy Developer Device Hash → add it to `developer_device_hashes` in Remote
-   Config → publish → relaunch until Starter Kit Lab → Developer access shows
-   `Listed developer device · remote`. Relaunch once more: the ads module shows
-   `sdkTestMode: true`, and the ads on screen are test ads.
-4. Three wrong passcodes on another phone → the gesture does nothing; a dev
-   build launch or reinstall restores it.
+### Manual behavior checks
 
-## Checklist
+Use an unlisted store-like installation for the gesture; a development build
+may already be granted, so tapping does nothing. Keep test ads on during that
+simulation. Check three wrong attempts, a correct attempt, diagnostics-only
+access, locking the session, and removal from a remote list after refresh.
+Do not interpret “Lab opens” as proof that premium simulation is authorized.
 
-- [ ] No raw device ID anywhere — hardcoded, env, and remote lists hold `DeveloperDeviceHash` values
-- [ ] Android vendor ID is the app set ID (`genrevibes_device_identity_platform` ≥ 0.1.0-dev.2), not `Build.ID` or the advertising ID
-- [ ] `DeveloperAccessController` initialized before the ad provider; `setDeviceId(vendorId)` after identity resolves
-- [ ] `DeveloperAccessRemotePolicyBinder` initialized before `remoteConfig.refresh()`
-- [ ] `developer_device_hashes` (JSON, `[]`) in Remote Config — Developer Access Group imported
-- [ ] `developer_passcode` and `developer_device_hashes` present in every `env/*.json`
-- [ ] Ads follow access: provider `testMode` + `setTestMode` listener; on Appodeal, a mid-session change verified to hide ads until relaunch
-- [ ] Developer section and debug overrides gated on `isGranted`, not build flags
-- [ ] `NavigationBarController.setDeveloperMode(access.isGranted)` in the listener, so developers see the navigation bar everywhere
-- [ ] Passcode never logged; grant is session-only; lockout verified on device
+## Package references
+
+Read the public API and setup for the packages used by this task:
+
+- [genrevibes_developer_access](../../../../../packages/genrevibes_starter_kit/modules/devtools/genrevibes_developer_access/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/devtools/genrevibes_developer_access/lib/genrevibes_developer_access.dart).
+- [genrevibes_device_identity](../../../../../packages/genrevibes_starter_kit/modules/device_identity/genrevibes_device_identity/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/device_identity/genrevibes_device_identity/lib/genrevibes_device_identity.dart).
+- [genrevibes_remote_policy](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/lib/genrevibes_remote_policy.dart).

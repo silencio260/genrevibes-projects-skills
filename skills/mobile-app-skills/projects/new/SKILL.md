@@ -1,199 +1,86 @@
 ---
 name: new
-description: Step-by-step guide for creating a new Flutter project with Clean Architecture + Starter Kit from scratch
+description: "Create a Flutter portfolio app with the guaranteed GenRevibes baseline and app-specific features."
 ---
 
-# Create New Project
+# Create an app
 
-## Overview
+1. Read the [portfolio baseline](../../ARCHITECTURE_ANALYSIS.md#11-guaranteed-portfolio-integrations),
+   requested product features and target platforms. Include the baseline even
+   when the user only names the main product feature. Reuse supplied identifiers
+   and brand choices; ask only for values that are needed and unknown.
+2. Create the Flutter project if it does not exist. Use the requested name and
+   organization. Keep an existing project intact.
+3. Use `lib/bootstrap`, `lib/config`, `lib/core`, and `lib/features` as needed.
+   See [project structure](../../skills/project-structure/SKILL.md). Do not create
+   empty layers or add dependencies for features the app does not use.
+4. Connect the kit at a reviewed commit using [submodules](../../skills/git-submodules/SKILL.md).
+   Follow [starter kit setup](../../starter-kit/SKILL.md) for package dependencies.
+5. Follow [environment setup](../../skills/env-config/SKILL.md). Its templates live
+   at `agents/skills/mobile-app-skills/templates`, relative to the app root.
+6. Implement visible loading/retry and compose baseline and additional modules using
+   [runtime setup](../../skills/runtime-setup/SKILL.md).
+7. Connect one useful feature end to end, then complete the baseline and remaining
+   product features. Use shared kit UI and supply the app's content. A first screen
+   is an implementation milestone, not the finished portfolio app.
+8. Add the repository instruction entry point described in the
+   [skills index](../../README.md). Preserve any existing operating rules.
 
-This skill provides the complete workflow for scaffolding a new Flutter project following GenRevibes architecture patterns, from `flutter create` to first running feature.
+Check imports, configuration, cleanup, and navigation. Report missing native
+configuration and device checks. Follow repository rules for analyzer, tests,
+and builds; creating an app does not authorize publishing it.
 
-## Step 1: Create Flutter Project
+Every new portfolio app includes Lab, the developer section, feedback/contact
+forms, rating, Android root exit prompt, ads, retention, analytics, onboarding,
+IAP, remote config and session replay integration unless the user explicitly
+changes that app's baseline. Choose adapters and app configuration for each;
+modular packages do not make these features optional. Replay recording still
+follows collection/rollout policy, and platform-specific UI applies where supported.
 
-```bash
-flutter create --org com.genrevibes your_app_name
-cd your_app_name
-```
+The app uses the portfolio architecture below; neutral kit packages do not
+themselves depend on BLoC or GetIt. Firebase is a provider choice; if selected,
+configure its actual services before their adapters start.
 
-## Step 2: Set Up Project Structure
+## Concrete starting layout and registration order
 
-Create the standard folder structure:
+Use the tree in [architecture](../../ARCHITECTURE_ANALYSIS.md). For a new app
+following this portfolio, use BLoC, GetIt, and the existing Failure/use-case style.
+Choose compatible versions from the current app/kit manifests rather than copying
+an old dependency list. The kit can work with other architectures, but that is
+not a reason to leave this portfolio's default unspecified.
 
-```bash
-# Core
-mkdir -p lib/src/config
-mkdir -p lib/src/core/{api,error,helpers,network,usecase,utils,widgets}
+A new project workflow has these distinct outputs:
 
-# First feature (example)
-mkdir -p lib/src/features/home/{data/{datasources/remote,models,repositories},domain/{entities,repositories,usecases},presentation/{bloc/home_bloc,screens,widgets}}
+1. Flutter host folders and app identifiers. If the user requested a new project,
+   `flutter create --org <chosen-organization> <chosen-app-name>` creates them;
+   replace the placeholders with actual agreed values.
+2. Root instructions and shared agents/kit checkouts at known revisions.
+3. A pubspec containing the baseline and selected extensions/adapters, without
+   installing every alternative vendor SDK.
+4. Environment examples plus local populated files. A copied blank template is
+   not a configured Firebase or RevenueCat project.
+5. Visible startup with explicit required/optional services and cleanup.
+6. The app theme/router, baseline UI/actions and product features with registration
+   and error UI, including a Lab connected to the live runtime.
+7. Feature-specific native setup and clear remaining device checks.
 
-# Container
-touch lib/src/container_injector.dart
-touch lib/src/my_app.dart
-touch lib/bloc_observer.dart
-```
+### Work through the first feature
 
-## Step 3: Copy Config Templates
+Use the [complete preference feature](../../references/feature-walkthrough.md)
+as a structural example. Follow main → registration → route → screen → BLoC →
+use case → repository → kit contract. It uses local storage so a first useful
+screen does not depend on remote credentials.
 
-From the `agents/templates/` directory:
+Then complete the baseline and requested extensions using their specific skills. For example,
+a feedback page reuses kit UI directly; it should not copy the preference feature's
+layers just to wrap an already complete form. A custom downloader feature does
+need its own state, data access, and domain operations.
 
-```bash
-# Environment configs
-cp -r agents/templates/env/ ./env/
-cp agents/templates/env/env.example.json ./env.example.json
+### Before handing over
 
-# IDE configs
-cp -r agents/templates/.run/ ./.run/
-cp -r agents/templates/.vscode/ ./.vscode/
-```
-
-Fill in API keys in `env/dev.json`.
-
-## Step 4: Add Dependencies
-
-```yaml
-# pubspec.yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  flutter_bloc: ^9.1.1
-  equatable: ^2.0.7
-  get_it: ^9.2.0
-  dartz: ^0.10.1
-  dio: ^5.9.0
-  internet_connection_checker: ^1.0.0+1
-  shared_preferences: ^2.5.4
-  path_provider: ^2.1.5
-
-  # Starter Kit
-  starter_kit:
-    path: packages/starter_kit
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^5.0.0
-```
-
-## Step 5: Copy Starter Kit
-
-```bash
-mkdir -p packages
-cp -r /path/to/starter_kit packages/starter_kit
-flutter pub get
-```
-
-## Step 6: Set Up Core Files
-
-Create these core files (use the patterns defined in `ARCHITECTURE_ANALYSIS.md`):
-
-1. `core/usecase/base_usecase.dart` — Abstract `BaseUseCase<Output, Input>`
-2. `core/error/failure.dart` — All Failure subclasses
-3. `core/error/error_handler.dart` — Exception → Failure converter
-4. `core/network/network_info.dart` — Connectivity checker
-5. `core/helpers/dio_helper.dart` — HTTP client wrapper
-6. `core/utils/app_colors.dart` — Color constants
-7. `core/utils/app_strings.dart` — String constants
-8. `config/routes_manager.dart` — Routes + AppRouter
-9. `config/theme_manager.dart` — ThemeData
-
-## Step 7: Wire Up DI Container
-
-```dart
-// container_injector.dart
-final sl = GetIt.instance;
-
-void initApp() {
-  initCore();
-  // initFeature1();
-  // initFeature2();
-}
-
-void initCore() {
-  sl.registerLazySingleton<NetworkInfo>(
-    () => NetworkInfoImpl(InternetConnectionChecker()),
-  );
-  sl.registerLazySingleton<DioHelper>(() => DioHelper());
-}
-```
-
-## Step 8: Set Up main.dart
-
-```dart
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await StarterKit.initialize(supportEmail: 'support@yourapp.com');
-  initApp(); // DI container
-  Bloc.observer = MyBlocObserver();
-  runApp(const MyApp());
-}
-```
-
-## Step 9: Set Up MyApp
-
-```dart
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider.value(value: StarterKit.iapBloc),
-        BlocProvider.value(value: StarterKit.adsBloc),
-        BlocProvider.value(value: StarterKit.analyticsBloc),
-        // App blocs added as features are created
-      ],
-      child: MaterialApp(
-        title: 'Your App',
-        theme: ThemeManager.lightTheme(),
-        darkTheme: ThemeManager.darkTheme(),
-        initialRoute: Routes.splash,
-        onGenerateRoute: AppRouter.getRoute,
-      ),
-    );
-  }
-}
-```
-
-## Step 10: Build First Feature
-
-Follow the implementation guidelines in `ARCHITECTURE_ANALYSIS.md`:
-
-1. Create domain layer (entities → repo interface → use case → mapper)
-2. Create data layer (models → data source → repo implementation)
-3. Create presentation layer (events → states → BLoC → screen)
-4. Wire DI (feature injector → register in container)
-5. Add route
-
-## Step 11: Configure Firebase
-
-```bash
-flutterfire configure
-```
-
-## Step 12: Start Retention Tracking
-
-```dart
-// In main.dart after StarterKit.initialize()
-final analytics = AnalyticsService(StarterKit.analyticsBloc);
-await UserTargetingManager.startTracking(analytics);
-```
-
-## New Project Checklist
-
-- [ ] `flutter create` with correct org
-- [ ] Folder structure created
-- [ ] Env configs copied and filled
-- [ ] IDE configs copied
-- [ ] Dependencies added to `pubspec.yaml`
-- [ ] Starter kit copied to `packages/`
-- [ ] Core files created (base usecase, failures, network info, etc.)
-- [ ] DI container set up
-- [ ] `main.dart` with Firebase + StarterKit + DI
-- [ ] `MyApp` with MultiBlocProvider + MaterialApp
-- [ ] Firebase configured via FlutterFire CLI
-- [ ] First feature built end-to-end
-- [ ] Retention tracking started
-- [ ] `.gitignore` updated (include `env/`)
-- [ ] `env.example.json` committed
+Report each baseline integration's status, which identifiers/configuration are
+real, and which provider/native steps remain. Missing credentials do not justify
+silently dropping a baseline feature. Distinguish a guaranteed product feature
+from a service that is optional for launch. Confirm that required startup failure
+has a Retry screen and optional integrations do not prevent the first feature
+from opening. Do not report an empty scaffold as a working app.

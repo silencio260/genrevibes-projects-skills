@@ -1,214 +1,97 @@
 ---
 name: starter-kit
-description: How to integrate and configure the GenRevibes Starter Kit package into any Flutter project
+description: "Select and connect modular GenRevibes packages in a Flutter app."
 ---
 
-# Starter Kit Integration
+# Starter kit
 
-## Overview
+Read [architecture](../ARCHITECTURE_ANALYSIS.md) and the
+[checked kit revision](../references/kit-compatibility.md) before changing integration code.
 
-The Starter Kit is a **standalone Flutter package** (`packages/starter_kit/`) providing production-ready, modular features that plug into any Clean Architecture Flutter app. It uses its own `GetIt` service locator internally and exposes a single `StarterKit` facade class.
+For a new portfolio app, include the complete
+[guaranteed baseline](../ARCHITECTURE_ANALYSIS.md#11-guaranteed-portfolio-integrations).
+Package selection means choosing adapters and additional capabilities around that
+baseline; it does not mean omitting Lab, feedback, monetization or telemetry until
+the user mentions them again. For adoption in an existing app, keep the requested
+feature scope. A guaranteed feature can still be optional for successful startup.
 
-## Prerequisites
+1. Inspect the app's dependencies, startup code, routes, and existing providers.
+2. Select the portfolio baseline plus the product's additional capabilities for
+   new apps; select the scoped capability for a focused adoption. Find paths in the
+   [kit README](../../../../packages/genrevibes_starter_kit/README.md).
+3. Add each imported package as a direct dependency. Point it at its module
+   directory, not the kit repository root. Resolve transitive kit packages with
+   path overrides as shown in the kit's smoke example.
+4. Read the selected adapter's native setup and its dependency constraints.
+   Firebase, RevenueCat, Appodeal, and OneSignal are optional choices.
+5. Create the shared controllers/providers once in app startup. Give the same
+   instances to feature UI, policy binders, and Kit Lab.
+6. Follow [runtime setup](../skills/runtime-setup/SKILL.md) for startup and cleanup.
+   A UI-only package can be used without the runtime coordinator.
+7. Supply app routes, text, credentials, product IDs, and feature rules. Reuse
+   kit implementations for shared behavior; do not copy them into the app.
 
-- Flutter 3.7.0+
-- Firebase project configured (for Analytics, Crashlytics, Remote Config)
-- `env/` configuration files set up (see `skills/env-config/SKILL.md`)
+The kit has no global service locator or app BLoCs. Use the app's existing
+state management and dependency injection.
 
-## Installation
+For feature composition, use the [portfolio adoption guide](../../../../packages/genrevibes_starter_kit/docs/portfolio-adoption.md).
+Check missing credentials and unsupported platforms explicitly. Do not describe
+source inspection as a successful build or device check.
 
-### 1. Add Path Dependency
+## Dependency example: add a shared contact form
+
+The app needs the contract, UI, and chosen adapter. It does not need the entire
+kit's provider list. Merge these entries into the app-root pubspec:
 
 ```yaml
-# pubspec.yaml
 dependencies:
-  starter_kit:
-    path: packages/starter_kit
+  genrevibes_feedback:
+    path: packages/genrevibes_starter_kit/modules/feedback/genrevibes_feedback
+  genrevibes_feedback_ui:
+    path: packages/genrevibes_starter_kit/modules/feedback/genrevibes_feedback_ui
+  genrevibes_feedbacknest:
+    path: packages/genrevibes_starter_kit/modules/feedback/genrevibes_feedbacknest
+
+dependency_overrides:
+  genrevibes_core:
+    path: packages/genrevibes_starter_kit/modules/foundation/genrevibes_core
+  genrevibes_feedback:
+    path: packages/genrevibes_starter_kit/modules/feedback/genrevibes_feedback
 ```
 
-### 2. Run pub get
+The app can declare a direct dependency and an override for the same package:
+the dependency expresses what app code imports; the override controls resolution
+through transitive versioned kit dependencies. For another feature, inspect its
+manifest and include its transitive kit dependencies rather than guessing.
+Run `flutter pub get` after editing the destination app's manifest when dependency
+resolution is part of the task. Do not change versions just to match an old example.
 
-```bash
-flutter pub get
-```
+### What the setup actually changes
 
-All transitive dependencies (Firebase, AdMob, RevenueCat, OneSignal, PostHog, etc.) are resolved automatically.
+| File | Change |
+|---|---|
+| `pubspec.yaml` | Selected package paths and compatible overrides. |
+| `bootstrap/app_env.dart` | Read FeedbackNest's key and create its configuration. |
+| `bootstrap/app_bootstrap.dart` | Construct one provider; register it as optional if startup can proceed without support submission. |
+| `bootstrap/app_runtime.dart` | Hold the `FeedbackProvider` instance if the app uses a runtime object. |
+| `bootstrap/runtime_registrar.dart` | Register that instance under `FeedbackProvider`. |
+| Settings action | Open `openFeedbackPage` with the existing provider, labels/theme, and optional mask/picker. |
 
-## Initialization
+Read [feedback](../skills/feedback/SKILL.md) for the full action and failure states.
+The [integration functions](../references/integration-examples.md) have complete
+imports and show which values the app supplies.
 
-In `main.dart`, initialize **before** `runApp`:
+### Check whether shared code already exists
 
-```dart
-import 'package:starter_kit/starter_kit.dart';
+Before writing a controller or UI, look for the capability in the kit inventory
+and read its public contract. If the kit implements the behavior, configure and
+call it. If it only exposes a contract, select an adapter. If the feature's behavior
+is product-specific, write it in the app. Propose a kit API change when several
+apps need the missing behavior; do not hide copied implementations in each app.
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+## Package references
 
-  await StarterKit.initialize(
-    supportEmail: 'support@yourapp.com',
-    analyticsUserId: installId,
-    mixpanelToken: AppEnv.mixpanelToken,
-    mixpanelDistinctId: installId,
-    // Optional overrides:
-    // feedbackNestApiKey: 'YOUR_KEY',
-    // adsDataSource: MyCustomAdsDataSource(),
-    // analyticsDataSources: [MyMixpanelDataSource()],
-    // postHogDataSource: PostHogRemoteDataSourceImpl(),
-    // authRepository: MyCustomAuthRepository(),
-    // userProfileRepository: MyCustomUserProfileRepository(),
-    // iapRepository: MyCustomIapRepository(),
-  );
+Read the public API and setup for the packages used by this task:
 
-  Bloc.observer = MyBlocObserver();
-  runApp(const MyApp());
-}
-```
-
-`StarterKit.initialize` owns startup analytics by default:
-
-- Initializes Mixpanel before startup events when `mixpanelToken` and `mixpanelDistinctId` are supplied.
-- Sets the analytics user id when `analyticsUserId` is supplied.
-- Logs `app_open`.
-- Calls `RetentionTracker.trackAppOpen(...)`, including D0 and first-five open/session milestones.
-- Mirrors Firebase automatic `first_open` to Mixpanel once.
-
-Do not add separate manual calls for `StarterKit.analytics.setUserId`, `AppAnalytics.appOpen`, `StarterKit.retentionTracker.trackAppOpen`, or `mixpanel.capture('first_open')` unless `autoTrackAppOpen: false` is explicitly used.
-
-## Available Features
-
-| Feature | Access Pattern | Skill File |
-|---|---|---|
-| **IAP** | `StarterKit.iapBloc` | `skills/iap/SKILL.md` |
-| **Ads** | `StarterKit.adsBloc` | `skills/ads/SKILL.md` |
-| **Analytics** | `StarterKit.analyticsBloc` | `skills/analytics/SKILL.md` |
-| **PostHog** | `StarterKit.postHog` | `skills/analytics/SKILL.md` |
-| **Retention** | `StarterKit.retentionTracker` | `skills/tracking-retention/SKILL.md` |
-| **Remote Config** | `StarterKit.sl<RemoteConfigRepository>()` | `skills/remote-config/SKILL.md` |
-| **GDPR** | `StarterKit.sl<GdprRepository>()` | `skills/gdpr-compliance/SKILL.md` |
-| **App Rating** | `StarterKit.sl<AppRatingRepository>()` | `skills/app-rating/SKILL.md` |
-| **Feedback** | `StarterKit.sl<FeedbackRepository>()` | `skills/feedback/SKILL.md` |
-| **Push Notifications** | `StarterKit.sl<PushNotificationsRepository>()` | `skills/push-notifications/SKILL.md` |
-
-## Remote Config Template
-
-When the user asks for a "remote config temp", "remote config template", or Firebase Remote Config template, use the canonical template documented in `skills/remote-config/SKILL.md`:
-
-```text
-skills/remote-config/remote_config_template.json
-```
-
-This template is the starter Firebase Remote Config JSON for app ad timing, rewarded/interstitial/banner intervals, and app-open ad toggles.
-
-## AdMob Host Configuration
-
-The starter kit includes a Google test AdMob App ID in its Android manifest only as a safety fallback. Every host app must override that default before release:
-
-- Add this app's own AdMob App ID to `android/app/src/main/AndroidManifest.xml` as `com.google.android.gms.ads.APPLICATION_ID`.
-- Add this app's own AdMob App ID to `ios/Runner/Info.plist` as `GADApplicationIdentifier`.
-- Put this app's own banner/interstitial/app-open/rewarded/native ad unit IDs in env config or app-specific Remote Config.
-
-Do not confuse the App ID (`ca-app-pub-...~...`) with ad unit IDs (`ca-app-pub-.../...`). Do not ship the starter-kit Google sample IDs.
-
-## UI Templates
-
-### Onboarding
-
-```dart
-StarterKit.onboarding(
-  pages: [...],
-  onComplete: () => Navigator.pushReplacementNamed(context, '/home'),
-  onSkip: () => Navigator.pushReplacementNamed(context, '/home'),
-);
-```
-
-### Settings
-
-```dart
-StarterKit.settings(
-  template: SettingsTemplateType.grouped,
-  sections: [...],
-);
-```
-
-### Banner Ads
-
-```dart
-StarterKit.bannerAd(adUnitId: 'ca-app-pub-...');
-```
-
-### Native Ads
-
-```dart
-StarterKit.nativeAd(adUnitId: 'ca-app-pub-...');
-```
-
-### PostHog Wrapper
-
-```dart
-StarterKit.postHogWrapper(
-  apiKey: 'phc_...',
-  child: MyApp(),
-);
-```
-
-### Double Tap to Exit
-
-```dart
-StarterKit.doubleTapToExit(child: HomeScreen());
-```
-
-## Swapping Providers
-
-The starter kit is designed to be provider-agnostic. You can swap any default implementation:
-
-```dart
-// Custom ads provider (e.g., AppLovin instead of AdMob)
-await StarterKit.initialize(
-  adsDataSource: MyAppLovinDataSource(),
-);
-
-// Custom analytics (e.g., Mixpanel instead of Firebase)
-await StarterKit.initialize(
-  analyticsDataSources: [MyMixpanelDataSource()],
-);
-```
-
-## DI Wiring Between App and Starter Kit
-
-The starter kit uses its own `GetIt` instance (`StarterKit.sl`). Your app uses the main `sl` from `container_injector.dart`. They are **separate** — do not register app dependencies in the starter kit or vice versa.
-
-To pass starter kit blocs to your widget tree, provide them in `my_app.dart`:
-
-```dart
-MultiBlocProvider(
-  providers: [
-    // App blocs
-    BlocProvider(create: (_) => sl<YourFeatureBloc>()),
-    // Starter kit blocs
-    BlocProvider.value(value: StarterKit.iapBloc),
-    BlocProvider.value(value: StarterKit.adsBloc),
-    BlocProvider.value(value: StarterKit.analyticsBloc),
-  ],
-  child: MaterialApp(...),
-);
-```
-
-## API & Network with Starter Kit
-
-The Starter Kit manages its own internal network traffic for Ads, IAP, and Analytics. However, your app’s custom backend logic (Cloud Functions) MUST follow the centralized API pattern:
-
-- **APP Logic**: All custom backend calls MUST use `lib/core/api/api_endpoints.dart`.
-- **KIT Logic**: Use the `StarterKit` facade for all kit-provided features.
-- **Interceptors**: Common network headers (Auth tokens, Language) should be handled in `lib/core/network/` logic, but never hardcoded in the Starter Kit calls.
-
-## Checklist
-
-- [ ] `starter_kit` added as path dependency in `pubspec.yaml`
-- [ ] `StarterKit.initialize()` called in `main.dart` before `runApp`
-- [ ] Firebase initialized before StarterKit
-- [ ] Starter kit blocs provided in `MultiBlocProvider`
-- [ ] Startup analytics configured through `StarterKit.initialize` (`analyticsUserId`, `mixpanelToken`, `mixpanelDistinctId` when needed)
-- [ ] Env keys configured for all required services
-- [ ] Android/iOS platform configs set for native SDKs (Firebase, AdMob, OneSignal)
-- [ ] Host app overrides starter-kit AdMob defaults with its own AdMob App ID and production ad unit IDs for release
+- [genrevibes_starter_kit](../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_starter_kit/README.md); [public exports](../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_starter_kit/lib/genrevibes_starter_kit.dart).
+- [genrevibes_core](../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_core/README.md); [public exports](../../../../packages/genrevibes_starter_kit/modules/foundation/genrevibes_core/lib/genrevibes_core.dart).

@@ -1,129 +1,70 @@
 ---
 name: git-submodules
-description: Register nested repos (.agents, starter kit) as proper submodules so VS Code recognises them and the parent repo stops flagging their internal edits as unstaged
+description: "Inspect and update pinned agents and starter kit submodules without losing local changes."
 ---
 
-# Git Submodules
+# Submodules
 
-## Overview
-
-A submodule is a **pointer from this repo to a specific commit of another repo**. The outer repo stores the pointer; the inner repo owns its files and history.
-
-This project has two submodules:
-
-| Path | Remote |
-| --- | --- |
-| `.agents` | `git@github.com:silencio260/genrevibes-projects-skills.git` |
-| `packages/genrevibes_starter_kit` | `https://github.com/silencio260/genrevibes_starter_kit.git` |
-
-## Why register them properly
-
-If gitlinks exist in the index but there is no `.gitmodules` file, Git treats them as **embedded repositories**:
-
-- VS Code's Source Control auto-detects them inconsistently.
-- Any commit *inside* the nested repo shows up as an unstaged change in the **outer** repo.
-- `git clone` of the outer repo leaves the subfolders empty with no way to populate them.
-
-Adding `.gitmodules` + VS Code settings fixes all three.
-
-## `.gitmodules` (at repo root)
-
-```ini
-[submodule ".agents"]
-	path = .agents
-	url = git@github.com:silencio260/genrevibes-projects-skills.git
-	ignore = dirty
-[submodule "packages/genrevibes_starter_kit"]
-	path = packages/genrevibes_starter_kit
-	url = https://github.com/silencio260/genrevibes_starter_kit.git
-	ignore = dirty
-```
-
-`ignore = dirty` → outer repo only flags a submodule when its **committed** SHA changes, not on every file edit inside. Use `ignore = all` to suppress SHA changes too.
-
-## VS Code settings (`.vscode/settings.json`)
-
-Full file content (merge the `git.*` keys into whatever else is already in there):
-
-```json
-{
-  "dart.flutterSdkPath": ".fvm/versions/3.35.1",
-  "git.detectSubmodules": true,
-  "git.detectSubmodulesLimit": 20,
-  "git.repositoryScanMaxDepth": 3,
-  "git.autoRepositoryDetection": "subFolders"
-}
-```
-
-Key meanings:
-
-| Key | Why |
-| --- | --- |
-| `git.detectSubmodules` | Turns on submodule recognition in the Source Control panel. |
-| `git.detectSubmodulesLimit` | Max number of submodules VS Code will scan. Default is 10; bumped to 20 to leave headroom. |
-| `git.repositoryScanMaxDepth` | Folder depth VS Code searches for nested git repos. Must be ≥ 2 because `packages/genrevibes_starter_kit` is two levels down. |
-| `git.autoRepositoryDetection` | `"subFolders"` makes VS Code surface nested repos as separate entries instead of only the workspace root. |
-
-Reload the window after editing: `Cmd+Shift+P` → "Developer: Reload Window".
-
-## One-time setup commands
-
-> Commit and push any in-progress work **inside** the submodules first — these commands rewrite where each inner `.git` lives.
-
-Run from the repo root:
+The parent repository records a commit for each submodule. Each nested
+repository owns its files and history. Inspect before changing setup:
 
 ```bash
-git rm --cached .agents
-git rm --cached packages/genrevibes_starter_kit
-
-git submodule add --force git@github.com:silencio260/genrevibes-projects-skills.git .agents
-git submodule add --force https://github.com/silencio260/genrevibes_starter_kit.git packages/genrevibes_starter_kit
-
-#    (open .gitmodules and ensure `ignore = dirty` is on both entries)
-
-git add .gitmodules .agents packages/genrevibes_starter_kit
-git commit -m "chore: register .agents and starter kit as submodules"
-```
-
-## Fresh-clone command
-
-```bash
-git submodule update --init --recursive
-```
-
-## Day-to-day commands
-
-```bash
-# Pull latest inside each submodule from its tracked remote branch
-git submodule update --remote --merge
-
-# Bump the pointer in the outer repo
-git add .agents packages/genrevibes_starter_kit
-git commit -m "chore: bump submodules"
-git push
-
-# Check pinned commit of each submodule
+git status --short
+git ls-files --stage
+git config --file .gitmodules --get-regexp 'submodule\..*\.(path|url)'
 git submodule status
-
-# Work inside a submodule
-cd .agents
-git checkout main
-# edit, commit, push as usual
-cd ..
-git add .agents
-git commit -m "chore: bump .agents submodule"
 ```
 
-## Interaction Map
+In Story Saver, paths are `agents` and `packages/genrevibes_starter_kit`.
+The historical section name `.agents` is allowed; its `path` must match `agents`.
+For another app, use its actual paths and configured remotes.
 
-- **Starter kit** → bumping `packages/genrevibes_starter_kit` updates shared Flutter widgets and BLoCs used app-wide.
-- **Agents / skills** → bumping `.agents` updates the skill source-of-truth for the AI agent workflow.
-- **VS Code Source Control** → each submodule becomes its own top-level repository entry; parent only shows pointer moves.
+- Check status inside each nested repository too. `ignore = dirty` can hide
+  uncommitted files from parent status. Do not add `ignore = all` to conceal
+  changed commit pointers.
+- Fix a path mapping directly when that is the problem. Do not remove and re-add
+  a working submodule or move its `.git` directory as a routine repair.
+- For a clone with no local submodule edits, `git submodule update --init --recursive`
+  checks out the recorded commits. This is not a fetch-and-upgrade-to-latest command.
+- For an upgrade, choose a specific revision, inspect its changes, and preserve
+  local edits. Do not run a blanket `--remote --merge` across the portfolio.
+- Follow [commit policy](../../../commit-policy/SKILL.md). When authorized to
+  publish, make nested commits available before recording their pointers in the
+  parent. A parent commit cannot include uncommitted nested files.
+- Verify a fresh recursive clone in a separate directory before claiming clone
+  readiness. Verify the proposed/published revision, not just an older clean clone.
 
-## Checklist
+IDE repository discovery is separate from Git validity. Change IDE settings only
+when needed; do not impose a developer's SDK path or hide errors with exclusions.
 
-- [ ] `.gitmodules` at repo root with both entries + `ignore = dirty`
-- [ ] `.vscode/settings.json` has `repositoryScanMaxDepth: 3` and `autoRepositoryDetection: "subFolders"`
-- [ ] VS Code reloaded; both submodules visible in Source Control
-- [ ] Parent repo no longer shows file-level edits inside the submodules
-- [ ] Reference copy of commands lives at repo-root `.submodule_files`
+## Distinguish a file edit from a changed pinned commit
+
+Use these read-only commands from the host root for this repository:
+
+```bash
+git -C agents status --short
+git -C agents rev-parse HEAD
+git -C packages/genrevibes_starter_kit status --short
+git -C packages/genrevibes_starter_kit rev-parse HEAD
+git diff --submodule=log -- agents packages/genrevibes_starter_kit
+```
+
+A nested repository can have uncommitted file changes while its HEAD still
+matches the parent's recorded commit. Conversely, it can be clean but checked
+out at a different commit. Report those two conditions separately. Parent
+`git add agents` records the nested commit ID; it does not include dirty skill
+files inside that repository.
+
+For a requested upgrade, inspect the target commit and affected package/docs
+changes first. If the nested repository is dirty, preserve that work and choose
+an approach that does not overwrite it. Do not automatically stash or discard
+the user's files as a setup step.
+
+When publication is explicitly requested, publish the nested change to the
+intended remote before publishing a parent pointer that depends on it. Then
+verify that a fresh recursive checkout can resolve that exact pointer. A clean
+local tree alone does not establish that another machine can fetch the commit.
+
+For a path mismatch, compare `.gitmodules`, the tracked gitlink, and local Git
+configuration. Repair the incorrect mapping with the smallest change. The
+historical section name does not have to equal its current filesystem path.

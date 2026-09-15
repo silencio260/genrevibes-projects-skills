@@ -1,149 +1,87 @@
 ---
 name: remote-config
-description: Firebase Remote Config for feature flags, A/B testing, and force update. Read before wiring remote config into an app — initialize() does not fetch, and an app missing the refresh() call has frozen config with no symptom.
+description: "Connect typed remote configuration, refresh, shared policy binders, and Kit Lab controls."
 ---
 
-# Remote Config
+# Remote config
 
-## Overview
+Use `RemoteConfigCoordinator` with the selected provider. Firebase is optional;
+the kit also has a SharedPreferences adapter for local configuration.
 
-Remote Config uses Firebase Remote Config via the starter kit for feature flags, A/B testing, force update checks, and dynamic configuration.
+1. Build one schema. `PortfolioRemoteConfigSchema.build()` supplies the shared
+   keys; a smaller `RemoteConfigSchema` can include only the groups the app needs.
+   Add app keys explicitly. Analytics-name overrides are opt-in.
+2. Initialize defaults and cached values before consumers read them. Bound this
+   wait in startup. Initialization does not perform a fresh fetch.
+3. Connect the relevant shared policy binders and dispose them with the runtime.
+4. Call `refresh()` after startup without holding the first frame. Handle/report
+   its outcome. A successful initialization does not prove refresh was called.
+5. Pass the same schema and coordinator to Kit Lab. Inspect value origins and
+   fetch health; all-default values alone do not prove a fault.
 
-Two calls, and they are not interchangeable: `initialize()` registers defaults
-and reads previously activated values, `refresh()` fetches. **Read
-"Non-negotiable: something must call `refresh()`" below before wiring this into
-any app** — the failure mode is silent and was live in Story Saver until
-2026-09-10.
+The [Firebase template](remote_config_template.json) matches the shared default
+schema at the [checked revision](../../references/kit-compatibility.md).
+It includes keys for optional capabilities; remove unused groups when making an
+app-specific template. A key cannot install a missing SDK or turn an unsupported
+operation into a supported one.
 
-## Canonical Template
+Preserve existing production key spellings, including
+`time_before_first_rewared_ad`. For an existing app, compare its remote values
+and conditions before adopting the template. Do not replace live policy with
+new defaults or publish a template unless requested.
 
-When the user asks for a "remote config temp", "remote config template", or a Firebase Remote Config starter template, use:
+New shared replay defaults are 0% rollout with text/images masked. Keep an
+existing app's deliberate choices through `replayDefaults` and its app template.
+See [replay](../session-replay/SKILL.md) for restart requirements.
 
-```text
-agents/skills/mobile-app-skills/skills/remote-config/remote_config_template.json
-```
+Check that refresh is called and results reach consumers, including failed fetch
+and invalid values. This wiring can be checked in code and tested when tests are
+requested; grep alone is not proof of runtime behavior.
 
-This file is the canonical Firebase Remote Config template for GenRevibes apps. It is based on a Firebase Console export and includes the standard ad timing and app-open ad flags used by the starter kit, plus the **Session Replay Group** — `session_replay_enabled`, `session_replay_percent`, `session_replay_mask_text` and `session_replay_mask_images`, read by `SessionReplayPolicyKeys` in `genrevibes_remote_policy`. Copy it into the target app workflow as `remote_config_template.json`, then adjust app-specific values before importing or publishing in Firebase Remote Config.
+## Wire defaults, refresh, and consumers separately
 
-The defaults in the template match the keys' bundled defaults on purpose. A key whose console value differs from the code default is a value someone chose; a key that matches is indistinguishable from one nobody ever set, and the Starter Kit Lab's per-key origin is the only way to tell them apart. Importing this template is what makes the replay rollout adjustable at all — until the keys exist in the console there is nothing to turn down.
+The [integration source](../../references/examples/integrations/shared_features.dart)
+contains `makeRemoteConfig` and `makeSharedSchema` with the actual constructor
+names and imports. Keep this construction in the runtime factory. Register the
+coordinator with GetIt for readers; do not create another Firebase adapter in a
+settings screen.
 
-It also carries the **Developer Access Group**: `developer_device_hashes`, a JSON array (default `[]`) read by `DeveloperAccessPolicyKeys` and applied live by `DeveloperAccessRemotePolicyBinder`. A phone whose hash is listed gets the developer tools and test ads in the store build on its next fetch. It must hold **hashes only** — every install downloads remote config, so a raw device ID here is published. See the **developer-access** skill.
+For each remote key, record its type, default, valid range, consumer, and when
+changes take effect. For example, an ad switch changes a policy read by placement
+code; a replay mask can require SDK restart. The presence of a key in Firebase
+is not proof that the app observes it.
 
-Keep parameter keys stable unless the app code and starter kit readers are updated together.
+| Stage | What the app must do |
+|---|---|
+| Construct | Give the provider and coordinator the same schema. |
+| Initialize | Make defaults/cached values available before dependent policies read them. |
+| Bind | Attach the relevant policy binder to the actual live consumer. |
+| Refresh | Fetch after the initial screen and handle the result. |
+| Inspect | Show origins and refresh health using the same coordinator in Lab. |
+| Dispose | Remove binders before replacing the runtime and its providers. |
 
-## Non-negotiable: something must call `refresh()`
+### Add an app-specific key
 
-**`initialize()` does not fetch. An app that never calls `refresh()` has frozen
-remote config, and nothing anywhere says so.**
+Choose a namespaced, stable name and define a typed key using the schema API.
+Set a safe offline default and any supported validation. Include the key in the
+app's schema and template, then implement the consumer. State whether a change
+applies immediately, next navigation, or next launch. Handle missing and invalid
+remote values through the defined default/validation behavior instead of casts
+scattered through widgets.
 
-This is the single easiest gap to leave open, because every symptom of it looks
-like something else:
+For an existing app, compare its published conditions as well as default values.
+Copying a template over a production configuration can erase regional or version
+conditions. Prepare a proposed template change for review; do not publish it as
+part of editing local skills or source.
 
-- On a device that fetched once months ago, every key is stuck at whatever was
-  activated then. Changing a value in the Firebase Console appears to do
-  nothing, and the obvious conclusion — "the key name is wrong", "the value did
-  not publish" — is wrong.
-- On a **fresh install, every key sits at its bundled default forever.** No
-  rollout percentage, no kill switch, no ad pacing change ever reaches a new
-  user. This is the expensive one: the users you most want to configure are the
-  ones who never get configured.
-- Module health reports `ready`, because initialization genuinely succeeded.
-  Nothing is broken. Nothing is logged. There is no failure to find.
+On fetch failure, retain usable defaults/cached policy and expose the failure.
+Do not block app navigation waiting indefinitely for fresh remote values.
 
-`RemoteConfigCoordinator.initialize()` only registers defaults and reads what a
-previous run activated. `refresh()` is the only thing that calls
-`fetchAndActivate()`.
+## Package references
 
-### The wiring
+Read the public API and setup for the packages used by this task:
 
-```dart
-// Startup path: initialize before anything reads a value.
-await remoteConfig.initialize();
-
-// ... compose the modules that read config ...
-
-// Then fetch, unawaited. A fetch is a network round trip and must never sit
-// between launch and the first frame; the binders are already listening, so
-// whatever arrives is applied when it arrives.
-unawaited(remoteConfig.refresh());
-```
-
-Order matters both ways:
-
-- `initialize()` **is** awaited, and belongs before any consumer is built. A
-  value read before initialization is the bundled default, and anything a
-  provider SDK fixes at setup time — session-replay masking, for instance —
-  cannot be corrected afterwards. Bound it with a timeout: it is on the
-  critical path.
-- `refresh()` is **never** awaited on the startup path. Its results reach
-  features through `coordinator.changes` and the policy binders, not through
-  the return value.
-
-Firebase throttles fetches itself
-(`PortfolioRemoteConfigSettings.minimumFetchInterval`, 12 hours in release), so
-calling `refresh()` on every launch costs nothing on most of them. Do not add
-throttling of your own on top.
-
-### Verifying it, in ten seconds
-
-Remote config that is never fetched cannot be caught by a test — the
-coordinator behaves correctly either way. Check it by inspection:
-
-```bash
-grep -rn "\.refresh()" lib/bootstrap/
-```
-
-No hit means the gap is open. Then confirm on device: **Starter Kit Lab →
-Remote config** shows a per-key origin. If every key reads `defaultValue` on a
-device that has been online, nothing is fetching. `remote` is what a working
-app shows.
-
-## Implementation
-
-```dart
-final remoteConfig = sl<RemoteConfigCoordinator>();
-
-// Read the current snapshot. Typed, validated, and safe before any fetch:
-// an invalid or missing value falls back to the key's bundled default.
-final snapshot = remoteConfig.current;
-final bool featureEnabled = snapshot.read(AppKeys.newFeatureEnabled);
-final int minVersion = snapshot.read(AppKeys.minAppVersion);
-
-// React to later fetches rather than re-reading on a timer.
-remoteConfig.changes.listen(applySnapshot);
-```
-
-Prefer a **policy binder** (`AdsRemotePolicyBinder`,
-`SessionReplayRemotePolicyBinder`) over reading keys at call sites: the binder
-applies the current snapshot at startup and follows every change after, so a
-value that lands mid-session takes effect without a relaunch.
-
-### Force Update Check
-
-```dart
-final minVersion = configRepo.getInt('min_app_version');
-final currentVersion = /* get from package_info */;
-if (currentVersion < minVersion) {
-  showForceUpdateDialog();
-}
-```
-
-## Interaction Map
-
-- **Content Locking** → Feature flags for premium features
-- **Ads** → Dynamic ad frequency settings
-- **Paywall** → A/B test paywall designs
-- **Splash** → Force update check on launch
-
-## Checklist
-
-- [ ] Remote Config defaults set in Firebase Console
-- [ ] `remote_config_template.json` used as the starting Firebase Remote Config template
-- [ ] Session Replay Group imported, if the app records replay — the rollout cannot be turned down until the keys exist in the console
-- [ ] Developer Access Group imported, and `DeveloperAccessRemotePolicyBinder` initialized before `refresh()` — `developer_device_hashes` holds hashes, never device IDs
-- [ ] **`refresh()` is called on the startup path, unawaited** — `grep -rn "\.refresh()" lib/bootstrap/` returns a hit
-- [ ] **`initialize()` is awaited before any consumer is composed**, and bounded by a timeout
-- [ ] Verified on device: Starter Kit Lab → Remote config shows keys with origin `remote`, not `defaultValue`
-- [ ] Every remote value reaches its feature through `changes` or a policy binder, not a one-time read
-- [ ] Feature flags used for gradual rollouts
-- [ ] Force update version check implemented
+- [genrevibes_remote_config](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_config/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_config/lib/genrevibes_remote_config.dart).
+- [genrevibes_remote_config_firebase](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_config_firebase/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_config_firebase/lib/genrevibes_remote_config_firebase.dart).
+- [genrevibes_remote_config_shared_preferences](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_config_shared_preferences/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_config_shared_preferences/lib/genrevibes_remote_config_shared_preferences.dart).
+- [genrevibes_remote_policy](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/remote_config/genrevibes_remote_policy/lib/genrevibes_remote_policy.dart).

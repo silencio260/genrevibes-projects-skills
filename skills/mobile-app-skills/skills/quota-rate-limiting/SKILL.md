@@ -1,65 +1,45 @@
 ---
 name: quota-rate-limiting
-description: Usage quotas and rate limits per feature for free vs premium users
+description: "Implement app-owned usage limits with authoritative backend enforcement."
 ---
 
-# Quota & Rate Limiting
+# Usage limits
 
-## Overview
+The app/backend owns quotas. The kit does not provide a universal usage database
+or automatic subscriber bypass.
 
-The quota system tracks usage per feature (chat messages, image generations, etc.) and enforces limits for free users. Subscribers have unlimited or elevated limits. Usage data is stored in the user profile via the starter kit's database module.
+1. Define the operation, allowance, period, timezone, and paid-tier behavior.
+2. Enforce paid backend usage on the server using verified identity and access.
+   Client counters can display remaining usage but cannot authorize spending.
+3. Reserve/check and consume usage atomically. Use an operation ID so retry does
+   not charge twice. Define whether failed operations refund reserved usage.
+4. Handle concurrent requests, resets, offline state, and account changes.
+5. Show quota exhaustion separately from network/auth/server errors. Do not
+   open a paywall for every failure.
 
-## Architecture
+Connect [feature access](../content-locking/SKILL.md) only where the product uses
+subscriptions or rewarded access. Remote config may tune client presentation;
+it does not replace server enforcement. Check boundary/reset and retry behavior.
 
-```
-features/quota/
-├── quota_injector.dart
-├── data/
-│   ├── models/quota_model.dart
-│   └── repositories/quota_repo.dart
-├── domain/
-│   ├── entities/quota_entity.dart
-│   ├── repositories/quota_base_repo.dart
-│   └── usecases/
-│       ├── check_quota_usecase.dart
-│       ├── increment_usage_usecase.dart
-│       └── reset_quota_usecase.dart
-└── presentation/
-    └── bloc/quota_bloc/
-```
+## Define how one operation consumes allowance
 
-## Implementation
+Write an operation contract before implementing the counter: authenticated owner,
+operation ID, cost, allowance period, reset timezone, reservation lifetime, and
+which failures release a reservation. Include the paid-tier policy explicitly;
+subscription status does not automatically mean unlimited use.
 
-```dart
-// Check quota before action
-final canProceed = await checkQuotaUseCase('image_generation');
-canProceed.fold(
-  (failure) => showPaywall(),  // Quota exceeded
-  (remaining) => generateImage(),
-);
+The server checks access and reserves capacity atomically, then records the
+operation against its ID. A retry with the same ID returns/continues that operation
+instead of charging again. Decide how abandoned work and provider failure are
+reconciled. Avoid a separate “read remaining” followed by an unprotected increment,
+which allows concurrent requests to exceed the limit.
 
-// Increment after action
-await incrementUsageUseCase('image_generation');
-```
+The client displays the server's remaining allowance and reset information. It
+can disable a button for convenience, but the server still enforces the rule.
+Show exhausted allowance separately from expired authentication, unavailable
+network, or provider failure. Only offer a paywall when paid access actually
+changes that limit.
 
-## Firebase / Cloud
-
-- **Firestore:** `users/{uid}/usage` — Usage counters per feature
-- **Starter Kit Database:** `UsageType` enum for tracking types
-
-## Interaction Map
-
-- **Content Locking** → `ContentGate` checks quota
-- **IAP** → Subscribers bypass limits
-- **Profile** → Usage counters stored in user profile
-- **Remote Config** → Quota limits configurable remotely
-- **Tracking** → Usage patterns inform monetization
-
-## Checklist
-
-- [ ] Quota entities and use cases defined
-- [ ] Usage counters persisted in Firestore
-- [ ] Free tier limits enforced
-- [ ] Subscriber bypass implemented
-- [ ] Daily/monthly reset logic
-- [ ] Remaining quota displayed to user
+Keep this logic in the app/backend's owning feature. Reuse kit entitlement policy
+for client presentation, and the app's verified backend purchase records for
+server decisions. Never accept a developer premium simulation as server proof.

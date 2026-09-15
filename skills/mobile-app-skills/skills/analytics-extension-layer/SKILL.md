@@ -1,110 +1,56 @@
 ---
 name: analytics-extension-layer
-description: Decoupling generic infrastructure from app-specific business tracking using an inheritance-based service architecture.
+description: "Add typed app-specific analytics methods on top of the shared pipeline."
 ---
 
-# Analytics Extension Layer
+# App analytics methods
 
-## Overview
+Keep product event names and typed methods in the app. Keep shared delivery,
+identity, and provider mappings in the kit.
 
-A common pitfall in web/app development is mixing generic tracking infrastructure (e.g., ad revenue, standard IAP, app open events) with application-specific business logic (e.g., `chat_message_sent`, `image_studio_download`, `auth_error_code`). 
+1. Find the existing event catalogue and analytics wrapper before adding one.
+2. Add a named method for the product action with only the required properties.
+3. Inject the existing `AnalyticsPipeline` or app analytics interface. A wrapper
+   does not need inheritance or a new global singleton.
+4. Record an event where the outcome becomes known. Do not record completion
+   from both the button and its asynchronous result listener.
+5. Keep stable event names during refactors. Document deliberate renames and
+   affected dashboards. Use explicit metadata for model/provider mappings;
+   do not guess a provider from a model-name prefix.
+6. Do not send prompts, messages, form text, or personal identifiers as generic
+   metadata. Record counts, named actions, and normalized outcomes instead.
 
-The **Extension Layer Pattern** separates these concerns by:
-1.  Keeping the **Infrastructure** (e.g., `starter_kit`) generic and reusable.
-2.  Creating an **App Layer Service** that inherits from the core and adds typed, high-level tracking methods.
+Read [analytics](../analytics/SKILL.md) for sink wiring. Adding a typed wrapper
+does not initialize sinks or automatically produce purchase/retention events.
 
-## Architecture
+## Design an app event method
 
-### 1. Unified Event Dictionary (`AppAnalyticsEvents`)
-Centralizes all app-specific event names as `static const` strings, preventing typos and providing a single source of truth for the dashboard naming convention.
+Create one service in the app's analytics area and inject the shared pipeline.
+Expose methods named after completed product actions, such as
+`downloadSaved(mediaType: ...)`, rather than accepting arbitrary event names
+from every screen. Keep the SDK-independent mapping in this service.
 
-**Example:**
-```dart
-abstract class AppAnalyticsEvents {
-  static const String chatMessageSent = 'chat_message_sent';
-  static const String chatModelSwitched = 'chat_model_switched';
-  static const String imageGenerationStarted = 'image_generation_started';
-}
-```
+For each method, document the trigger, event name, allowed properties, and
+whether failure affects the feature. Ordinary event delivery must not turn a
+successful user action into an error. Do not put arbitrary maps from a server
+or notification directly into event properties.
 
-### 2. Extension Service (`AppAnalyticsService`)
-Inherits from the base `AnalyticsService`. It wraps the generic `logEvent` with high-level, business-specific methods.
+When adopting this in another app:
 
-**Core Benefits:**
-- **Typed Arguments**: No more passing raw `Map<String, dynamic>` in Blocs or Screens.
-- **Internal Inference**: The service can infer metadata (e.g., provider name from a model ID) internally, keeping the presentation layer clean.
-- **Global Access**: Usually implemented as a singleton for easy access without dependency injection boilerplate in UI code.
+1. Reuse kit event types for shared ads, purchases, and retention operations.
+2. List that app's additional product actions and their property types.
+3. Add methods for those actions and register the service once with GetIt.
+4. Call the method from the owner of the successful action, usually the BLoC or
+   application service. Avoid emitting from a widget's build method.
+5. Add the app's events to the developer catalogue with the same spelling and
+   descriptions. A catalogue entry documents an event; it does not emit it.
 
-**Example:**
-```dart
-class AppAnalyticsService extends AnalyticsService {
-  AppAnalyticsService(super.bloc);
-  static final AppAnalyticsService instance = AppAnalyticsService(StarterKit.analyticsBloc);
+Preserve existing dashboard names unless a migration is intended. If renaming,
+record the old/new names and the date/version at which reporting changes.
+Do not permanently emit both just to avoid making that decision.
 
-  // Business Logic Methods
-  void logChatMessageSent({
-    required String modelId,
-    required bool hasAttachment,
-  }) => logEvent(AppAnalyticsEvents.chatMessageSent, parameters: {
-    'model_id': modelId,
-    'model_provider': _inferProvider(modelId),
-    'has_attachment': hasAttachment,
-    'platform': Platform.operatingSystem,
-  });
+## Package references
 
-  static String _inferProvider(String modelId) => 
-      modelId.startsWith('gpt') ? 'openai' : 'other';
-}
-```
+Read the public API and setup for the packages used by this task:
 
-## Implementation Workflow
-
-1.  **Export Core**: Ensure the infrastructure package (`starter_kit`) exports its base `AnalyticsService` and `AnalyticsBloc`.
-2.  **Define Names**: Create `AppAnalyticsEvents` with all required constants.
-3.  **Create Service**: Implement `AppAnalyticsService` extending the base. Add a singleton `instance`.
-4.  **Add Typed Methods**: For every business feature, add a method that takes the minimal required data and enriches it with platform/context metadata.
-5.  **Inject into UI**: Replace raw `logEvent` calls in Blocs with typed calls from `AppAnalyticsService.instance`.
-
-## Best Practices
-
-- **Never Hardcode Strings in Blocs**: Always use `AppAnalyticsEvents` constants.
-- **Centralize Calculations**: Things like "message length bucket" or "token count rounding" should live in the service layer, not the Bloc.
-- **Use Null-Safety for Meta**: Optional parameters (like `latency_ms` or `total_tokens`) should be handled cleanly with logic like `if (val != null) 'key': val`.
-- **Inherit Standard Tracking**: By extending the base service, your app-specific service still logs default events like `ad_impression` and `iap_success` without any extra code.
-
-## Standard vs App-Specific Events
-
-Keep reusable starter-kit events in the kit and feature/business events in the app layer.
-
-Starter-kit / shared events:
-- `screen_view`
-- `app_open`
-- `retention_app_opened`
-- `retention_day_0_returned`, `retention_day_1_returned`, `retention_day_3_returned`, `retention_day_7_returned`, `retention_day_10_returned`, `retention_day_15_returned`, `retention_day_20_returned`, `retention_day_25_returned`, `retention_day_30_returned`
-- `retention_first_open` through `retention_fifth_open`
-- `retention_first_session` through `retention_fifth_session`
-- `ad_impression`, `ad_revenue`, `custom_ad_click` (never `ad_click`, which Firebase reserves)
-
-App-layer feature events:
-- Feature usage such as `search_performed`, `drawer_opened`, `mini_app_open`
-- Developer/test events such as `ad_lifecycle`
-- Launcher-specific app-management events such as `app_install_event` and `installed_app_removed`
-
-Firebase automatic events that Mixpanel/PostHog do not track automatically should be handled deliberately:
-- Mirror `first_open` outside Firebase only once if the exact event name is required.
-- Do not try to emit `app_remove` from client code; the app cannot run after uninstall. Use Firebase automatic reporting or backend/push-provider uninstall detection.
-- Do not claim `notification_receive`, `in_app_purchase`, or subscription renewal events are tracked unless the actual push/IAP provider callbacks are wired.
-
-## Interactions
-
-- **Blockers**: Avoid using this layer for blocking operations. Logging should always be fire-and-forget.
-- **Retention**: Use the `logRetentionEvent` method for user lifecycle milestones (D1, D3, D7) — these often require separate dashboards in tools like Firebase/PostHog.
-- **IAP / Ads**: These usually stay in the base `AnalyticsService` as they are universal across most apps.
-
-## Checklist
-
-- [ ] `AppAnalyticsEvents` dictionary created
-- [ ] `AppAnalyticsService` extends `AnalyticsService`
-- [ ] Feature-specific methods are typed and use internal inference
-- [ ] No raw `logEvent` calls exist in the `presentation` layer
-- [ ] Platform metadata (OS, App Version) automatically added in service layer
+- [genrevibes_analytics](../../../../../packages/genrevibes_starter_kit/modules/analytics/genrevibes_analytics/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/analytics/genrevibes_analytics/lib/genrevibes_analytics.dart).

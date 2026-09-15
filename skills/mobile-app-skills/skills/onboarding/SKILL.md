@@ -1,145 +1,61 @@
 ---
 name: onboarding
-description: First-launch onboarding with the starter kit's OnboardingFlow — any number of pages, an optional native ad slot behind a remote switch, and ordered finish actions such as paywall then navigate. Read before building or changing onboarding in a GenRevibes app.
+description: "Build a shared onboarding flow with app content, completion state, and optional actions."
 ---
 
 # Onboarding
 
-## Overview
+Use `OnboardingController` for persisted completion and `OnboardingFlow` for UI.
+The app supplies pages, artwork, labels, layout, and destination.
 
-`genrevibes_onboarding` owns two things:
+1. Initialize the controller with a store that adopts real legacy keys. See
+   [storage migration](../storage-migration/SKILL.md).
+2. Route from `isCompleted`, not retention counts. Put the flow in the app's Scaffold.
+3. Configure ordered `finishActions`: required completion/navigation and any
+   deliberate optional actions. Decide whether skip runs the same actions.
+4. Bound optional asynchronous actions and use `continueOnError` where failure
+   should not trap onboarding. Do not give an interactive paywall an arbitrary
+   short timeout that navigates behind its still-visible native UI.
+5. For ads, supply an `OnboardingAdSlot` builder. The onboarding package does not
+   own an ad SDK. Gate it with the same premium, startup, provider, and developer
+   rules as other placements, plus the onboarding remote switch.
+6. Reserve ad space only on supported ad pages. Supply a placeholder and keep
+   controls away from ads. Page count, ad frequency, full-screen artwork, and
+   controls layout are app choices.
 
-| Piece | Role |
-|---|---|
-| `OnboardingController` | The completion flag, through `genrevibes_storage`, with legacy-key adoption |
-| `OnboardingFlow` | The configurable flow: pages, an optional ad slot, controls, and finish/skip actions |
+Check repeated finish taps, optional failures, completion persistence, upgraded
+installs, no-ad variants, and small-screen layout. Reuse the same controller in Kit Lab.
 
-`OnboardingView` still exists for the simplest case, but new work uses
-`OnboardingFlow`. The package knows nothing about ads: the ad slot takes a
-builder, and a GenRevibes app passes `AppodealNativeAdView` from
-`genrevibes_ads_appodeal_native` (see the **ads** skill, "Native").
+## Separate completion from page presentation
 
-## Completion state
+Construct the controller in the runtime with the shared migrated store. Reuse
+that instance in initial routing, the onboarding flow, and Kit Lab. The app's
+onboarding feature supplies its pages and navigation; it should not add another
+completion preference alongside the controller.
 
-```dart
-// Bootstrap. Seed the store with OnboardingKeys.legacyKeys, or every existing
-// user is onboarded again on the release that adopts this.
-final onboarding = OnboardingController(store: store);
+Before building pages, define their purpose and the finish sequence. For example:
+show product value, explain an optional permission at the relevant action, then
+complete onboarding and enter the app. Choose whether a skipped flow records
+completion and whether it also runs optional actions; implement that choice in
+the flow configuration rather than unrelated callbacks on several buttons.
 
-// Splash:
-Navigator.pushReplacementNamed(
-  context,
-  onboarding.isCompleted ? Routes.home : Routes.onboarding,
-);
-```
+When persisting completion fails, handle that result explicitly. If the app
+continues, acknowledge that a later launch may show onboarding again. Do not
+silently label a failed save as persisted completion. Disable repeated finish
+actions while the current sequence runs.
 
-Unreadable state counts as "not onboarded": showing onboarding twice is better
-than skipping it for a new user.
+Permissions, purchases, and ads remain owned by their existing providers and
+policies. An onboarding screen is another caller of those features. It must not
+construct its own consent provider, purchase SDK, or ad policy. Optional actions
+must have defined failure behavior so the user can reach the app.
 
-## OnboardingFlow
+For portfolio reuse, replace artwork, copy, page count, and the destination;
+retain the shared completion and flow behavior. Check content with large text,
+keyboard-free small screens, and unavailable ad slots. Do not reserve an empty
+ad area on pages where no ad slot is configured.
 
-```dart
-OnboardingFlow(
-  pages: <OnboardingPage>[                       // any number
-    OnboardingPage(
-      title: 'Save stories instantly',
-      description: 'One tap to keep a status.',
-      artwork: (_) => Image.asset('assets/images/onboarding_1.png'),
-    ),
-    OnboardingPage(title: '…', description: '…', showAd: false), // no ad here
-  ],
-  controlsLayout: OnboardingControlsLayout.stacked, // row | stacked | fullWidthButton
-  skipBehavior: OnboardingSkipBehavior.hidden,      // hidden | jumpToLastPage | finish
-  adSlot: OnboardingAdSlot(
-    builder: (context, pageIndex) => AppodealNativeAdView(
-      provider: ads,
-      placement: AppPlacements.onboardingNative,
-      enabled: adAllowed,
-    ),
-    position: OnboardingAdPosition.bottom,          // or aboveControls
-    oneAdPerPage: false,                            // one ad across pages
-  ),
-  labels: const OnboardingLabels(next: 'Next', skip: 'Skip', finish: 'Get started'),
-  style: OnboardingFlowStyle(backgroundColor: Colors.white, activeIndicatorColor: brand),
-  onPageChanged: (index) => analytics.track('onboarding_page_viewed', {'page_index': index}),
-  finishActions: <OnboardingAction>[
-    OnboardingAction(openPaywall, name: 'paywall', continueOnError: true,
-        timeout: const Duration(seconds: 5)),
-    OnboardingAction.markCompleted(onboarding),
-    OnboardingAction.navigate(Routes.home),
-  ],
-)
-```
+## Package references
 
-- **Actions run in order, each awaited.** Paywall only, navigate only, both, or
-  anything else is just the list. `OnboardingAction.when(condition, action)`
-  makes a step conditional. A failing action stops the sequence unless
-  `continueOnError`; `onActionError` reports it and the user can try again.
-- **`skipActions`** run on skip with `OnboardingSkipBehavior.finish`; without
-  them skip runs `finishActions`.
-- **Layout.** Pick a `controlsLayout`, or replace the controls with
-  `controlsBuilder` (it receives `OnboardingFlowControls`: index, count, busy,
-  next, skip, finish, goTo) and the page with `pageBuilder`.
-- It renders no `Scaffold`; put it in the route's own.
+Read the public API and setup for the packages used by this task:
 
-## Onboarding with a native ad
-
-- **Remote switch.** `OnboardingPolicyKeys.adsEnabled` (`onboarding_ads_enabled`,
-  default true, in `PortfolioRemoteConfigSchema`) decides whether onboarding
-  carries an ad at all. Import the **Onboarding Group** from
-  `remote_config_template.json`. Premium users get the plain flow.
-- **Same gating as banners.** Pass `enabled` only when the app's own reasons
-  allow an ad: deferred startup finished (consent), subscription state known
-  and not premium, ads not disabled. The view adds the provider's reasons.
-- **Layout.** The ad sits at the bottom with `controlsLayout: stacked` (dots
-  above a centered Next), matching the portfolio design. Without an ad, use
-  `row`.
-- **Whole screens, not a shared ad area.** Keep the default
-  `OnboardingPresentation.screens`: every page is a complete screen with its own
-  controls and its own ad, swiping in as a unit. A shared ad area that collapses
-  on pages without an ad reads as something missing and makes for bad UX.
-- **Edge-to-edge artwork.** Use `layout: OnboardingScreenLayout.edgeToEdge`
-  with artwork that covers (`BoxFit.cover`). The artwork runs across the top
-  under the status bar and takes the height the title, description, controls
-  and ad leave: the top half of an ad screen, most of a screen without one.
-  Set `artworkFadeHeight` (around 40) so it melts into the page above the
-  title. Tall portrait artwork with `BoxFit.cover` gives the full-bleed photo
-  look; square illustrations look better uncropped on a tinted background that
-  fills the area.
-- **Reserve the ad's space.** Set `OnboardingAdSlot.reservedHeight` to the
-  ad's height (`AppodealNativeAdStyle.resolvedHeight`) and give the ad view
-  `placeholder: AppodealNativeAdPlaceholder(style: style)`. Every ad screen is
-  then laid out with the ad as part of its design from the first frame, shows
-  a quiet text-free card until the ad loads, and nothing moves when it does.
-  An ad added after the screen, pushing content aside, reads as an
-  afterthought. Only choose the ad presentation where native ads render
-  (`AppodealNativeAds.instance.isSupported`), or the reserved space stays empty.
-- **Alternate screens.** Give every other page `showAd: false`, so it is a
-  full-screen page and each ad screen gets a fresh ad. Set `preloadNext: true` on `AppodealNativeAdView` so the next
-  ad loads during the full-screen page and appears at once.
-- **Accidental clicks.** Keep a clear gap between Next and the ad. An ad right
-  under a button users tap quickly draws accidental clicks, which networks
-  penalize; watch for a high click rate with poor conversion.
-- **Placement.** Add `AdPlacement(id: 'onboarding_native', format:
-  AdFormat.native)` to the Appodeal configuration and to the app's placement
-  list, and send `AppodealNativeAds.instance.attributedAdEvents(fallback: placement)` through the ad
-  analytics listener.
-
-## Interaction Map
-
-- **Splash** decides onboarding or home from `OnboardingController.isCompleted`.
-- **Paywall** is a finish action, not a special case.
-- **Ads** supply the slot; **remote config** switches it; **IAP** removes it.
-- **Analytics**: `onboarding_page_viewed` from `onPageChanged`,
-  `onboarding_complete` when completion is recorded; native ads report
-  `ad_show`, `custom_ad_click` and `ad_impression` like every other format.
-
-## Checklist
-
-- [ ] `OnboardingController` on a store seeded with `OnboardingKeys.legacyKeys`
-- [ ] Splash reads `isCompleted`
-- [ ] Onboarding screen built on `OnboardingFlow`, any page count
-- [ ] Finish actions record completion and navigate; paywall step `continueOnError`
-- [ ] Ad variant: native placement configured, `onboarding_ads_enabled` read, `enabled` gated like the banner, premium gets the plain flow
-- [ ] Native events sent through the ad analytics listener
-- [ ] Onboarding Group imported into Firebase Remote Config
+- [genrevibes_onboarding](../../../../../packages/genrevibes_starter_kit/modules/onboarding/genrevibes_onboarding/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/onboarding/genrevibes_onboarding/lib/genrevibes_onboarding.dart).

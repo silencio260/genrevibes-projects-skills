@@ -1,95 +1,53 @@
 ---
 name: immersive-ui
-description: Mandatory implementation pattern for premium edge-to-edge "borderless" Flutter UIs where the background flows into the status and navigation bar areas without dead zones
+description: "Configure edge-to-edge layout and optional kit navigation-bar controls."
 ---
 
-# Immersive Borderless UI Skill
+# System bars and edge-to-edge layout
 
-## Overview
-This skill defines the mandatory implementation pattern for achieving premium, edge-to-edge "borderless" user interfaces in Flutter, as required for the Note AI project. It ensures the application background flows into the status and navigation bar areas without intrusive "dead zones".
+Use the app's chosen layout. Edge-to-edge backgrounds do not require hiding
+system bars, and kit adoption does not require an immersive design.
 
-## Critical Rules
+- Let backgrounds reach the edges where intended. Protect interactive content
+  with appropriate SafeArea or MediaQuery insets; avoid applying the inset twice.
+- Match system icon brightness to the actual background. Do not set `extendBody`
+  or disable contrast protection on every screen without checking the layout.
+- For apps choosing kit navigation-bar control, use `NavigationBarController`,
+  `NavigationBarScope`, its navigator observer, and `NavigationBarVisibility`
+  for route exceptions. Keep one controller.
+- Connect developer mode only when the app wants that shared control. Pass the
+  same controller to Kit Lab.
+- Inspect SDK overlay exclusions before changing native activity behavior.
+  Do not hide navigation on purchase or sign-in screens indiscriminately.
+- Provide app Back controls on pushed pages, and inspect gesture/three-button
+  navigation, keyboard, rotation, and display cutouts.
 
-### 1. No Outer SafeArea
-- **DO NOT** use `SafeArea` as a top-level wrapper for your `Scaffold` or main `body`. This creates "dark spots" and "dead zones" that break the immersive experience.
-- Instead, allow the `Scaffold` background (usually `Colors.white`) to bleed into the system UI areas.
+Dispose the controller with the runtime. Read the installed package's platform
+behavior rather than promising identical results on every Android/iOS version.
 
-### 2. Manual Padding via MediaQuery
-- To protect interactive content (like titles, buttons, or notches) from being obscured, use **manual padding** using `MediaQuery`:
-    - **Header Padding**: `padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top)`
-    - **Footer Padding**: `padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom)`
-- This keeps the UI functional while the background remains 100% immersive.
+## Assign one owner to system-bar behavior
 
-### 3. AnnotatedRegion Control
-- Always wrap the top-level screen in an **`AnnotatedRegion<SystemUiOverlayStyle>`**.
-- This ensures the status bar and navigation bar are:
-    - **Transparent**: `statusBarColor: Colors.transparent`, `systemNavigationBarColor: Colors.transparent`.
-    - **No Scrim**: Set `systemNavigationBarContrastEnforced: false` and `systemStatusBarContrastEnforced: false` to remove the automatic grey bar on Android 10+.
-    - **Themed correctly**: Use `statusBarIconBrightness: Brightness.dark` for white backgrounds to ensure system icons (Time, Battery) are visible.
+Keep app-wide policy in the runtime/controller and route exceptions in the
+supported visibility wrapper/observer. Do not scatter competing `SystemChrome`
+changes across every screen's init/build callbacks. If a screen temporarily
+changes policy, ensure leaving it restores the intended previous state.
 
-### 4. Scaffold Configuration
-- Always set **`extendBody: true`** in your `Scaffold`.
-- This tells Flutter to allow the body content to flow behind the bottom navigation bar/system gesture area.
+Inspect each layout separately: background coverage, top controls, bottom actions,
+keyboard inset, and system icon contrast. A full-bleed background can extend
+under a system bar while the button row stays within safe insets. Avoid wrapping
+the same content in multiple layers that each add keyboard or bottom padding.
 
-### 5. Preference for Dart-Only Fixes
-- Prioritize Flutter/Dart solutions (like those above) for UI immersion.
-- Avoid modified native Android/Kotlin code unless the Dart-only approach is technically impossible on a specific platform version.
-- Hiding the navigation bar is that case: use the kit's `genrevibes_system_ui` (see "Hiding the Navigation Bar" below), never `SystemChrome`.
+Native purchase, sign-in, and ad screens have their own lifecycle and platform
+constraints. Follow the installed controller/adapter's exclusions and do not
+assume a route wrapper controls every native overlay. Give Kit Lab the current
+controller so a developer toggle reflects the running app's policy.
 
-## Usage Scenarios
+Report which layouts were inspected and which device modes still need checking.
+Gesture navigation, three-button navigation, rotation, and keyboard visibility
+can expose different problems; code inspection alone does not verify all of them.
 
-### Scenario A: Immersive "Bleed-Through" (Primary Choice)
-- **Applicable for**: All screens where the main background color (usually white) should reach the very edge of the physical screen (e.g., Home, Login, Profile).
-- **Technique**: Set `extendBody: true`, remove the `SafeArea` wrapper, and use `MediaQuery.of(context).padding` for internal content padding.
+## Package references
 
-### Scenario B: Content-Dense Scrolling
-- **Applicable for**: Lists or long text areas that should scroll *behind* the status or navigation bars while they are transparent.
-- **Technique**: Use `ListView.builder` with `padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top)`. This ensures the list doesn't start *under* the notch but allows content to scroll *through* it beautifully.
+Read the public API and setup for the packages used by this task:
 
-### Scenario C: Nested Interactive Elements
-- **Applicable for**: Specific small widgets (like a "Close" button in a corner) that need to be "safe" without affecting the rest of the screen's layout.
-- **Technique**: You may use a targeted `SafeArea` *inside* the widget hierarchy for that specific element only.
-
-## Hiding the Navigation Bar
-
-GenRevibes apps hide the Android navigation bar — the back, home and recents
-buttons, or the gesture handle — on every screen by default, with the starter
-kit's `genrevibes_system_ui`. Do not use `SystemChrome.setEnabledSystemUIMode`
-for it: without Android's immersive behavior the first touch brings the bar
-back for good. The kit's plugin hides it so a swipe from the bottom edge shows
-it for a moment and it hides again by itself. The status bar stays.
-
-- **Wiring.** `NavigationBarController(store: store, logger: logger)`
-  registered as a kit module; `navigationBar.setDeveloperMode(access.isGranted)`
-  in the developer access listener; `NavigationBarScope` above `MaterialApp`;
-  `navigationBar.observer` in `navigatorObservers`; `navigationBar:` on
-  `DevToolsHost`.
-- **A screen that needs the bar** wraps itself:
-  `NavigationBarVisibility(visible: true, child: Scaffold(...))`. The request
-  lasts while that screen is on top; dialogs and sheets keep the bar of the
-  screen under them. Central alternative: `routes: {Routes.player: true}` on
-  the controller.
-- **Developers** see the bar on every screen while Starter Kit Lab → Navigation
-  bar → "Show on every screen" is on (on by default, remembered on the device).
-  Turn it off to check the app the way users see it.
-- **Full-screen ads** are not Flutter screens: the ad SDK opens an activity of
-  its own, with its own window and both system bars. The controller shows every
-  such activity full screen from the moment it starts, before it is drawn: no
-  status bar and no navigation bar. The navigation bar shows over an ad only
-  while the developer switch above is on. Purchase, sign-in, Google Play,
-  notification and Flutter activities keep their bars
-  (`NavigationBarController.defaultOverlayExclusions`); add a class name prefix
-  to `overlayExclusions` for any other SDK screen that must keep them. Never
-  hide bars from an ad callback such as "shown": by then they have already
-  appeared.
-- **Layout.** A hidden bar takes no space, so `MediaQuery.padding.bottom`
-  shrinks and bottom content moves down. Pad with `MediaQuery` (rule 2), never a
-  fixed inset. With three-button navigation, Back is hidden too: every pushed
-  screen needs its own back control.
-- Keep `SystemUiMode.edgeToEdge` and the transparent navigation bar color in
-  `main()`; they cover the moments the bar is shown.
-
----
-
-## Design Goal
-The goal is a seamless, modern look where the app and the system UI feel like a single unit. Avoid Any alignment or padding that results in black/grey bars around the screen edges.
+- [genrevibes_system_ui](../../../../../packages/genrevibes_starter_kit/modules/system_ui/genrevibes_system_ui/README.md); [public exports](../../../../../packages/genrevibes_starter_kit/modules/system_ui/genrevibes_system_ui/lib/genrevibes_system_ui.dart).

@@ -76,6 +76,55 @@ Keep the normal CocoaPods source when adding vendor sources. Configure tracking
 usage text only for an actual tracking request. Use the selected plugin's current
 platform floors rather than old copied Gradle/Pod versions.
 
+### Choose which mediated networks ship
+
+Appodeal's integration page hands you a dependency block containing every
+network. That is a default, not a requirement: their
+[mediated networks guide](https://docs.appodeal.com/android/advanced/configure-mediated-networks)
+says "You can add or remove any ad network or service adapter depending on your
+requirements". Each adapter carries a full network SDK, so the list decides app
+size and how much code R8 must process at release.
+
+Ship an adapter only for a network that has an account in the Appodeal dashboard
+under Mediation Setup > Ad Networks. Check the MAX and LevelPlay tabs there as
+well as All accounts: `applovin_max` and `level_play` belong to those tabs. A
+network with no account cannot serve, yet its code still ships and still goes
+through R8. Most rows usually read "Appodeal account", meaning Appodeal supplies
+the account; those still count as connected.
+
+Keep `bidmachine` and `bidon` whatever the dashboard shows. They are Appodeal's
+own demand and ship with the SDK by default.
+
+Never delete an SDK or adapter dependency line. Comment it out and write, in the
+comment, the date and why it is off: no linked account, not earning, removed to
+cut build memory. Restoring a network is then one uncommented line, the version
+pin it shipped with is still there, and a reviewer can see the decision instead
+of guessing. Deleting the line loses all three. The same rule applies to any
+vendor SDK removed from a build, not only Appodeal adapters.
+
+This matters commercially too: Appodeal can enable a network from its side
+without an app update only when the adapter is already in the build, so an app
+that trims adapters must ship a release to take on a new network.
+
+Measure before arguing about size. Resolve the release classpath with
+`<app>/android/gradlew -p android :app:dependencies --configuration
+releaseRuntimeClasspath`, which compiles nothing, then count the `.class` entries
+of each cached artifact that only that adapter pulls in. In Story Saver in
+September 2026, 11 adapters with no dashboard account held 16,175 of the app's
+108,903 classes, about 15%, while 26 adapters in total left R8 unable to finish
+in a 4 GB heap. See
+[android-release-build-experiment](../android-release-build-experiment/SKILL.md)
+for the build failures that follow from a large adapter list.
+
+Trimming the list is also the cheapest fix for a release build that fails or
+bloats. In Story Saver, cutting 26 adapters to 15 removed 15% of the app's
+classes, which was the difference between R8 running out of a 4 GB heap and
+completing a full shrink, and took the phone download from about 57 MB to
+42.8 MB. Do this before changing build flags or memory settings.
+
+Match adapter versions to the installed `stack_appodeal_flutter` release rather
+than carrying old versions across upgrades.
+
 ### Loading, displaying, and gating
 
 | Step | Required decision |

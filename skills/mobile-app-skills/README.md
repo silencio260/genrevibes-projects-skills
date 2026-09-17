@@ -57,6 +57,7 @@ panel implementation is needed for each app.
 | [ads](skills/ads/SKILL.md) | Connect ad placements and provider-specific views with premium, consent, test-mode, and pacing rules. |
 | [analytics](skills/analytics/SKILL.md) | Connect selected analytics sinks, shared events, identity, and collection settings. |
 | [analytics-extension-layer](skills/analytics-extension-layer/SKILL.md) | Add typed app-specific analytics methods on top of the shared pipeline. |
+| [android-release-build-experiment](skills/android-release-build-experiment/SKILL.md) | Diagnose Android release build failures and reuse the recorded R8 partial shrinking experiment. |
 | [android-signing](skills/android-signing/SKILL.md) | Configure Android release signing while preserving the app existing signing identity. |
 | [app-icon-generation](skills/app-icon-generation/SKILL.md) | Create app icon concepts and compare them at launcher size. |
 | [app-promotions](skills/app-promotions/SKILL.md) | Create app promotional graphics using truthful screenshots and relevant style references. |

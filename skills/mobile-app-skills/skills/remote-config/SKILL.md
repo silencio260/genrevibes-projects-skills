@@ -30,6 +30,11 @@ Preserve existing production key spellings, including
 and conditions before adopting the template. Do not replace live policy with
 new defaults or publish a template unless requested.
 
+The "Analytics providers" group holds per-provider kill switches
+(`analytics_mixpanel_enabled`, `analytics_posthog_enabled`, default `true`).
+They take effect only when the app wraps those sinks and binds them; see
+[analytics](../analytics/SKILL.md#turn-one-paid-provider-off-remotely).
+
 New shared replay defaults are 0% rollout with text/images masked. Keep an
 existing app's deliberate choices through `replayDefaults` and its app template.
 See [replay](../session-replay/SKILL.md) for restart requirements.

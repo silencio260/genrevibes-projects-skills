@@ -135,6 +135,24 @@
         }
       }
     },
+    "Analytics providers": {
+      "parameters": {
+        "analytics_mixpanel_enabled": {
+          "defaultValue": {
+            "value": "true"
+          },
+          "valueType": "BOOLEAN",
+          "description": "Mixpanel event kill switch. false stops all Mixpanel events (opt-out) on the running app after fetch activation; Firebase keeps collecting. Does not control replay; use session_replay_enabled/percent for that."
+        },
+        "analytics_posthog_enabled": {
+          "defaultValue": {
+            "value": "true"
+          },
+          "valueType": "BOOLEAN",
+          "description": "PostHog event kill switch. false stops all PostHog events on the running app after fetch activation; Firebase keeps collecting. Does not control replay; use session_replay_enabled/percent for that."
+        }
+      }
+    },
     "Developer access": {
       "parameters": {
         "developer_device_hashes": {

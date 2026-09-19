@@ -52,6 +52,25 @@ A developer override belongs to the shared controller. Do not add a second
 preference and directly call the SDK from a settings switch: that would bypass
 rollout, the master switch, and the displayed state.
 
+### Mixpanel recorder
+
+Mixpanel replay follows the same rollout through `MixpanelSessionReplayRecorder`
+in `genrevibes_analytics_mixpanel_replay`:
+
+1. Resolve `controller.plan`, then build the replay configuration with
+   `GenRevibesMixpanelReplayConfiguration(...).withSessionReplay(plan)`. This
+   applies masking and forces the SDK's own `sessionsPercent` to 0; a non-zero
+   value makes the SDK record on every foreground outside the rollout.
+2. Initialize `MixpanelReplayController` (or `MixpanelReplayScope`), then
+   `controller.attach(MixpanelSessionReplayRecorder(controller: replay),
+   configuredPlan: plan)`.
+3. The recorder starts at 100% because the shared bucket already chose this
+   install. Mixpanel ends a recording on background; the recorder restarts it on
+   resume while the plan still records.
+4. Call the recorder's `dispose()` and then the replay controller's with the
+   runtime. Private screens still call `stop()`/`start()` through the shared
+   controller's override or the app's privacy path, not the SDK directly.
+
 ### Upgrade behavior to preserve
 
 The install bucket keeps a device in the same rollout group across launches.

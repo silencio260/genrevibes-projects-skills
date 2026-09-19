@@ -77,6 +77,31 @@ Identity changes are runtime events, not screen lifecycle events. Register their
 listener once and dispose it once. Rebuilding a profile page must not attach
 another purchase, identity, or notification analytics listener.
 
+### Turn one paid provider off remotely
+
+To stop paying for a provider without a release, wrap only that sink in
+`SwitchableAnalyticsSink` and attach `AnalyticsSinkRemotePolicyBinder` (from
+`genrevibes_remote_policy`) to the remote-config coordinator. The keys are
+`analytics_mixpanel_enabled` and `analytics_posthog_enabled`, both default
+`true`; other sinks use `analytics_<sinkId>_enabled`, which must be added to the
+app schema and template.
+
+1. Read the cached snapshot first and construct each wrapper with
+   `enabled: AnalyticsSinkRemotePolicyBinder.enabledFrom(snapshot, 'mixpanel')`.
+   A provider that starts off is never initialized, so it sends nothing.
+2. Pass the wrappers to `AnalyticsPipeline` in place of the raw sinks.
+3. Initialize the binder after the pipeline; it applies the current snapshot and
+   every later change. Switching off calls the provider's collection-off method
+   (Mixpanel `optOutTracking`) and drops later calls; switching on initializes
+   the provider if needed and restores the pipeline's consent state.
+4. Dispose the binder with the runtime.
+
+Consent still wins: a switched-on provider collects only while
+`AnalyticsPipeline` consent is granted. Firebase has no kill-switch key; it is
+free and remains the baseline. Its `collectionEnabled` ceiling exists for
+consent and keeping development traffic out of production. These keys do not
+control replay; use `session_replay_enabled` / `session_replay_percent`.
+
 ### Events recorded outside the Flutter runtime
 
 A WorkManager isolate, or an Android receiver running without Flutter, has no

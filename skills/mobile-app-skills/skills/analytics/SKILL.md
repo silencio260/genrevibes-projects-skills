@@ -11,8 +11,8 @@ app code imports them; read compatible constraints from the selected manifests.
 
 1. Initialize sinks before emitting startup events. Keep delivery off the UI's
    critical path and bound startup waits.
-2. Apply the app's collection policy explicitly. Firebase collection settings
-   can persist, so do not assume a new build reset an earlier disabled setting.
+2. Analytics collection is always on; startup asserts it because provider
+   collection flags persist on disk (see the portfolio rule below).
 3. Identify/reset users through the shared pipeline when app identity changes.
 4. Connect ad, purchase, notification, and retention observers once. Nothing
    is automatically wired merely because a package is installed.
@@ -43,6 +43,29 @@ Use Kit Lab's delivery observer to inspect dispatch/results. Provider dashboards
 can lag; distinguish local dispatch, provider acceptance, and remote reporting.
 Check current SDK diagnostics for provider delivery problems instead of adding
 blanket keep rules or another event listener.
+
+## Portfolio rule: analytics is never consent-gated
+
+Analytics collection is a condition of using these apps and is disclosed in
+every app's privacy policy. It is the app owner's decision and it is fixed:
+
+- **Never build an analytics consent prompt, opt-out switch, or privacy toggle
+  that stops analytics.** Do not propose one. Consent UI in this portfolio
+  exists for **ad networks only** (`gdpr-compliance` skill), and it talks to
+  the ad SDK, never to `AnalyticsPipeline`.
+- **Firebase Analytics can never be turned off.** The kit's Firebase adapter
+  has no disabling code path: `FirebaseAnalyticsClient.enableCollection()`
+  only ever enables, and the sink ignores a `false` collection request. Do not
+  add a flag, config field or consent state that would disable it.
+- `AnalyticsPipeline` has no consent API. Do not reintroduce one.
+- **The only supported way to hold a provider back is the developer's own
+  remote kill switch on a paid sink** — `analytics_mixpanel_enabled` /
+  `analytics_posthog_enabled` through `SwitchableAnalyticsSink` and
+  `AnalyticsSinkRemotePolicyBinder`. That is a cost control the app owner sets
+  in remote config; it is never exposed to users.
+- Session replay follows its rollout keys, not a user's choice.
+
+Every new app's privacy policy states that analytics data is collected.
 
 ## Where the wiring belongs
 

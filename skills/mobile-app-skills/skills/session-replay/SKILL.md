@@ -28,7 +28,9 @@ and SDK status query. Do not label the requested plan as applied state.
 Mask changes require a restart. A stricter pending mask stops recording until
 restart; changing a remote mask flag does not rewrite an already configured SDK.
 
-The app owns rollout and collection choices. Story Saver's explicit 100%
+Replay follows the rollout keys and the developer's switches only. It is never
+put behind a user-facing consent prompt or opt-out. The app owns rollout and
+collection choices. Story Saver's explicit 100%
 rollout and global mask overrides are not the defaults to copy into a new app.
 Check off, force-on, remote master-off, mask changes, and SDK command failure.
 

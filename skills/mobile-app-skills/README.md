@@ -7,7 +7,10 @@ and [kit compatibility](references/kit-compatibility.md) when changing integrati
 
 New portfolio apps include Kit Lab, the developer section, feedback/contact
 forms, rating, Android root exit prompt, ads, retention, analytics, onboarding,
-IAP, remote config and session replay integration. The user's main feature brief
+IAP, remote config and session replay integration. Analytics is never
+consent-gated and Firebase Analytics is never disableable; consent forms are
+for ad networks only (see
+[analytics](skills/analytics/SKILL.md#portfolio-rule-analytics-is-never-consent-gated)). The user's main feature brief
 does not need to repeat these. Choose providers and product configuration per app;
 keep collection/rollout and platform behavior explicit. See the
 [baseline and integration map](ARCHITECTURE_ANALYSIS.md#11-guaranteed-portfolio-integrations).

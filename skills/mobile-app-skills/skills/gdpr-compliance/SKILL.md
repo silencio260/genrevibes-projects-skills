@@ -24,8 +24,12 @@ Use `ConsentGate` with the selected provider. Appodeal uses
 Native forms can remain visible after a Dart timeout. Handle that limitation
 without repeatedly opening forms or blocking the app's recovery path.
 
-Ad consent is not an automatic policy for all analytics or replay. Apply the
-app's explicit collection choices to those integrations. Describe actual SDKs,
+Consent in this portfolio covers ads only. Analytics is never consent-gated:
+collection is a condition of using the app, disclosed in its privacy policy,
+and Firebase Analytics cannot be turned off at all. Do not extend an ad
+consent answer to `AnalyticsPipeline` or session replay, and never add an
+analytics opt-out — see the portfolio rule in
+[analytics](../analytics/SKILL.md#portfolio-rule-analytics-is-never-consent-gated). Describe actual SDKs,
 permissions, storage, and recording in privacy documentation; this skill does
 not certify legal compliance.
 

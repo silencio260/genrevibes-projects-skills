@@ -156,6 +156,26 @@ Consent failure should not leave another app-level wait behind. Appodeal can
 withhold inventory after a mid-session mode change until relaunch; that is not
 ordinary no-fill. Use the Lab's live values before adding duplicate load calls.
 
+## Yodo1 MAS
+
+`genrevibes_ads_yodo1` wraps the official `yodo1_mas_flutter_plugin`. MAS is a
+managed waterfall: networks, bidding, banner position and test devices are set
+in the MAS dashboard, not in code. Before designing a placement around it:
+
+- **One creative per format.** Placement ids separate an app's own pacing and
+  analytics, not inventory. Two banner placements are the same banner.
+- **Banner and native are native overlays**, drawn over the whole app. There is
+  no platform view, so they cannot sit in a Flutter layout or have space
+  reserved.
+- **A shown banner cannot be hidden** — the SDK has no dismiss call. Do not
+  promise a clean screen after showing one.
+- **No paid callback**, so impression revenue comes from the MAS dashboard and
+  `ad_impression` carries no value.
+- **No runtime test mode.** Register test devices in the dashboard;
+  `AdTestModeProvider` is not implemented.
+- MAS's own privacy dialog is the ad consent form (`useMasPrivacyDialog`). It
+  never gates analytics or replay.
+
 ## Package references
 
 Read the public API and setup for the packages used by this task:

@@ -30,6 +30,15 @@ Preserve existing production key spellings, including
 and conditions before adopting the template. Do not replace live policy with
 new defaults or publish a template unless requested.
 
+Each app owns a Firebase-format `config/remote_config.json`, initially copied
+from this agents template. Keep app-specific defaults and keys in that copy;
+do not change the agents template to tune one app. Use the app copy for bundled
+defaults and as the source for a future Firebase upload or merge. Preserve typed
+schema validation and cached/remote precedence. When updating the shared template,
+review the changes into each app copy instead of overwriting its custom values.
+Before publishing, compare against the current Firebase template and preserve
+remote conditions and unrelated keys; publication still requires user direction.
+
 The "Analytics providers" group holds per-provider kill switches
 (`analytics_mixpanel_enabled`, `analytics_posthog_enabled`, default `true`).
 They take effect only when the app wraps those sinks and binds them; see

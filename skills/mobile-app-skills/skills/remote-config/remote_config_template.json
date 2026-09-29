@@ -26,7 +26,7 @@
         },
         "min_insta_ad_interval": {
           "defaultValue": {
-            "value": "5"
+            "value": "10"
           },
           "valueType": "NUMBER",
           "description": "Minimum seconds between paced interstitial ads."

@@ -63,6 +63,11 @@ avoids a hardcoded mismatch.
 
 ### Native host setup for Appodeal
 
+When adding mediation SDKs slows Android debug builds, read
+[Android debug build performance](../../references/android-debug-build-performance.md)
+for the recorded cache, daemon, heap and repository configuration before changing
+working network integrations.
+
 On Android, inspect the installed plugin's README and the app Gradle files.
 The host supplies the Appodeal Maven repository and selected mediated-network
 adapters. Keep their versions compatible with that plugin. When AdMob is present,
@@ -149,6 +154,11 @@ Report amount/currency only when supplied, and use `custom_ad_click` for the
 custom Firebase-compatible click event.
 
 ### Diagnosing a missing ad
+
+For real inventory in a debug build, use
+[live ads debugging](../../references/live-ads-debugging.md). It records the
+`ads_live_diagnostics` command and wiring; select the phone's current device ID
+rather than reusing a historical IP address.
 
 Inspect, in order: app eligibility, developer format switch, provider health,
 requested versus SDK test mode, supported format, load result, and readiness.

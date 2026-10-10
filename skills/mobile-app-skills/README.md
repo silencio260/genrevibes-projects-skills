@@ -110,6 +110,11 @@ panel implementation is needed for each app.
 
 ## Other guidance
 
+- [Android debug build performance](references/android-debug-build-performance.md):
+  recorded daemon, cache, memory and repository settings for faster repeat builds
+  after adding mediation SDKs, with measured results and cold-build limits.
+- [Live ads in debug](references/live-ads-debugging.md): the live diagnostic
+  Flutter command, current USB/wireless device selection and SDK mode verification.
 - [Commit policy](../commit-policy/SKILL.md)
 - [Firebase Gen 2 HTTP auth](../firebase-functions-v2-auth/SKILL.md)
 - [Environment keys](references/environment-keys.md)

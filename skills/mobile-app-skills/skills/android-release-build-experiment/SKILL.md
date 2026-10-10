@@ -5,6 +5,11 @@ description: "Diagnose Android release build failures and reuse the recorded R8 
 
 # Android release build failures
 
+For slow ordinary debug `flutter run` after adding mediation, use
+[Android debug build performance](../../references/android-debug-build-performance.md)
+instead. The daemon/cache improvements and debug timings there are separate
+from the release shrinking experiments below.
+
 Use this when a release build fails or takes hours: `flutter build appbundle`,
 `flutter build apk`, or a Shorebird release running the same Gradle tasks. It
 records what failed in Story Saver during September 2026, what fixed each

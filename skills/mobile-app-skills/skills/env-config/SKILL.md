@@ -40,6 +40,11 @@ are used. Keep real values untracked; commit the blank example. See the
 The sample keys are a recipe. A key has no effect until the app reads it and
 passes it to the relevant module. Preserve existing key names during migration.
 
+For live ad testing while keeping Flutter debug tools, read
+[live ads debugging](../../references/live-ads-debugging.md). Keep the explicit
+`ads_live_diagnostics` override in the diagnostic launch command/profile and
+select the current device ID; do not make it the default for all development runs.
+
 ## Trace every configuration value to its reader
 
 For each selected feature, locate its `String.fromEnvironment` or typed reader,

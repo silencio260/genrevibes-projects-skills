@@ -68,7 +68,11 @@ UI and reports; do not label all of them “missing feature.”
 
 ### Controls must act on the live app
 
-Change an ad switch and check that the actual placement listens to it. Change
+Change an ad switch and check that the actual placement listens to it. The
+Ads page has "Ads" (every format), one switch per format and "Real ads"
+(see [developer ad switches](../developer-access/SKILL.md#developer-ad-switches-starter-kit)).
+For the live switch, check that the provider's test mode follows it on the next
+launch (the SDK's initialization log, not the Lab label). Change
 remote config and check its binder applies the new snapshot. Query replay SDK
 status rather than assuming its requested plan was applied. Reset onboarding
 through its controller instead of clearing all preferences. Preview an exit

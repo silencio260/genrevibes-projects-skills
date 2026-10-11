@@ -78,11 +78,15 @@ always granted, and `servesTestAds` follows access, so every debug run got test
 inventory whatever was passed. It now follows the Story Saver wiring:
 
 - `lib/bootstrap/app_env.dart` reads `ads_live_diagnostics` and exposes
-  `AppEnv.adTestModeFor(access, liveOnThisDevice:)`. Live inventory when the
-  build is in development (`kDebugMode || development_mode`) and the flag is
-  true, or when the device switch below is on; otherwise `access.servesTestAds`.
-- `lib/bootstrap/app_bootstrap.dart` uses it for the provider's initial
-  `testMode`, the developer-access listener and the device switch's listener.
+  `AppEnv.liveAdsForcedByRun` (development build and flag true).
+- `lib/bootstrap/app_bootstrap.dart` passes it to the kit's
+  `DeveloperAdSwitches(liveInventoryForced: ...)` and takes the provider's
+  initial and later test mode from `DeveloperAdSwitches.servesTestAds`, on both
+  developer-access and switch changes. The switches then show real ads during
+  a flagged run instead of a stale "off".
+- Development builds also turn on Appodeal's verbose logging
+  (`verboseLogging: kDebugMode || AppEnv.developmentMode`), so the `Appodeal`
+  logcat tag shows each network's start-up and every request and fill.
 
 ## Set the flag in the env file
 
@@ -94,23 +98,29 @@ flutter_tools adds `--dart-define-from-file` values first and `--dart-define`
 values after them (`extractDartDefines` in `flutter_command.dart`), and the later
 define of a key takes effect.
 
-## Per-device switch in the developer section
+## Per-device switch in the starter kit
 
 A run flag needs a rebuild. For a developer phone that should see live ads across
-runs, Lunaris adds **Settings › Developer › Live ads**:
+runs, use the starter kit's switch: **Kit Lab › Ads › Real ads**, also shown in
+Lunaris as **Settings › Developer › Real ads** (on = real ads, off = test ads). Both call
+`DeveloperAdSwitches.setLiveInventory`, so they are one setting (see
+[developer ad switches](../skills/developer-access/SKILL.md#developer-ad-switches-starter-kit)).
 
-- `lib/features/developer/live_ads_switch.dart`: `LiveAdsSwitch`, a
-  `ValueNotifier<bool>` saved in the app's `KeyValueStore`
-  (`lunaris.dev.live_ads`), loaded before the ad provider is constructed and
-  registered in the runtime and GetIt.
-- Changing it calls `setTestMode` with the new decision. The Appodeal provider
-  then withholds inventory until the next launch (the SDK fixes its mode at
-  start), so the row and its snackbar say to fully close and reopen the app.
+- Wire the provider from `DeveloperAdSwitches.servesTestAds`, at construction
+  and on both developer-access changes and the switches' `changes`. Pass a run
+  flag as `liveInventoryForced` instead of combining it outside the kit.
+- Load the switches before constructing the provider so the remembered choice
+  sets the SDK's first mode.
+- Changing it calls `setTestMode`; the Appodeal provider then withholds inventory
+  until the next launch (the SDK fixes its mode at start). The controls tell the
+  developer to fully close and reopen the app.
 - It only matters while developer access is granted; without access the app
   already serves live inventory.
-- The starter kit's Kit Lab shows "test inventory / live inventory" from
-  `servesTestAds` only, so it does not reflect either override. Check the SDK's
-  initialization log for the real mode.
+- Kit Lab › Ads shows the requested inventory. The developer access page's
+  "Ads by access" line is what access alone gives. Neither proves the SDK's
+  mode; check its initialization log.
+- The kit's "Ads" switch (also in Lunaris's developer card) turns every format
+  off on the phone at once.
 
 Do not tap live ads or replay them repeatedly from a developer device: ad
 networks treat that as invalid traffic and can restrict the account. Turn the

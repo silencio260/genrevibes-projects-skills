@@ -10,7 +10,7 @@ Blank SDK keys mean unconfigured. Do not use placeholder text as a real key.
 |---|---|
 | `development_mode`, `founders_version`, `special_version_mode` | Story Saver `AppEnv.fromDefines` treats any as a development/internal build. They do not create a universal paid-access grant. |
 | `appodeal_app_key_android`, `appodeal_app_key_ios` | Appodeal ads/consent platform keys, including development builds. |
-| `one_signal_app_id` | OneSignal app configuration. |
+| `one_signal_app_id` | OneSignal app configuration. Lunaris removed OneSignal (local notifications only) and no longer reads it. |
 | `revenue_cat_api_key_android` | Current Story Saver RevenueCat reader. |
 | `posthog_api_key` | PostHog sink configuration. |
 | `feed_back_nest_api_key` | FeedbackNest configuration; retain the existing spelling. |
@@ -19,6 +19,8 @@ Blank SDK keys mean unconfigured. Do not use placeholder text as a real key.
 | `developer_passcode` | Blank preserves the kit fallback; nonblank overrides it. |
 | `developer_device_hashes` | Comma-separated hashes, never raw identifiers. |
 | `developer_access_store_build` | Story Saver development-only access simulation; keep ad test mode enabled. |
+| `ads_live_diagnostics` | Development builds only: `true` requests live ad inventory instead of the developer-access test mode. Default `false` in development env files; a `--dart-define` of the same key overrides the file. See [live ads debugging](live-ads-debugging.md). |
+| `mixpanel_token` | Mixpanel project token for events and session replay (Lunaris reader: `AppEnv.mixpanelToken`). Replay still follows the rollout keys. |
 | `privacy_policy_url`, `terms_url` | App link configuration. |
 | `app_store_url` | Story Saver iOS store-link reader. |
 

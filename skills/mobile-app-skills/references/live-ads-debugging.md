@@ -71,5 +71,50 @@ a fresh run without `--dart-define=ads_live_diagnostics=true`. Inspect the app's
 developer-access policy rather than assuming every debug build defaults to test
 mode. The override is ignored outside development in Story Saver.
 
+## Lunaris implementation
+
+Lunaris did not read the flag at first. In a debug build developer access is
+always granted, and `servesTestAds` follows access, so every debug run got test
+inventory whatever was passed. It now follows the Story Saver wiring:
+
+- `lib/bootstrap/app_env.dart` reads `ads_live_diagnostics` and exposes
+  `AppEnv.adTestModeFor(access, liveOnThisDevice:)`. Live inventory when the
+  build is in development (`kDebugMode || development_mode`) and the flag is
+  true, or when the device switch below is on; otherwise `access.servesTestAds`.
+- `lib/bootstrap/app_bootstrap.dart` uses it for the provider's initial
+  `testMode`, the developer-access listener and the device switch's listener.
+
+## Set the flag in the env file
+
+Development env files (`env/dev.json`, `env/special_dev.json`) and the tracked
+`env.example.json` carry `"ads_live_diagnostics": false`. Set it to `true` in the
+env file for a live run, or keep it false and pass
+`--dart-define=ads_live_diagnostics=true`. The command-line value wins:
+flutter_tools adds `--dart-define-from-file` values first and `--dart-define`
+values after them (`extractDartDefines` in `flutter_command.dart`), and the later
+define of a key takes effect.
+
+## Per-device switch in the developer section
+
+A run flag needs a rebuild. For a developer phone that should see live ads across
+runs, Lunaris adds **Settings › Developer › Live ads**:
+
+- `lib/features/developer/live_ads_switch.dart`: `LiveAdsSwitch`, a
+  `ValueNotifier<bool>` saved in the app's `KeyValueStore`
+  (`lunaris.dev.live_ads`), loaded before the ad provider is constructed and
+  registered in the runtime and GetIt.
+- Changing it calls `setTestMode` with the new decision. The Appodeal provider
+  then withholds inventory until the next launch (the SDK fixes its mode at
+  start), so the row and its snackbar say to fully close and reopen the app.
+- It only matters while developer access is granted; without access the app
+  already serves live inventory.
+- The starter kit's Kit Lab shows "test inventory / live inventory" from
+  `servesTestAds` only, so it does not reflect either override. Check the SDK's
+  initialization log for the real mode.
+
+Do not tap live ads or replay them repeatedly from a developer device: ad
+networks treat that as invalid traffic and can restrict the account. Turn the
+switch off (or drop the flag) once the live check is done.
+
 For slow native builds after adding mediation, read
 [Android debug build performance](android-debug-build-performance.md).

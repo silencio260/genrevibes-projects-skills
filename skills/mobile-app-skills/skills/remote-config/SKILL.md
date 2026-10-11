@@ -74,6 +74,21 @@ is not proof that the app observes it.
 | Inspect | Show origins and refresh health using the same coordinator in Lab. |
 | Dispose | Remove binders before replacing the runtime and its providers. |
 
+### Publish the app template
+
+When the user asks to publish, deploy the app copy with the Firebase CLI. Lunaris
+points `backend/firebase.json` at it:
+
+```json
+"remoteconfig": { "template": "../lunaris_network_app/config/remote_config.json" }
+```
+
+then `firebase deploy --only remoteconfig --project <id>` from `backend/`. Before
+the first publish, read the live template with `firebase remoteconfig:get` and
+keep its conditions and unrelated keys. After publishing, read it back to confirm
+the values. Remote values reach the app on its next fetch; settings read once at
+start-up (replay, ad SDK mode) apply from the launch after that.
+
 ### Add an app-specific key
 
 Choose a namespaced, stable name and define a typed key using the schema API.

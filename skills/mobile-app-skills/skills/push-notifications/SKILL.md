@@ -51,6 +51,14 @@ failure visibly in diagnostics. Avoid copying Story Saver tags into a different
 app: define the target app's segmentation and remove stale tags where its vendor
 API and product policy require it.
 
+Apply identity and opt-in on the provider's transition into ready, and send each
+value only when it changes. Do not re-apply them on every ready health report.
+Lunaris's OneSignal provider re-reported ready after each subscription change, and
+`optIn()` fires a subscription change, so re-applying on every report looped:
+about 3,800 platform calls a second, ANRs and an out-of-memory crash. A Perfetto
+trace with `atrace_apps` set to the app shows the flood as
+`PlatformChannel ScheduleHandler on OneSignal` slices.
+
 A local reminder and a remotely delivered push may open the same destination,
 but they have different delivery owners. Reuse the router destination mapping;
 keep their scheduling/subscription state separate.

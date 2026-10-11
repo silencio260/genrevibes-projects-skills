@@ -1,6 +1,6 @@
 ---
 name: ads
-description: "Connect ad placements and provider-specific views with premium, consent, test-mode, and pacing rules."
+description: "Configure staged portfolio Appodeal network defaults and connect ad placements with premium, consent, test-mode, and pacing rules."
 ---
 
 # Ads
@@ -13,8 +13,9 @@ portfolio recipe; keep a different provider when the app deliberately uses one.
 2. Read the adapter README and installed vendor plugin's native setup. Match
    network adapter versions to that plugin. Do not copy old Gradle versions.
 3. With Appodeal, supply the real platform app key even for test builds. Configure
-   only the networks used. If a network brings Google Mobile Ads, configure the
-   app's AdMob App ID in the native app; it differs from an ad unit ID.
+   the staged portfolio network preset below. If a network brings Google Mobile
+   Ads, configure the app's AdMob App ID in the native app; it differs from an
+   ad unit ID.
 4. Follow [consent](../gdpr-compliance/SKILL.md): consent runs first, but failure
    or timeout lets ads initialization continue.
 5. Follow [developer access](../developer-access/SKILL.md) for initial test mode
@@ -83,22 +84,34 @@ platform floors rather than old copied Gradle/Pod versions.
 
 ### Choose which mediated networks ship
 
+For portfolio Appodeal apps, follow
+[portfolio network defaults](../../references/appodeal-network-defaults.md):
+start a new integration with **BidMachine and Bidon**, verify SDK startup plus
+ad load/display/impression in **test and live modes**, then enable the full
+**17-adapter preset** and its five recorded mediation bridges. The other nine
+adapters stay commented until the owner manually activates them after account,
+approval or eligibility requirements are met. Preserve the enabled setup of a
+working existing app; do not restart its integration at stage 1.
+
 Appodeal's integration page hands you a dependency block containing every
-network. That is a default, not a requirement: their
+network. That vendor default is broader than the owner's staged portfolio preset:
+their
 [mediated networks guide](https://docs.appodeal.com/android/advanced/configure-mediated-networks)
 says "You can add or remove any ad network or service adapter depending on your
 requirements". Each adapter carries a full network SDK, so the list decides app
 size and how much code R8 must process at release.
 
-Ship an adapter only for a network that has an account in the Appodeal dashboard
-under Mediation Setup > Ad Networks. Check the MAX and LevelPlay tabs there as
+Check the app's accounts in the Appodeal dashboard under Mediation Setup > Ad
+Networks while applying the preset. Check the MAX and LevelPlay tabs there as
 well as All accounts: `applovin_max` and `level_play` belong to those tabs. A
-network with no account cannot serve, yet its code still ships and still goes
-through R8. Most rows usually read "Appodeal account", meaning Appodeal supplies
-the account; those still count as connected.
+network without the necessary account/configuration may not serve even when its
+adapter ships. Report pending setup; do not silently replace the 17-adapter
+portfolio default with a different subset based on one dashboard screenshot.
+Rows reading "Appodeal account" mean Appodeal supplies the account; those count
+as connected. SDK inclusion and per-format dashboard enablement are separate.
 
-Keep `bidmachine` and `bidon` whatever the dashboard shows. They are Appodeal's
-own demand and ship with the SDK by default.
+Keep `bidmachine` and `bidon` in both integration stages as the owner's initial
+Appodeal demand baseline.
 
 Never delete an SDK or adapter dependency line. Comment it out and write, in the
 comment, the date and why it is off: no linked account, not earning, removed to
@@ -121,11 +134,15 @@ in a 4 GB heap. See
 [android-release-build-experiment](../android-release-build-experiment/SKILL.md)
 for the build failures that follow from a large adapter list.
 
-Trimming the list is also the cheapest fix for a release build that fails or
-bloats. In Story Saver, cutting 26 adapters to 15 removed 15% of the app's
+Historically, trimming the list fixed a release memory failure. In Story Saver,
+cutting 26 adapters to 15 removed 15% of the app's
 classes, which was the difference between R8 running out of a 4 GB heap and
 completing a full shrink, and took the phone download from about 57 MB to
-42.8 MB. Do this before changing build flags or memory settings.
+42.8 MB. Those results describe the September setup, not the current 17-adapter
+preset with five bridges. Follow the current staged default for new apps and
+diagnose duplicate dependencies or the failing release task before dropping a
+default network. Any deliberate change to the owner's preset must retain its
+reason in the dependency comments.
 
 Match adapter versions to the installed `stack_appodeal_flutter` release rather
 than carrying old versions across upgrades.

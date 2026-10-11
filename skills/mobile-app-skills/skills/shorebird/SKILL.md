@@ -9,6 +9,11 @@ Inspect `shorebird.yaml`, the installed CLI, target platform, release version,
 and build environment. Shorebird is optional; do not add it during kit adoption.
 
 - Match the baseline release's flavor, defines, signing, and toolchain inputs.
+- Pin a new release's `--flutter-version` to the project's supported/tested
+  Flutter version. Shorebird's default can differ from local Flutter and reject
+  a previously working Gradle wrapper. See the
+  [recorded version-mismatch fix](../../references/android-debug-build-performance.md#match-shorebirds-flutter-version-to-the-project)
+  before preparing an Android release command.
 - Choose an explicit release version when preparing a patch. Do not silently
   target `latest` when the intended user population is unknown.
 - Inspect the diff for native code, plugin, asset, or engine changes and read

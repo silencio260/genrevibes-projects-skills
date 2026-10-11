@@ -1,6 +1,8 @@
-# Faster Android debug builds after adding mediation
+# Android mediation build configuration
 
-Use this when adding mediated ad SDKs makes ordinary `flutter run` slow. These
+Use this when adding mediated ad SDKs makes ordinary `flutter run` slow, and
+when configuring a release with those SDKs. Apply it alongside the staged
+[portfolio network preset](appodeal-network-defaults.md). These
 settings were used in Story Saver on an 8 GB M3 Mac with Gradle 8.13, Android
 Gradle Plugin 8.11.1, Kotlin 2.2.20 and JDK 17. Adapt them to the target project;
 the versions and heap sizes are a recorded working setup, not universal defaults.
@@ -132,6 +134,124 @@ R8 shrinking was part of this debug speed improvement. See the
 [release build guide](../skills/android-release-build-experiment/SKILL.md) for
 the separate release/R8 problem.
 
+## Handle shared SDKs and actual duplicate classes
+
+Keep a single declaration of each adapter coordinate in the chosen dependency
+block. Do not combine the portfolio preset with a vendor-generated all-network
+block or add a standalone network SDK when the plugin/adapter already supplies
+the compatible version transitively. Use the installed plugin's versions for
+the core, direct adapters and bridges; do not mix an old integration block with
+a newer core SDK.
+
+The same SDK referenced by several adapters is not automatically packaged
+several times. Gradle resolves shared module dependencies; inspect the selected
+version and paths before removing anything. The five MAX/BidMachine bridge
+artifacts in the portfolio preset are different modules that supply different
+adapter classes. Keep them even when an Appodeal direct adapter references the
+same network SDK. Story Saver's logs reported missing mediation classes before
+these bridges were added; removing them as duplicates would undo that fix.
+
+If a build reports duplicate classes, read the exact class and both owning
+artifacts. Inspect an existing dependency report, or prepare these diagnostic
+commands from the app root when a report is needed:
+
+```sh
+./android/gradlew -p android :app:dependencies --configuration releaseRuntimeClasspath
+./android/gradlew -p android :app:dependencyInsight --configuration releaseRuntimeClasspath --dependency <sdk-module>
+```
+
+Replace `<sdk-module>` with the implicated group/module. Reports do not compile
+the app, but can configure Gradle and download dependencies; avoid treating them
+as a guaranteed instant check. Use `debugRuntimeClasspath` for a debug-only
+conflict. Remove a redundant host declaration, align compatible versions, or
+apply an exclusion only to the dependency edge proven to introduce the
+conflicting duplicate. Do not globally exclude a network SDK or all transitives
+to silence the error; required adapters still need their SDK at runtime.
+`packagingOptions`/`pickFirst` for resources does not repair duplicate Java
+classes. No blanket SDK exclusion or Gradle version force was used for the
+recorded repeat-build speedup.
+
+## Configure release builds without reviving the old experiment
+
+Apply the same daemon/cache/repository setup to release configuration, keeping
+the 4 GB Gradle cap and two workers for the recorded 8 GB machine. Repeat-debug
+timings are not a release/R8 benchmark. The September full-release success used
+15 adapters; the current default is 17 plus five bridges and needs its own
+release verification.
+
+In `android/app/build.gradle`, retain real release signing and full code/resource
+shrinking with the optimized ProGuard defaults:
+
+```groovy
+buildTypes {
+    release {
+        signingConfig = signingConfigs.release
+        minifyEnabled true
+        shrinkResources true
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+}
+```
+
+Configure the app's existing signing identity before referencing it; never copy
+Story Saver's credentials or substitute debug signing. Keep desugaring and
+multidex configuration where required by the selected SDKs. In this project's
+build profile, release lint is separate because per-plugin release lint took
+hours and exhausted memory:
+
+```groovy
+lint {
+    checkReleaseBuilds false
+}
+```
+
+This disables the automatic release lint gate; it does not fix lint findings.
+Use a separate lint check when requested. Preserve an app's deliberately required
+lint gate rather than silently overriding its release policy.
+
+Protect resources referred to by name only from Dart, such as notification
+icons, in `android/app/src/main/res/raw/keep.xml`. Story Saver keeps
+`@drawable/*,@mipmap/launcher_icon` because it has few drawables; another app
+should keep its actual named resources rather than all large asset collections.
+Keep required consumer/ProGuard rules from the SDKs. For missing classes, inspect
+R8's `missing_rules.txt`: use targeted `-dontwarn` for genuinely optional
+references, and add/fix a dependency when a required runtime class is missing.
+Do not hide a missing active mediation adapter with `-dontwarn`.
+
+Leave `android.experimental.gradual.r8`, the experimental partial resource
+shrinking switch and the fake `r8-metadata.dat` task commented out. They were a
+historical experiment, not the portfolio release configuration. Keep full
+shrinking; broad keep rules and disabled optimization are not R8 memory fixes.
+On an actual release failure, identify lint, DEX, R8, plugin validation or
+packaging as the failing stage and follow the
+[release diagnosis guide](../skills/android-release-build-experiment/SKILL.md).
+Do not silently drop default networks or raise the heap beyond the machine's
+budget to claim a successful configuration. R8 execution profiles or a larger
+build machine are options if the measured release workload exceeds that budget.
+
+### Match Shorebird's Flutter version to the project
+
+Check the local/tested Flutter version, Gradle wrapper, AGP, Kotlin and JDK before
+preparing a release. On 11 October, Shorebird defaulted to Flutter **3.47.7**,
+which rejected this project's Gradle **8.13** because it required **8.14**. Local
+Flutter **3.44.1** accepted the existing wrapper. The corrected command for that
+project/toolchain is:
+
+```sh
+shorebird release android --flutter-version=3.44.1 -- --dart-define-from-file=env/release.json
+```
+
+For a new app, replace `3.44.1` with its explicitly selected, supported and tested
+Flutter version, and use its actual release defines file. Do not let `latest`
+silently change the release toolchain, and do not bypass build dependency
+validation instead of resolving incompatible versions. Preserve legacy
+`android.builtInKotlin=false`/`android.newDsl=false` only when required/supported
+by that app's Flutter/AGP combination; they are not universal upgrade settings.
+The corrected Shorebird command addresses the observed compatibility failure;
+it was not itself verified by a successful rerun in this session. Follow the
+[Shorebird skill](../skills/shorebird/SKILL.md) for release execution and artifact
+ownership; preparing this command does not authorize a build or upload.
+
 ## Diagnose the next slow run without clearing caches
 
 Read `~/.gradle/daemon/<version>/daemon-<pid>.out.log` for daemon reuse, start
@@ -167,4 +287,6 @@ Sources for the mechanisms:
 [Gradle daemon](https://docs.gradle.org/current/userguide/gradle_daemon.html),
 [build cache](https://docs.gradle.org/current/userguide/build_cache.html),
 [repository filters](https://docs.gradle.org/current/userguide/filtering_repository_content.html),
-[JDK 17 G1 tuning](https://docs.oracle.com/en/java/javase/17/gctuning/garbage-first-garbage-collector-tuning.html).
+[JDK 17 G1 tuning](https://docs.oracle.com/en/java/javase/17/gctuning/garbage-first-garbage-collector-tuning.html),
+[dependency reports](https://docs.gradle.org/current/userguide/viewing_debugging_dependencies.html),
+[Shorebird Flutter selection](https://docs.shorebird.dev/getting-started/flutter-version/).

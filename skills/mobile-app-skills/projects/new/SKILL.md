@@ -37,6 +37,14 @@ changes that app's baseline. Choose adapters and app configuration for each;
 modular packages do not make these features optional. Replay recording still
 follows collection/rollout policy, and platform-specific UI applies where supported.
 
+For an Appodeal app, apply the
+[staged network default](../../references/appodeal-network-defaults.md): configure
+BidMachine/Bidon first, verify actual test and live serving, then enable the
+17-adapter portfolio preset and its bridges. Keep the nine manual opt-ins
+commented until the owner activates them. Apply the linked Android build
+configuration while setting up mediation; do not copy every vendor adapter or
+silently substitute a smaller preset for build convenience.
+
 The app uses the portfolio architecture below; neutral kit packages do not
 themselves depend on BLoC or GetIt. Firebase is a provider choice; if selected,
 configure its actual services before their adapters start.

@@ -57,7 +57,7 @@ panel implementation is needed for each app.
 | [new](projects/new/SKILL.md) | Create a Flutter app using selected GenRevibes starter kit features. |
 | [refactor](projects/refactor/SKILL.md) | Adopt starter kit features in an existing app without replacing unrelated architecture. |
 | [replace-provider](projects/replace-provider/SKILL.md) | Replace a kit provider adapter while preserving the shared feature interface. |
-| [ads](skills/ads/SKILL.md) | Connect ad placements and provider-specific views with premium, consent, test-mode, and pacing rules. |
+| [ads](skills/ads/SKILL.md) | Configure staged portfolio Appodeal network defaults and connect ad placements with premium, consent, test-mode, and pacing rules. |
 | [analytics](skills/analytics/SKILL.md) | Connect selected analytics sinks, shared events, identity, and collection settings. |
 | [analytics-extension-layer](skills/analytics-extension-layer/SKILL.md) | Add typed app-specific analytics methods on top of the shared pipeline. |
 | [android-release-build-experiment](skills/android-release-build-experiment/SKILL.md) | Diagnose Android release build failures and reuse the recorded R8 partial shrinking experiment. |
@@ -110,9 +110,12 @@ panel implementation is needed for each app.
 
 ## Other guidance
 
+- [Portfolio Appodeal network defaults](references/appodeal-network-defaults.md):
+  start with BidMachine/Bidon, verify test and live serving, then enable the
+  17-adapter preset and five bridges; leave nine adapters for manual activation.
 - [Android debug build performance](references/android-debug-build-performance.md):
-  recorded daemon, cache, memory and repository settings for faster repeat builds
-  after adding mediation SDKs, with measured results and cold-build limits.
+  recorded daemon, cache, memory and repository settings, shared SDK/bridge
+  handling, release shrinking and Shorebird toolchain compatibility.
 - [Live ads in debug](references/live-ads-debugging.md): the live diagnostic
   Flutter command, current USB/wireless device selection and SDK mode verification.
 - [Commit policy](../commit-policy/SKILL.md)

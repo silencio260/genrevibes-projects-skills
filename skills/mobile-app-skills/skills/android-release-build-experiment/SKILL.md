@@ -15,6 +15,13 @@ Use this when a release build fails or takes hours: `flutter build appbundle`,
 records what failed in Story Saver during September 2026, what fixed each
 failure, and what the fixes cost.
 
+For current portfolio setup, read the
+[staged Appodeal preset](../../references/appodeal-network-defaults.md) and
+[Android mediation build configuration](../../references/android-debug-build-performance.md).
+The September 15-adapter measurements below are historical; the current default
+expands to 17 adapters plus five bridges after test/live serving is verified.
+Preserve that default while investigating actual duplicates or build failures.
+
 Read the failing Gradle task first. The same release build fails for unrelated
 reasons at different steps, and each step needs a different fix. Builds stay
 opt-in: state the exact command and let the user run it.
@@ -41,7 +48,8 @@ Evidence on disk, without rerunning anything:
 
 While a build runs:
 
-- `ps -Ao pid,etime,%cpu,rss,command | grep GradleDaemon` for age and CPU.
+- `ps -axo pid,ppid,etime,%cpu,rss,comm` for age, CPU and memory. Avoid full
+  command arguments, which can contain Dart defines and credentials.
 - `jstat -gcutil <pid>`: column `O` near 100 with a climbing `FGC` count means
   the heap is exhausted and the build is spending its time on memory cleanup
   rather than progress. Hundreds of full cleanups is a stuck build.
@@ -59,9 +67,11 @@ more closely than megabytes.
 
 **R8 stops on missing classes.** R8 refuses to run while a library references
 classes that are not in the app. AGP writes the exact rules to
-`build/app/outputs/mapping/release/missing_rules.txt`. Copy those `-dontwarn`
-lines into `android/app/proguard-rules.pro`. Keep this fix; it is not a
-workaround.
+`build/app/outputs/mapping/release/missing_rules.txt`. Inspect the missing
+references before adding targeted `-dontwarn` lines to
+`android/app/proguard-rules.pro`: optional SDK references can be suppressed, but
+required runtime classes need their dependency restored. Never silence a missing
+active mediation adapter instead of supplying it.
 
 **Release lint takes hours.** Add to the `android` block of
 `android/app/build.gradle`:
@@ -185,10 +195,13 @@ line with its original version pin, and a reviewer sees a decision rather than a
 gap. Treat every vendor SDK the same way, and comment out experimental build
 flags rather than deleting them so the next person can reproduce the experiment.
 
-The lesson for the next app: **measure and cut the dependency list before
-reaching for build flags.** A mediation SDK's default adapter list is the single
-biggest input to both R8's memory and the download size. See the
-[ads skill](../ads/SKILL.md) for how to decide which adapters ship.
+The historical lesson is to measure dependency input before reaching for build
+flags. The vendor's complete adapter list can add substantial R8 work and size.
+For new portfolio apps, use the owner's staged 17-adapter default from the
+[ads skill](../ads/SKILL.md), retain required bridges, and remove proven redundant
+SDK declarations or unrequested extras before considering a change to that
+preset. Do not treat the old 15-adapter result as proof that the expanded setup
+has been verified for release.
 
 Two fixes from that day are worth keeping in any app that shrinks resources:
 

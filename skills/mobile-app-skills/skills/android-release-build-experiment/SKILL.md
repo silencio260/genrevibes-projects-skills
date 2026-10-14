@@ -1,19 +1,20 @@
 ---
 name: android-release-build-experiment
-description: "Diagnose Android release build failures and reuse the recorded R8 partial shrinking experiment."
+description: "Diagnose Android release build and startup failures, including R8 shrinking and missing constructors."
 ---
 
-# Android release build failures
+# Android release build and startup failures
 
 For slow ordinary debug `flutter run` after adding mediation, use
 [Android debug build performance](../../references/android-debug-build-performance.md)
 instead. The daemon/cache improvements and debug timings there are separate
 from the release shrinking experiments below.
 
-Use this when a release build fails or takes hours: `flutter build appbundle`,
-`flutter build apk`, or a Shorebird release running the same Gradle tasks. It
-records what failed in Story Saver during September 2026, what fixed each
-failure, and what the fixes cost.
+Use this when a release build fails or takes hours, or the built release crashes
+on launch. The build cases cover `flutter build appbundle`, `flutter build apk`,
+and Shorebird releases running the same Gradle tasks. The September 2026 Story
+Saver cases below record build failures, fixes, and costs. The linked known
+release issues record runtime failures separately.
 
 For current portfolio setup, read the
 [staged Appodeal preset](../../references/appodeal-network-defaults.md) and
@@ -22,9 +23,23 @@ The September 15-adapter measurements below are historical; the current default
 expands to 17 adapters plus five bridges after test/live serving is verified.
 Preserve that default while investigating actual duplicates or build failures.
 
-Read the failing Gradle task first. The same release build fails for unrelated
-reasons at different steps, and each step needs a different fix. Builds stay
-opt-in: state the exact command and let the user run it.
+For a build failure, read the failing Gradle task first. The same release build
+fails for unrelated reasons at different steps, and each step needs a different
+fix. Builds stay opt-in: state the exact command and let the user run it.
+
+## A release builds successfully but crashes on launch
+
+Read the installed release's native crash log before changing Dart startup or
+build flags. Match its version and R8 map ID to the artifact being inspected;
+a working debug build does not exercise release shrinking.
+
+For `Unable to get provider androidx.startup.InitializationProvider` followed by
+`Failed to create an instance of androidx.work.impl.WorkDatabase`, read
+[known Android release issues](../../references/android-known-release-issues.md).
+It records the Lunaris AGP 9 / Room constructor-removal case, the Unity Ads
+dependency chain, the targeted keep rules, and the checks needed before calling
+a corrected release verified. A retained class name alone does not prove its
+reflective constructor survived R8.
 
 ## Find the failing step before changing anything
 
@@ -234,9 +249,11 @@ phone.
 - **SDKs survived R8.** Grep `build/app/outputs/mapping/release/mapping.txt` for
   entry classes such as `com.revenuecat.purchases.Purchases`,
   `com.onesignal.OneSignal`, `com.appodeal.ads.Appodeal` and the app's own
-  `MainActivity`. A class in the mapping shipped. Do not judge by searching the
-  compiled code for package names: R8 renames anything without a keep rule, so a
-  missing name string means renamed, not removed.
+  `MainActivity`. Use the mapping to resolve renamed classes, then confirm the
+  relevant class and members in the DEX when investigating a runtime failure.
+  Mapping entries can describe removed classes (`R8$$REMOVED$$CLASS`), and a
+  retained class can still lose its reflective constructor. A missing original
+  package name in compiled code alone does not establish removal.
 
 ## Routes that do not help
 

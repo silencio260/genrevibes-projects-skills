@@ -5,6 +5,12 @@ description: "Diagnose Android release build and startup failures, including R8 
 
 # Android release build and startup failures
 
+For low Play DEX optimization/obfuscation/shrinking scores when a release already
+builds, use [Android mediation optimization](../android-mediation-optimization/SKILL.md).
+It covers broad Appodeal/MAX/Unity consumer rules and the Lunaris full-shrinking
+fix that kept all selected networks and bridges enabled. Diagnose the actual
+problem before applying the historical adapter-trimming experiment below.
+
 For slow ordinary debug `flutter run` after adding mediation, use
 [Android debug build performance](../../references/android-debug-build-performance.md)
 instead. The daemon/cache improvements and debug timings there are separate

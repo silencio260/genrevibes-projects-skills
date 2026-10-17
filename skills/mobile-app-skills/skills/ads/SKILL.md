@@ -69,6 +69,11 @@ When adding mediation SDKs slows Android debug builds, read
 for the recorded cache, daemon, heap and repository configuration before changing
 working network integrations.
 
+For low release DEX optimization scores with many enabled networks, use
+[Android mediation optimization](../android-mediation-optimization/SKILL.md).
+It records the Lunaris consumer-rule audit that improved scores without dropping
+networks, including MAX bridge rules, Protobuf field protection and artifact checks.
+
 On Android, inspect the installed plugin's README and the app Gradle files.
 The host supplies the Appodeal Maven repository and selected mediated-network
 adapters. Keep their versions compatible with that plugin. When AdMob is present,

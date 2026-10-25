@@ -64,7 +64,7 @@ panel implementation is needed for each app.
 | [android-release-build-experiment](skills/android-release-build-experiment/SKILL.md) | Diagnose Android release build/startup failures, known R8 constructor issues, and the recorded partial shrinking experiment. |
 | [android-signing](skills/android-signing/SKILL.md) | Configure Android release signing while preserving the app existing signing identity. |
 | [app-icon-generation](skills/app-icon-generation/SKILL.md) | Create app icon concepts and compare them at launcher size. |
-| [app-promotions](skills/app-promotions/SKILL.md) | Create app promotional graphics using truthful screenshots and relevant style references. |
+| [app-promotions](skills/app-promotions/SKILL.md) | Create promotional graphics and store screenshots; keep final images together and clean out temporary previews and supporting files. |
 | [app-rating](skills/app-rating/SKILL.md) | Reuse rating eligibility, saved prompt state, and store/feedback routing. |
 | [app-rename](skills/app-rename/SKILL.md) | Change a Flutter app display name or explicitly requested platform identity. |
 | [auth](skills/auth/SKILL.md) | Connect neutral kit authentication and a selected adapter to app identity flows. |

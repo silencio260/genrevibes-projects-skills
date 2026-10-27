@@ -37,8 +37,10 @@ mounted native view retains its ad; rebuilding it can take another ad.
 Listen once to `ads.events`. Native callbacks use one
 `AppodealNativeAds.instance.attributedAdEvents(fallback: ...)` subscription,
 not one subscription per placement. Otherwise callbacks can be counted repeatedly.
-Use impression callbacks for shown counts, paid callbacks for actual revenue,
-and click callbacks for clicks. Do not invent revenue when none is reported.
+Use impression callbacks for shown counts, paid callbacks for revenue, and
+click callbacks for clicks. Do not invent revenue in the app. The one estimate
+allowed is the Appodeal adapter's own predicted-eCPM fallback, marked
+`precision: predicted_ecpm`; see [Appodeal impression revenue](#appodeal-impression-revenue).
 
 Launch and exit ads use [splash](../splash-screen/SKILL.md) and
 [exit](../exit-prompt/SKILL.md) policies. Do not fall back to a different format
@@ -174,6 +176,42 @@ attribute events. One listener per placement repeats every callback. Keep actual
 paid revenue separate from shown counts: some impressions have no paid data.
 Report amount/currency only when supplied, and use `custom_ad_click` for the
 custom Firebase-compatible click event.
+
+### Appodeal impression revenue
+
+Symptom (Lunaris, October 2026): Firebase showed `ad_show` events but zero
+`ad_impression` and $0 revenue for weeks, while the Appodeal dashboard showed
+paid impressions. Mixpanel had none either, since both sinks get the same event.
+
+Cause: Appodeal SDK 4.3 calls the app's `AdRevenueCallbacks` only after its
+analytics services are ready, with no timeout. An app with no analytics services
+configured in the Appodeal dashboard initializes with
+`InternalError: SdkConfigurationError`, so the callback never fires. Logcat
+shows `Appodeal: Interstitial [Ad Revenue]` but no kit line after it. Two smaller
+losses: the plugin's revenue parser throws on unexpected values and Flutter
+swallows channel-handler exceptions, and Android banner views report ad type 64,
+which the plugin maps to `None`.
+
+Fix, built into `genrevibes_ads_appodeal` (see its README): the client reads the
+revenue channel itself and logs each report; each impression waits 15 s for the
+report and otherwise emits a `paid` event at predicted eCPM / 1,000 in USD with
+`precision: predicted_ecpm`; a later report for that impression is dropped. When
+the app is hidden with no full-screen ad on screen, waiting impressions are
+estimated at once, so closing an ad and leaving the app does not lose them (a
+full-screen ad also hides the app, so that case keeps waiting). Apps need no
+code for this beyond initializing the Flutter binding before the provider: map
+`AdRevenue.precision` into `ad_impression` as usual.
+
+Do as well:
+- Treat `SdkConfigurationError` in the startup log as "exact revenue blocked",
+  not as harmless. Ask Appodeal support, or configure an analytics service in the
+  dashboard, so exact reports arrive and replace estimates.
+- Verify with a live-ads build (developer access plus **Live ads on this phone**,
+  then relaunch). Lab › Logs shows either `Appodeal revenue report received` or
+  `counted at … USD from predicted eCPM`, and Event log shows `ad_impression`.
+  Release builds don't send kit logs to logcat.
+- Estimated revenue tracks the dashboard closely but is not exact. The Appodeal
+  dashboard is the source of truth for payouts.
 
 ### Diagnosing a missing ad
 

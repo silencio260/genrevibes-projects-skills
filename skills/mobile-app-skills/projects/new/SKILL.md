@@ -37,6 +37,14 @@ changes that app's baseline. Choose adapters and app configuration for each;
 modular packages do not make these features optional. Replay recording still
 follows collection/rollout policy, and platform-specific UI applies where supported.
 
+Portfolio localization also targets the
+[40 languages and 58 initial locales](../../skills/localization/references/portfolio-locales.md).
+Follow the [shared-kit and app rollout plan](../../skills/localization/references/portfolio-rollout.md):
+keep all strings and locale/country options in the new app, reuse shared behavior
+as it becomes available, and enable only reviewed, compatible locales. Include
+independent language/region settings and localized store copy/graphics in the
+delivery plan; do not claim the proposed kit package already exists.
+
 For an Appodeal app, apply the
 [staged network default](../../references/appodeal-network-defaults.md): configure
 BidMachine/Bidon first, verify actual test and live serving, then enable the
@@ -71,6 +79,11 @@ A new project workflow has these distinct outputs:
 6. The app theme/router, baseline UI/actions and product features with registration
    and error UI, including a Lab connected to the live runtime.
 7. Feature-specific native setup and clear remaining device checks.
+8. Shared development-only screenshot tooling, with host-owned scene/locale
+   registration and editable promotional copy. Follow
+   [app promotions](../../skills/app-promotions/SKILL.md) and its tooling reference.
+   Keep generated screenshots ignored, use text-free AI artwork with editable
+   text layers, and leave rendering/upload commands to the user's authorized scope.
 
 ### Work through the first feature
 

@@ -16,6 +16,15 @@ keep collection/rollout and platform behavior explicit. See the
 [baseline and integration map](ARCHITECTURE_ANALYSIS.md#11-guaranteed-portfolio-integrations).
 For narrow changes to an existing app, preserve the requested scope.
 
+The portfolio localization target is
+[40 languages and 58 initial locale options](skills/localization/references/portfolio-locales.md),
+with independent language/country selection. Follow the
+[shared-kit and app translation rollout plan](skills/localization/references/portfolio-rollout.md).
+Shared behavior belongs in the kit; every app owns its actual strings, enabled
+options and store assets. Package availability depends on the installed kit
+revision; inspect current APIs rather than treating the dated rollout baseline
+as the current inventory. Expose locales only after their readiness checks pass.
+
 - [Create an app](projects/new/SKILL.md)
 - [Adopt a feature in an existing app](projects/refactor/SKILL.md)
 - [Upgrade the kit](projects/kit-upgrade/SKILL.md)
@@ -64,8 +73,8 @@ panel implementation is needed for each app.
 | [android-release-build-experiment](skills/android-release-build-experiment/SKILL.md) | Diagnose Android release build/startup failures, known R8 constructor issues, and the recorded partial shrinking experiment. |
 | [android-signing](skills/android-signing/SKILL.md) | Configure Android release signing while preserving the app existing signing identity. |
 | [app-icon-generation](skills/app-icon-generation/SKILL.md) | Create app icon concepts and compare them at launcher size. |
-| [app-promotions](skills/app-promotions/SKILL.md) | Create promotional graphics and store screenshots; keep final images together and clean out temporary previews and supporting files. |
-| [app-rating](skills/app-rating/SKILL.md) | Reuse rating eligibility, saved prompt state, and store/feedback routing. |
+| [app-promotions](skills/app-promotions/SKILL.md) | Create and translate promotional screenshots, feature graphics and Play listing JSON; follow the [portfolio workflow](skills/app-promotions/references/play-store-localization.md) and clean locale-folder structure. |
+| [app-rating](skills/app-rating/SKILL.md) | Ask for store reviews at every compliant moment: store sheet and Android review card in turn, portfolio timing, and store rules (no gating, no rewards). |
 | [app-rename](skills/app-rename/SKILL.md) | Change a Flutter app display name or explicitly requested platform identity. |
 | [auth](skills/auth/SKILL.md) | Connect neutral kit authentication and a selected adapter to app identity flows. |
 | [branding](skills/branding/SKILL.md) | Apply chosen app icons, logos, and notification assets to platform resources. |
@@ -87,7 +96,7 @@ panel implementation is needed for each app.
 | [immersive-ui](skills/immersive-ui/SKILL.md) | Configure edge-to-edge layout and optional kit navigation-bar controls. |
 | [kit-lab](skills/kit-lab/SKILL.md) | Connect the shared developer section, Kit Lab, logs, module health, and controls. |
 | [local-notifications](skills/local-notifications/SKILL.md) | Schedule local notifications and daily campaigns; handle taps, timezones, campaign ownership, and post/open/opt-out analytics. |
-| [localization](skills/localization/SKILL.md) | Localize app and shared kit labels using the app existing translation system. |
+| [localization](skills/localization/SKILL.md) | Plan and implement the 40-language portfolio target, regional/script variants, shared locale behavior, app-owned strings and localized store assets. |
 | [logging](skills/logging/SKILL.md) | Connect structured kit logs and the shared Kit Lab recorder. |
 | [navigation](skills/navigation/SKILL.md) | Connect kit screens and external actions to the app router. |
 | [offline-caching](skills/offline-caching/SKILL.md) | Add feature-specific caching and offline behavior without duplicating kit storage. |

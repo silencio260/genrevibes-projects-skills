@@ -32,6 +32,13 @@ Google Play (in-app review guidelines and the ratings and reviews policy):
   button do nothing. A button opens the Play listing instead.
 - Don't change the sheet, cover it, or show an ad over it.
 
+**The portfolio review card knowingly breaks two of these.** Its title asks
+"Are you enjoying your experience?", and its **Yes** button requests the store
+sheet. The owner chose this pattern and accepts the risk: Play can remove
+reviews, reject an update or give the app a policy strike. Keep the rest. **Not
+now** and **Don't ask again** only close the card. Never send a negative answer to
+feedback, and never offer a reward.
+
 App Store (guideline 5.6.1):
 
 - Ask only through the system review API (`in_app_review`'s `requestReview`).
@@ -52,13 +59,18 @@ Move Story Saver to the pattern below.
    best because the user never leaves the app. The store rations it per user
    and declines without telling you. A successful request does not mean anything
    was shown.
-2. **Review card** (Android only). This is your own dialog with a short, neutral
-   reason to review and three actions:
-   - **Rate now** opens the Play listing (`openStoreListing`) and records
-     `RatingOutcome.submitted`.
-   - **Not now**, or dismissing the dialog, records `RatingOutcome.maybeLater`,
-     which snoozes the next ask.
-   - **Don't ask again** records `RatingOutcome.never`.
+2. **Review card** (Android only). This is your own dialog: a large decorative
+   star (not a picker), the title "Are you enjoying your experience?", the line
+   "Tap Yes to leave a quick rating", and these actions, in order:
+   - **Don't ask again**, faded. It records `RatingOutcome.never`. It is left
+     out of the first 5 cards; count cards with
+     `recordTrigger('review_card_shown')`.
+   - **Not now**, muted. It, or dismissing the dialog, records
+     `RatingOutcome.maybeLater`, which snoozes the next ask.
+   - **Yes**, a bold filled button in the accent color. It records
+     `RatingOutcome.submitted`, then requests the store sheet. If the sheet is
+     unavailable, or the request returns in under 800 ms (nothing was shown),
+     it opens the Play listing instead. That way **Yes** never does nothing.
 
    The card always appears, so it reaches users whose sheet quota is used up.
 
@@ -66,11 +78,12 @@ Alternate the two on each eligible ask. Use the sheet first, then the card,
 then the sheet again. Count asks with
 `coordinator.recordTrigger('review_ask')`: odd numbers use the sheet and even
 numbers use the card. When one channel can't run right now, use the other: on
-iOS, when the sheet is unavailable, or when the card's screen is covered.
+iOS, when the sheet is unavailable, or when the card's screen is covered. When
+a sheet request returns in under 800 ms it showed nothing, so show the card
+right after it. That way every eligible day reaches the user.
 
-The card's title and body must not ask how the user feels. "Rate <App> on Google
-Play" and "A quick review helps new users find <App>" are fine. "Enjoying
-<App>?" is not.
+Ask once a day, at a good moment, until the user taps **Yes** or **Don't ask
+again**. **Not now** only waits until the next day.
 
 Also give every app a Settings row, "Rate <App>", that opens the listing
 directly with no eligibility check.
@@ -80,7 +93,7 @@ directly with no eligibility check.
 Ask right after a moment of success, never in the middle of a task, after an
 error, or on first launch. Each app names its good moments, such as:
 
-- a cycle started or a boost added (Lunaris);
+- a cycle started (Lunaris);
 - a file saved or downloaded (Story Saver, video downloader);
 - a document exported (PDF editor, resume builder);
 - a connection made (VPN), a game finished, or a streak reached.
@@ -98,7 +111,7 @@ more eligible asks.
 | --- | --- | --- |
 | `minimumAppOpens` | 5 | 3 |
 | `minimumInstallAge` | 3 days | 1 day |
-| `minimumIntervalBetweenPrompts` | 7 days | 2 days |
+| `minimumIntervalBetweenPrompts` | 7 days | 1 day |
 | `snooze` ("Not now") | 2 days | 1 day |
 
 - Wait about 1.5 s after the moment so a closing ad or success snackbar settles.
@@ -121,7 +134,16 @@ more eligible asks.
   together must not stack two prompts.
 - Initialize the store with `RatingKeys.legacyKeys`, and map the app's old
   counters too, when adopting in an app that already saved rating state.
-- Pass the running coordinator to Kit Lab. Do not create a second rating history.
+- Build the coordinator with an `OffsetKitClock` (real time until moved).
+- Log each step of the rating service through the kit logger with module id
+  `app_rating`: the good moment, why an ask was blocked, which channel ran, and
+  the card answer. Then Kit Lab's Log page and logcat show what happened.
+- Connect Kit Lab's Rating page to the live instances, never copies:
+  `rating` (the coordinator), `storeReview`, `clock`, and `DevRatingTools`
+  with the app's counter names, `askNow`, `previewPrompt` and
+  `installSource` (`PackageInfo.installerStore`). The Lab page covers the
+  root screen, so `askNow` must show the card over the Lab's own context.
+  Lunaris's `lib/features/developer/dev_tools_entry.dart` shows the wiring.
 
 The store never says whether a review was written. Never record "rated" or a
 star count. **Rate now** and **Don't ask again** end the asking for good: asking
@@ -147,9 +169,22 @@ changes to the timing. A request count is not a review count.
   `FakeReviewManager` for unit tests of the native flow.
 - **iOS.** Development builds show the sheet every time and TestFlight builds
   never do. Only App Store builds follow the real quota.
-- **Reset.** Use Kit Lab's rating reset to make a test device eligible again.
-  Reset clears opt-out, last prompt and app opens. It keeps trigger counters, so
-  the forced first ask won't repeat on that device.
+- **Kit Lab › Rating** is the test bench. It shows:
+  - the decision and its block reason, when the time rules next allow an ask,
+    and how many app opens are still missing;
+  - the stored install date, last ask, opt-out and every counter;
+  - who installed the build, with a warning when it wasn't the store.
+
+  It can also:
+  - **Ask now:** run the app's real ask, skipping the timing rules but not an
+    opt-out. It records the ask and the answer like a real one;
+  - **Preview the prompt:** show the card (with Don't ask again) without
+    recording anything;
+  - request the store sheet, open the listing, or count an app open;
+  - move the rating clock forward 1 h, 1 d, 2 d or 7 d, then back to real
+    time;
+  - **Reset prompt history** (opt-out, last ask, app opens) or **Full reset**
+    (also the counters, so the forced first ask happens again).
 
 Report results honestly. "The review was requested" is not "the sheet appeared",
 and the sheet appearing is not "the user rated".
@@ -161,13 +196,17 @@ and the sheet appearing is not "the user rated".
 - [ ] `RatingCriteria` uses the portfolio values, not the kit defaults.
 - [ ] Asks alternate between the store sheet and the review card. The card is
       Android only.
-- [ ] No opinion question, no star picker, no score-based routing and no reward.
-- [ ] The card button opens the listing and never calls `requestReview`.
+- [ ] No star picker, no score-based routing and no reward. Not now and Don't
+      ask again only close the card.
+- [ ] Yes requests the store sheet and falls back to the listing.
+- [ ] Don't ask again is hidden on the first 5 cards.
 - [ ] Ads are suppressed while an ask is open.
 - [ ] There is a Settings "Rate <App>" row that opens the listing.
 - [ ] The card is translated into every app language.
 - [ ] Both analytics events are in the catalogue.
 - [ ] The native flow is tested on a Play-installed build.
+- [ ] Kit Lab's Rating page has the store adapter, clock and `DevRatingTools`,
+      and **Ask now** shows the app's real prompt.
 
 ## Package references
 

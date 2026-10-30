@@ -52,6 +52,17 @@ keep the scope narrow and preserve useful existing translations.
   profile defaults and native/framework locale data. Migrate existing choices
   compatibly; adding an ARB does not make backend writes or pickers accept it.
 - Check longer translations, right-to-left layout where supported, and text scaling.
+- Server-written text: give system messages a `kind` + `params` and word them
+  from app strings; give admin-written content an optional per-language
+  `i18n.{language}.{title, body}` map resolved at build time (full tag, then
+  language-script, then language). Keep the English fields for older app
+  versions. Lunaris: `inbox_text.dart`, `core/l10n/localized_copy.dart`.
+- Plurals: write counted nouns as ICU plurals and draft ru/uk/pl/ar with all
+  their CLDR categories; `=1/other` alone is wrong for them. Give count
+  placeholders `"format": "decimalPattern"`.
+- List the app's locales for the OS language settings: Android
+  `res/xml/locales_config.xml` + `android:localeConfig`, iOS
+  `CFBundleLocalizations`. They ship with a store build, not a code patch.
 - Never bundle script fonts. Use device fonts, and download only a script the
   device can't draw, for the active locale, at runtime. The device font renders
   until the download lands. Follow [script fonts](references/script-fonts.md).
@@ -65,6 +76,20 @@ Use the plan's translation workflow: source inventory/glossary, draft production
 ICU/placeholder checks, real linguistic review, in-app visual checks, then locale
 exposure. Mark machine/AI drafts honestly. Source changes invalidate affected
 translations; do not overwrite reviewed text or fabricate reviewer approval.
+
+For an editorial pass, record the exact reviewed keys per resource, changed
+keys, source/text digests, reviewer method and validation performed. Separate a
+scoped AI review from full-corpus review, human fluent-speaker approval and device
+checks. Check that record before regenerating any existing messages. In Lunaris,
+use `lib/l10n/translation_status.json`, the dated `editorial_review_*.json`
+manifests and the linked report in `docs/`; unlisted keys retain their previous
+review status. Check ambiguous source words in context (mine, rate, ref, streak,
+pending, and No), and preserve remaining-versus-total counts in every ICU branch.
+For account forms, describe the characters the validator actually accepts;
+"letters" alone can imply unsupported scripts. Check the local and server
+validators together, and let translated errors wrap instead of clipping them.
+For feature availability and resource-use claims, compare the source copy with
+the current caller/backend behavior before reproducing the claim in translations.
 
 ## Wire translations to the component's label API
 

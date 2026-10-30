@@ -1,5 +1,20 @@
 # Agent Operating Rules
 
+## App commands must be documented
+
+- Every app must keep its run/build commands in its own root `README.md` and
+  `docs/commands.md`. Put Flutter run commands first, Flutter build commands next,
+  then release/patch, setup, checks and tooling commands. Keep these sections
+  near the top, before architecture or feature descriptions.
+- Document every build command the app uses, including environment files,
+  defines, modes, targets/flavors, toolchain pins and required flags. When a
+  command changes or is introduced, update both files in the same change.
+- Also document maintained helper/tool commands, with their working directory,
+  prerequisites, purpose, outputs and any upload or live-data effects. Keep
+  secrets out of examples and distinguish templates from ready-to-run commands.
+- Follow [command documentation](skills/mobile-app-skills/skills/command-documentation/SKILL.md).
+  Documentation does not authorize executing a command; the rules below still apply.
+
 ## Tests Are Opt-In
 
 - Do not create new test files unless the user explicitly asks for tests.

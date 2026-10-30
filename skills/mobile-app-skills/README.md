@@ -16,6 +16,11 @@ keep collection/rollout and platform behavior explicit. See the
 [baseline and integration map](ARCHITECTURE_ANALYSIS.md#11-guaranteed-portfolio-integrations).
 For narrow changes to an existing app, preserve the requested scope.
 
+Every app maintains its command recipes in its own `README.md` and
+`docs/commands.md`, with Flutter run and build commands at the top. Follow
+[command documentation](skills/command-documentation/SKILL.md) whenever creating
+an app or changing its run/build, release, environment or tooling commands.
+
 The portfolio localization target is
 [40 languages and 58 initial locale options](skills/localization/references/portfolio-locales.md),
 with independent language/country selection. Follow the
@@ -78,6 +83,7 @@ panel implementation is needed for each app.
 | [app-rename](skills/app-rename/SKILL.md) | Change a Flutter app display name or explicitly requested platform identity. |
 | [auth](skills/auth/SKILL.md) | Connect neutral kit authentication and a selected adapter to app identity flows. |
 | [branding](skills/branding/SKILL.md) | Apply chosen app icons, logos, and notification assets to platform resources. |
+| [command-documentation](skills/command-documentation/SKILL.md) | Keep app README and docs command recipes complete and aligned, with Flutter run/build commands first. |
 | [chat-ai](skills/chat-ai/SKILL.md) | Implement app-owned AI chat, streaming, history, and backend integration. |
 | [content-locking](skills/content-locking/SKILL.md) | Apply shared entitlement rules and app-owned quota or reward access to a feature. |
 | [crashlytics](skills/crashlytics/SKILL.md) | Connect kit crash reporting to Firebase Crashlytics and app error hooks. |

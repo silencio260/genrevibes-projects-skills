@@ -25,6 +25,10 @@ description: "Create a Flutter portfolio app with the guaranteed GenRevibes base
    is an implementation milestone, not the finished portfolio app.
 8. Add the repository instruction entry point described in the
    [skills index](../../README.md). Preserve any existing operating rules.
+9. Document the app's actual commands in its root `README.md` and
+   `docs/commands.md`, with Flutter run commands first and Flutter build commands
+   next. Follow [command documentation](../../skills/command-documentation/SKILL.md);
+   include configured release workflows, setup, checks and helper tools below them.
 
 Check imports, configuration, cleanup, and navigation. Report missing native
 configuration and device checks. Follow repository rules for analyzer, tests,

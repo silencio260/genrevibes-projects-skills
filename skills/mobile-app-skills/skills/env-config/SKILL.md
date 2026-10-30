@@ -8,6 +8,11 @@ description: "Configure compile-time app settings and reusable IDE launch templa
 Use the app's existing typed environment reader. `--dart-define-from-file`
 values are compiled into the app; they are not a server-secret store.
 
+When changing environment files or IDE arguments, update the app's run/build
+recipes in both `README.md` and `docs/commands.md`. Follow
+[command documentation](../command-documentation/SKILL.md); keep Flutter run/build
+commands first and show the actual build mode as well as the configuration file.
+
 For a new app, templates are under
 [templates/env](../../templates/env/env.example.json). From the app root:
 

@@ -481,10 +481,13 @@ successful command and actual SDK status separate in Lab. Mask changes can requi
 restart; follow the controller's handling rather than claiming a live flag changed
 an already configured SDK. Protect feedback and passcode routes independently.
 
-Keep replay integration in new apps even when rollout is 0%. The shared default
-is 0% with text/images masked; Story Saver explicitly overrides it to 100% with
-global text/image masking off. Preserve Story Saver's deliberate configuration
-when maintaining it, but do not silently copy that override into the next app.
+Keep replay integration in new apps even when rollout is 0%. For new
+integrations, use 0% rollout with global text/image masking off by default,
+controlled through Remote Config. The current kit code still defaults masking
+to on; explicitly pass `replayDefaults` and align the app's template as described
+in [session replay](skills/session-replay/SKILL.md#masking-defaults-and-remote-controls).
+Preserve targeted sensitive-content masking and an existing app's explicit policy.
+Story Saver's 100% rollout remains an app-specific choice, not the new-app default.
 
 ### Onboarding and launch
 

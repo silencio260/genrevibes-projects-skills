@@ -18,7 +18,8 @@ wiring and Lab controls in place when rollout is 0%.
 3. Follow `SessionReplayRemotePolicyBinder` for remote changes. The master switch
    wins over a local force-on override.
 4. Preserve the stable install bucket and explicit device overrides during
-   upgrades. New shared defaults are 0% rollout and masked text/images.
+   upgrades. For new integrations, use 0% rollout with global text/image masking
+   off by default, controlled through Remote Config as described below.
 5. Mask sensitive routes independently. PostHog integrations can pass
    `PostHogMaskWidget` through feedback and developer-unlock `protectContent`.
 6. Dispose controller, binder, and recorder work with the runtime.
@@ -30,9 +31,43 @@ restart; changing a remote mask flag does not rewrite an already configured SDK.
 
 Replay follows the rollout keys and the developer's switches only. It is never
 put behind a user-facing consent prompt or opt-out. The app owns rollout and
-collection choices. Story Saver's explicit 100%
-rollout and global mask overrides are not the defaults to copy into a new app.
+collection choices. Story Saver's explicit 100% rollout remains app-specific;
+do not copy its recording percentage into a new app.
 Check off, force-on, remote master-off, mask changes, and SDK command failure.
+
+## Masking defaults and remote controls
+
+Default ordinary text and images to unmasked recording when replay is enabled.
+Set `session_replay_mask_text` and `session_replay_mask_images` to `false` in
+bundled defaults and the app-owned Remote Config template. Remote `true` enables
+masking; remote `false` disables global masking. Use
+`SessionReplayRemotePolicyBinder` and the controller plan for every recorder,
+rather than hardcoding SDK masking flags that ignore Remote Config.
+
+The current kit still defaults both masking flags to `true`. Until those shared
+code defaults change, explicitly configure the schema for this convention:
+
+```dart
+final schema = PortfolioRemoteConfigSchema.build(
+  replayDefaults: const SessionReplayPolicy(
+    maskAllText: false,
+    maskAllImages: false,
+  ),
+);
+```
+
+Keep `session_replay_enabled` as the master switch and `session_replay_percent`
+as the independent rollout control; unmasking does not enable recording or
+increase rollout. Preserve an existing app's explicit policy during maintenance
+unless its masking policy is part of the requested change. Published remote
+values and cached policy can override bundled defaults, so inspect their origins
+before claiming the effective settings changed.
+
+Retain targeted masking for passwords, authentication fields, passcodes and
+feedback containing personal details. Global masking defaults do not remove
+those protections. Mask changes apply after SDK restart; stricter pending masks
+must stop recording until restart. Updating this skill or its template does not
+change deployed apps or publish Firebase settings.
 
 ## Keep configuration and recording state separate
 

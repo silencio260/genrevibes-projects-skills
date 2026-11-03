@@ -8,6 +8,10 @@ description: "Prepare Shorebird releases and patches for an explicitly selected 
 Inspect `shorebird.yaml`, the installed CLI, target platform, release version,
 and build environment. Shorebird is optional; do not add it during kit adoption.
 
+Maintain the app's exact release/patch recipes in its `README.md` and
+`docs/commands.md`, below the Flutter run/build commands. Follow
+[command documentation](../command-documentation/SKILL.md) when changing a recipe.
+
 - Match the baseline release's flavor, defines, signing, and toolchain inputs.
 - Pin a new release's `--flutter-version` to the project's supported/tested
   Flutter version. Shorebird's default can differ from local Flutter and reject

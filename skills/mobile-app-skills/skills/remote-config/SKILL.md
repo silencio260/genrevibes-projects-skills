@@ -19,11 +19,13 @@ the kit also has a SharedPreferences adapter for local configuration.
 5. Pass the same schema and coordinator to Kit Lab. Inspect value origins and
    fetch health; all-default values alone do not prove a fault.
 
-The [Firebase template](remote_config_template.json) matches the shared default
-schema at the [checked revision](../../references/kit-compatibility.md).
-It includes keys for optional capabilities; remove unused groups when making an
-app-specific template. A key cannot install a missing SDK or turn an unsupported
-operation into a supported one.
+The [Firebase template](remote_config_template.json) uses shared schema keys
+at the [checked revision](../../references/kit-compatibility.md), with global
+replay masking disabled for new integrations. Align bundled schema defaults with
+that template using the explicit `replayDefaults` below. It includes keys for
+optional capabilities; remove unused groups when making an app-specific template.
+A key cannot install a missing SDK or turn an unsupported operation into a
+supported one.
 
 Preserve existing production key spellings, including
 `time_before_first_rewared_ad`. For an existing app, compare its remote values
@@ -45,9 +47,15 @@ The "Analytics providers" group holds per-provider kill switches
 They take effect only when the app wraps those sinks and binds them; see
 [analytics](../analytics/SKILL.md#turn-one-paid-provider-off-remotely).
 
-New shared replay defaults are 0% rollout with text/images masked. Keep an
-existing app's deliberate choices through `replayDefaults` and its app template.
-See [replay](../session-replay/SKILL.md) for restart requirements.
+For new replay integrations, keep 0% rollout and default global text/image
+masking to off. The current kit code still defaults masking to on, so pass
+`replayDefaults: const SessionReplayPolicy(maskAllText: false, maskAllImages: false)`
+to `PortfolioRemoteConfigSchema.build()` and set `session_replay_mask_text` and
+`session_replay_mask_images` to `false` in the app template. Remote Config controls
+both masks; `session_replay_enabled` and `session_replay_percent` independently
+control recording. Preserve an existing app's deliberate choices unless changing
+them is requested. See [replay](../session-replay/SKILL.md) for targeted sensitive
+content protection, cached/remote precedence and restart requirements.
 
 Check that refresh is called and results reach consumers, including failed fetch
 and invalid values. This wiring can be checked in code and tested when tests are

@@ -18,10 +18,13 @@ and a missing file does not prove rejection.
 - Use the app's brand when requested. Avoid adding unrelated logos or copying
   another app's identity.
 - Save variants under `app promotional assets/app-icon-concepts/<campaign>`
-  unless another destination was supplied. Keep source concepts separate from
-  platform exports and preserve existing work.
-- For a multi-image set, provide and inspect a contact sheet. Inspect individual
-  finals at small size for clipping, garbled details, and accidental duplicates.
+  unless another destination was supplied. Keep working sources outside final
+  delivery folders and preserve approved work while exploring alternatives.
+- For a multi-image set, show and inspect a temporary contact sheet. Inspect
+  individual finals at small size for clipping, garbled details, and accidental
+  duplicates. Follow the [asset delivery and cleanup rules](../app-promotions/SKILL.md#deliver-final-assets-without-folder-clutter):
+  do not retain sheets, launcher previews, prompts, scripts, ZIPs, or hidden
+  archives unless requested.
 
 Use [promotion style references](../app-promotions/references/styles.md) only
 when relevant to the requested look; launcher presets are not universal defaults.
@@ -39,9 +42,9 @@ them. If the user rejected a previous direction, keep the actual reason in the
 iteration notes; do not infer rejection from an unused file.
 
 Make alternatives differ in an intentional way, such as silhouette, composition,
-or treatment. Label their source files clearly and retain the originals. A
-contact sheet helps compare the set, but inspect selected images individually
-at small launcher size as well as full size.
+or treatment. Label concept files clearly and keep originals available during
+review. A temporary contact sheet helps compare the set, but inspect selected
+images individually at small launcher size as well as full size.
 
 Check the actual output for accidental lettering, muddy edges, extra objects,
 and loss of the subject under common launcher masks. If the user asked for a
@@ -52,3 +55,7 @@ Deliver the concept files and a clear distinction between an approved source
 and platform resources. Once a source is selected and applying it is requested,
 use the branding skill to derive the correct layers/exports. Do not stretch one
 flattened concept into every platform resource without checking the result.
+After the selected final is delivered, delete task-created unselected concepts
+and review aids unless the user requested them as retained deliverables. Keep
+the selected source needed by the app's branding generator and its platform
+exports; do not leave duplicate working copies in promotional or template folders.

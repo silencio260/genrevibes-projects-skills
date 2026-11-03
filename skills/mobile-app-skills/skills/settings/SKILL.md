@@ -14,6 +14,13 @@ language, feedback, rating, sharing, and privacy options. Read each feature's
 skill before wiring its callback. Disabled or unconfigured actions need a clear
 explanation rather than a dead button.
 
+For portfolio language/region settings, follow
+[localization](../localization/SKILL.md). Language (including script/region
+variants) and Country/region are separate choices, with device-following and
+manual modes. The host app supplies options and translated labels; use shared
+locale/picker behavior once implemented instead of copying it into each app.
+Preserve the selected full tag and show only ready language options.
+
 Use `genrevibes_app_links` and its launcher adapter for store, support, and share
 links. Supply each platform's URLs. Handle a missing configuration result.
 

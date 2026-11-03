@@ -8,6 +8,12 @@ description: "Pick the flutter run command for live Firebase, live data with loc
 The app reads these defines in `lib/config/backend_config.dart`. Pick the
 backend mode, then the device line.
 
+Keep the app-specific commands, including its environment file and build mode,
+at the top of the app's `README.md` and `docs/commands.md`. Follow
+[command documentation](../mobile-app-skills/skills/command-documentation/SKILL.md)
+when a recipe changes; the examples below explain backend routing, not every
+app's complete environment configuration.
+
 Agents: give these commands to the user to run; don't build, install or run the
 app yourself.
 

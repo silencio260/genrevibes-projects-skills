@@ -121,17 +121,17 @@
         },
         "session_replay_mask_text": {
           "defaultValue": {
-            "value": "true"
+            "value": "false"
           },
           "valueType": "BOOLEAN",
-          "description": "Masks text. Changing SDK masking requires restart; stricter pending masking pauses replay."
+          "description": "Global text masking, off by default. Remote true enables masking. Changing SDK masking requires restart; stricter pending masking pauses replay."
         },
         "session_replay_mask_images": {
           "defaultValue": {
-            "value": "true"
+            "value": "false"
           },
           "valueType": "BOOLEAN",
-          "description": "Masks images. Changing SDK masking requires restart; stricter pending masking pauses replay."
+          "description": "Global image masking, off by default. Remote true enables masking. Changing SDK masking requires restart; stricter pending masking pauses replay."
         }
       }
     },

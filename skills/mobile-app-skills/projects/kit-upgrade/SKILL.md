@@ -36,11 +36,15 @@ uncommitted work is not overwritten.
 
 ### Example: replay defaults changed
 
-An older app intentionally records a configured share of users. The newer kit
-starts at 0% with masking enabled. Upgrading should preserve the app's deliberate
-policy by passing `replayDefaults`, while a new app can retain the new defaults.
-Inspect activated remote values too; changing bundled defaults does not replace
-values already fetched. Confirm that Lab uses the same schema as runtime.
+An older app intentionally records a configured share of users. The current kit
+starts at 0% with masking enabled, while the
+[session replay convention](../../skills/session-replay/SKILL.md#masking-defaults-and-remote-controls)
+for new integrations requires global text/images unmasked by default and controlled
+through Remote Config. Pass explicit `replayDefaults` and align the app template
+for new integrations. When upgrading an existing app, preserve its deliberate
+policy unless changing it is requested. Inspect activated remote values too;
+changing bundled defaults does not replace values already fetched. Confirm that
+Lab uses the same schema as runtime.
 
 ### Completion evidence
 

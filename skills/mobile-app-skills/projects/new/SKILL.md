@@ -25,6 +25,10 @@ description: "Create a Flutter portfolio app with the guaranteed GenRevibes base
    is an implementation milestone, not the finished portfolio app.
 8. Add the repository instruction entry point described in the
    [skills index](../../README.md). Preserve any existing operating rules.
+9. Document the app's actual commands in its root `README.md` and
+   `docs/commands.md`, with Flutter run commands first and Flutter build commands
+   next. Follow [command documentation](../../skills/command-documentation/SKILL.md);
+   include configured release workflows, setup, checks and helper tools below them.
 
 Check imports, configuration, cleanup, and navigation. Report missing native
 configuration and device checks. Follow repository rules for analyzer, tests,
@@ -36,6 +40,14 @@ IAP, remote config and session replay integration unless the user explicitly
 changes that app's baseline. Choose adapters and app configuration for each;
 modular packages do not make these features optional. Replay recording still
 follows collection/rollout policy, and platform-specific UI applies where supported.
+
+Portfolio localization also targets the
+[40 languages and 58 initial locales](../../skills/localization/references/portfolio-locales.md).
+Follow the [shared-kit and app rollout plan](../../skills/localization/references/portfolio-rollout.md):
+keep all strings and locale/country options in the new app, reuse shared behavior
+as it becomes available, and enable only reviewed, compatible locales. Include
+independent language/region settings and localized store copy/graphics in the
+delivery plan; do not claim the proposed kit package already exists.
 
 For an Appodeal app, apply the
 [staged network default](../../references/appodeal-network-defaults.md): configure
@@ -71,6 +83,11 @@ A new project workflow has these distinct outputs:
 6. The app theme/router, baseline UI/actions and product features with registration
    and error UI, including a Lab connected to the live runtime.
 7. Feature-specific native setup and clear remaining device checks.
+8. Shared development-only screenshot tooling, with host-owned scene/locale
+   registration and editable promotional copy. Follow
+   [app promotions](../../skills/app-promotions/SKILL.md) and its tooling reference.
+   Keep generated screenshots ignored, use text-free AI artwork with editable
+   text layers, and leave rendering/upload commands to the user's authorized scope.
 
 ### Work through the first feature
 

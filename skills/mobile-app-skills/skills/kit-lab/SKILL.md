@@ -49,6 +49,9 @@ events would pollute diagnostics. See `makeLabHost` in
 | `remoteConfig`, `remoteConfigSchema` | The coordinator and the exact schema it uses. |
 | `ads`, `adPolicy`, `adPlacements` | Running provider/policy and declared placements. |
 | `iap`, `consent`, `feedback`, `rating`, `onboarding` | Existing module instances. |
+| `storeReview` | The store adapter the rating service uses, for the Rating page's sheet and listing buttons. |
+| `clock` | The `OffsetKitClock` the rating coordinator was built with, so the Rating page can move time. |
+| `ratingTools` | `DevRatingTools`: the app's counter names, `askNow`, `previewPrompt` and `installSource`. See [app rating](../app-rating/SKILL.md). |
 | `localNotifications`, `push` | The selected scheduler/push provider, if adopted. |
 | `permissions` | The provider expected by this host field; not an unrelated app permission BLoC. |
 | `storageKeys` | Only known feature groups the Lab should expose. |
@@ -78,6 +81,16 @@ status rather than assuming its requested plan was applied. Reset onboarding
 through its controller instead of clearing all preferences. Preview an exit
 prompt without exiting the app. These checks distinguish a connected Lab from
 a page of controls that only change their own local widgets.
+
+### Building or changing Lab pages
+
+Read a page's data into its `State`, in `initState` and after each action or
+refresh, and draw from that. Don't build a `FutureBuilder` whose future is
+created in `build`. Every redraw (a button press, a refresh, scrolling a section
+back into view) starts a new read and drops back to the loading state, so the
+page blinks. While a reload runs, keep the previous values on screen. Pass the
+reload to `DevScaffold(onRefresh: ...)` so the refresh button and pull to
+refresh read fresh data.
 
 Keep the default guard on pushed pages. Hiding the Settings entry alone is not
 enough if a previously opened page or route remains accessible after revocation.

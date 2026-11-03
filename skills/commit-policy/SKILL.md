@@ -27,7 +27,9 @@ are large binaries. Plain Git keeps every version forever, so each change makes
 every clone bigger.
 
 - Default: keep these folders out of Git with `.gitignore` entries, for example
-  `/marketing/`, `/design/`, `/app_screenshots/`, `/app screenshots/`. Before
+  `/marketing/`, `/design/`, `/app_screenshots/`. Raw screenshots go in
+  `app_screenshots/`, which every project has
+  ([required project files](../../AGENTS.md#required-project-files)). Before
   adding an entry, check with `git ls-files <folder>` that nothing inside is
   already tracked.
 - Option: when the user wants these files versioned, use Git LFS (Large File

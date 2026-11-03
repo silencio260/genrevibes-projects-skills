@@ -22,3 +22,22 @@
   still works, correct what changed, and remove claims that no longer apply. Include
   enough context for a human unfamiliar with the feature to follow the instructions.
 - CI is a deferred TODO. Do not treat it as a blocker or repeat it in later audits unless asked.
+
+## Required project files
+
+Every app project has these at its root. When one is missing, create it as part
+of the current task if it is in scope, or report it as missing.
+
+- `docs/` — project documentation, tracked in Git: audits, plans, integration
+  notes, release checklists. Name dated documents `<topic>-YYYY-MM-DD.md`.
+  Documentation that applies to every app belongs in this agents repository,
+  not in an app's `docs/`.
+- `config/remote_config.json` — the app's Firebase Remote Config template,
+  populated with that app's values, tracked in Git. It is the bundled default
+  and the file uploaded to Firebase. Start a new one from
+  [the shared template](skills/mobile-app-skills/skills/remote-config/remote_config_template.json).
+  Uploading still requires the user's request; see
+  [remote config](skills/mobile-app-skills/skills/remote-config/SKILL.md).
+- `app_screenshots/` — raw app screenshots for store listings and promotions.
+  It is listed in `.gitignore` (`/app_screenshots/`) and never committed; see
+  [large media](skills/commit-policy/SKILL.md#large-media-screenshots-marketing-and-design-files).

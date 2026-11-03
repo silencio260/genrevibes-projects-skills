@@ -30,8 +30,9 @@ Preserve existing production key spellings, including
 and conditions before adopting the template. Do not replace live policy with
 new defaults or publish a template unless requested.
 
-Each app owns a Firebase-format `config/remote_config.json`, initially copied
-from this agents template. Keep app-specific defaults and keys in that copy;
+Every app must have a populated, Firebase-format `config/remote_config.json`
+([required project files](../../../../AGENTS.md#required-project-files)),
+initially copied from this agents template. Keep app-specific defaults and keys in that copy;
 do not change the agents template to tune one app. Use the app copy for bundled
 defaults and as the source for a future Firebase upload or merge. Preserve typed
 schema validation and cached/remote precedence. When updating the shared template,

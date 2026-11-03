@@ -136,9 +136,16 @@ app/
 │           ├── screens/
 │           └── widgets/
 ├── android/ and ios/                  # Native host configuration
+├── config/
+│   └── remote_config.json            # Required: Firebase Remote Config template
+├── docs/                             # Required: project documentation (tracked)
+├── app_screenshots/                  # Required: raw screenshots; gitignored
 ├── env/                              # Local build values; not shared secrets storage
 └── pubspec.yaml                      # App dependencies and path overrides
 ```
+
+The three entries marked "Required" are defined in
+[Required project files](../../AGENTS.md#required-project-files).
 
 This is the default layout for new portfolio apps. Story Saver already follows
 it, although some older filenames and legacy folders remain. Follow their actual

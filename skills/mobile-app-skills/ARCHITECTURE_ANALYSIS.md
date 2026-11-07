@@ -258,6 +258,7 @@ These are current app settings, not a reason to put every app behind Firebase.
 | Notifications | Scheduler/provider and campaign coordination | Channels, timezone, destination mapping, saved campaign definitions |
 | Remote control/replay | Typed schema, binders, rollout/controller | Selected providers, app keys, rollout decisions, sensitive routes |
 | Onboarding/rating | Saved state and shared flow/policy | Pages, timing choices, store links, navigation |
+| In-app tutorials (when needed) | `TutorialController`, atomic named progress, `TutorialOverlay`, spotlights and controls | Tutorial IDs, step IDs/order, translated instructions, target keys, actions, successful-event reporting and competing-prompt policy |
 
 Developer defaults remain reusable. Apps can override or disable them without
 writing another unlock system. Real purchase state and developer simulation
@@ -508,6 +509,13 @@ optional paywall/actions and navigation. Handle failed persistence explicitly.
 An interactive paywall must not be abandoned by an arbitrary timer navigating
 behind its native UI. Ad slots consume the existing provider/policy and the
 onboarding remote switch. Reserve space only where the configured slot is supported.
+
+For guidance over real app controls, reuse the same package's
+`TutorialController` and `TutorialOverlay`; see [tutorials](skills/tutorials/SKILL.md).
+Each feature guide owns an independent tutorial ID and saved progress. The app
+chooses which guide is visible and supplies its instructions, targets, gestures
+and navigation. Do not duplicate the shared spotlight/persistence engine in each
+app or reuse intro completion as feature-tutorial completion.
 
 ## 13. Constants, defaults, and configuration
 

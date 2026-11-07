@@ -101,12 +101,14 @@ panel implementation is needed for each app.
 | [image-generation](skills/image-generation/SKILL.md) | Implement an app feature for image generation, results, and history through its backend. |
 | [immersive-ui](skills/immersive-ui/SKILL.md) | Configure edge-to-edge layout and optional kit navigation-bar controls. |
 | [kit-lab](skills/kit-lab/SKILL.md) | Connect the shared developer section, Kit Lab, logs, module health, and controls. |
+| [legal-pages](skills/legal-pages/SKILL.md) | Write, publish and record the app privacy policy and terms of use, and keep their links in env, docs and the store listing. |
 | [local-notifications](skills/local-notifications/SKILL.md) | Schedule local notifications and daily campaigns; handle taps, timezones, campaign ownership, and post/open/opt-out analytics. |
 | [localization](skills/localization/SKILL.md) | Plan and implement the 40-language portfolio target, regional/script variants, shared locale behavior, app-owned strings and localized store assets. |
 | [logging](skills/logging/SKILL.md) | Connect structured kit logs and the shared Kit Lab recorder. |
 | [navigation](skills/navigation/SKILL.md) | Connect kit screens and external actions to the app router. |
 | [offline-caching](skills/offline-caching/SKILL.md) | Add feature-specific caching and offline behavior without duplicating kit storage. |
 | [onboarding](skills/onboarding/SKILL.md) | Build a shared onboarding flow with app content, completion state, and optional actions. |
+| [tutorials](skills/tutorials/SKILL.md) | Build reusable in-app tutorials, feature walkthroughs and spotlight guides with independent progress and app-owned content/actions. |
 | [paywall](skills/paywall/SKILL.md) | Present hosted or app-owned paywalls using the existing IAP provider. |
 | [permissions](skills/permissions/SKILL.md) | Request and recheck app permissions through the kit permission coordinator. |
 | [profile](skills/profile/SKILL.md) | Implement app-owned profile data using the selected database adapter. |

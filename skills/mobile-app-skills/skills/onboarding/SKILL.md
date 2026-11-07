@@ -54,6 +54,15 @@ retain the shared completion and flow behavior. Check content with large text,
 keyboard-free small screens, and unavailable ad slots. Do not reserve an empty
 ad area on pages where no ad slot is configured.
 
+## Hands-on feature tutorials
+
+For instructions over the real app, use `TutorialController` and
+`TutorialOverlay` from the same package. Follow the
+[tutorials skill](../tutorials/SKILL.md) for targets, touch policies, app events,
+independent saved progress, migration, skip and replay. Keep these named guides
+separate from introductory `OnboardingController` completion. Apps supply
+instructions, targets and actions; shared tutorial mechanics belong in the kit.
+
 ## Package references
 
 Read the public API and setup for the packages used by this task:

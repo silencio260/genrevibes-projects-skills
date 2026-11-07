@@ -22,3 +22,13 @@ against another revision, not merely when a git pointer moves.
 The smoke app demonstrates composition with many adapters; it is not a list of
 packages every app needs. The adoption guide contains partial snippets with
 app-supplied values. Follow the relevant skill for lifecycle and error handling.
+
+
+## Additive tutorial API in the 7 November 2026 working tree
+
+The local `genrevibes_onboarding` package now exports `TutorialController`,
+`TutorialOverlay`, steps/targets/labels and provider-neutral progress stores.
+This is an additive source change; the pinned-revision record above is unchanged
+and does not claim publication. See the [tutorial skill](../skills/tutorials/SKILL.md)
+and [package guide](../../../../packages/genrevibes_starter_kit/modules/onboarding/genrevibes_onboarding/README.md#in-app-tutorials).
+Other app checkouts must contain these exports before adopting the new API.

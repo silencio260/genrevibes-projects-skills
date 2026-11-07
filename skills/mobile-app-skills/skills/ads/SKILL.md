@@ -117,6 +117,14 @@ portfolio default with a different subset based on one dashboard screenshot.
 Rows reading "Appodeal account" mean Appodeal supplies the account; those count
 as connected. SDK inclusion and per-format dashboard enablement are separate.
 
+Meta Audience Network is the exception that needs its own per-app work in two
+dashboards, because the owner supplies that account rather than Appodeal.
+Follow [Meta Audience Network with Appodeal](../../references/meta-audience-network-appodeal.md)
+whenever an app ships the `meta` adapter. Create the Meta developer app before
+the Monetization Manager property, never the reverse: a property created
+outside an app has an id with no App Secret, Appodeal cannot save it, and Meta
+provides no way to delete the result.
+
 Keep `bidmachine` and `bidon` in both integration stages as the owner's initial
 Appodeal demand baseline.
 

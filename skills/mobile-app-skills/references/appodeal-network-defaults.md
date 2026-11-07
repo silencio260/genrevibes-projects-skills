@@ -70,7 +70,9 @@ AppLovin MAX is a mediation integration, not an additional independent network.
 | Yandex | `yandex` |
 
 Inspect the app's Appodeal accounts, ad units, formats and mediation groups,
-including MAX and LevelPlay tabs. This preset determines which SDK adapters
+including MAX and LevelPlay tabs. Meta Audience Network additionally needs
+per-app setup in Meta's own dashboards; follow
+[Meta Audience Network with Appodeal](meta-audience-network-appodeal.md). This preset determines which SDK adapters
 ship; it does not automatically connect credentials, approve the app, configure
 units, enable every format in the dashboard or guarantee fill. Report any pending
 dashboard/account steps for preset networks rather than silently removing them

@@ -218,3 +218,116 @@ cold rebuild.
 - [Shrinking and obfuscating with R8](https://developer.android.com/build/shrink-code)
 - [Meta Audience Network Android setup](https://developers.facebook.com/docs/audience-network/setting-up/platform-setup/android)
 - [Facebook Infer](https://fbinfer.com/)
+
+## Appodeal's myTarget adapter embeds an outdated Play Billing Library
+
+### Recorded incident: Gravity Rolling Icon Launcher, 8 November 2026
+
+Play Console reported one error against the uploaded bundle for version code 1:
+
+```text
+Your app currently uses Play Billing Library version 7.1.1 and must update to
+at least version 8.0.0 to make use of the latest monetization features on
+Google Play.
+```
+
+The app has no in-app purchases. Nothing in `pubspec.yaml` declares a billing
+or purchases plugin, and no Dart or Gradle source in the app references
+`com.android.billingclient`. The library arrived transitively through one
+declared ad adapter:
+
+```text
+com.appodeal.ads.sdk.adapters:my_target:5.47.1.0
+  → com.my.target:mytarget-sdk:5.47.1
+    → com.my.tracker:mytracker-sdk:3.5.0
+      → com.android.billingclient:billing:[7.0.0, 8.0.0)  → resolved 7.1.1
+```
+
+### Cause and evidence
+
+MyTracker is myTarget's attribution SDK and uses Play Billing to report
+purchase events, so it declares the dependency whether or not the host app
+sells anything. Version 3.5.0 caps its range below 8.0.0, so Gradle's
+highest-in-range selection is 7.1.1 regardless of which newer billing versions
+exist. The version is decided by that transitive range, not by anything the
+app declares.
+
+Collected from Appodeal's published POMs and the local Gradle metadata cache:
+
+- `mytracker-sdk:3.5.0` declares billing `[7.0.0, 8.0.0)`.
+- `mytracker-sdk:3.6.0` declares billing `[9.1.0, 10.0.0)`.
+- `mytarget-sdk:5.51.2` and `5.52.5` both declare mytracker `[3.6.0, 3.7.0)`.
+- A sweep of every cached module descriptor found MyTracker as the only
+  dependent of `com.android.billingclient` in this app's resolution. Other
+  dependents in the shared cache belonged to RevenueCat in unrelated projects.
+
+Play scans the uploaded bundle for billing classes; it does not check whether
+the app calls the API. An app with no purchase flow still gets the error, and
+the error blocks the release rather than warning about it.
+
+### Targeted source fix
+
+Bump the adapter in the host app's `android/app/build.gradle.kts`:
+
+```kotlin
+implementation("com.appodeal.ads.sdk.adapters:my_target:5.51.2.0")
+```
+
+That resolves mytarget-sdk 5.51.2 → mytracker-sdk 3.6.x → billing 9.1.0.
+Appodeal's repository offered 5.27.4.0, 5.47.1.0, 5.51.2.0 and 5.52.5.0 when
+this was recorded. Both newer versions declare Appodeal `core:[4.0.0, 5.0.0)`,
+so they remain compatible with core 4.3.0 behind `stack_appodeal_flutter 4.3.1`;
+this is then the one adapter deliberately ahead of that plugin's preset, which
+belongs in a comment at the declaration. 5.51.2.0 keeps `kotlin-bom` at 2.1.0,
+matching the rest of the adapter set, while 5.52.5.0 moves it to 2.3.0. Check
+the adapter versions actually published before copying either number:
+`curl -s https://artifactory.appodeal.com/appodeal/com/appodeal/ads/sdk/adapters/my_target/maven-metadata.xml`.
+
+Do not force billing 8.x or 9.x with `resolutionStrategy.force`, a `strictly`
+constraint or a standalone `implementation` line while MyTracker 3.5.0 is still
+in the graph, and do not exclude the billing dependency from it. Its declared
+range caps below 8.0.0, so Gradle either fails to find a version satisfying
+every constraint or hands MyTracker a library it was not compiled against.
+Billing 8.0.0 removed deprecated APIs, so that hazard is a runtime
+`NoSuchMethodError` inside purchase tracking rather than a build failure.
+Upgrading the adapter takes the newer billing version through the SDK that
+actually calls it.
+
+Billing 9.1.0 requires `compileSdk` 35 or higher; the Flutter toolchain used
+here supplies 36 through `flutter.compileSdkVersion`.
+
+### Which apps are affected
+
+Every portfolio app declaring `com.appodeal.ads.sdk.adapters:my_target` at
+5.47.1.0 or below. The recorded stage 2 preset in
+[portfolio network defaults](appodeal-network-defaults.md) pins 5.47.1.0, so an
+app following that recipe literally inherits this error. Play reports it per
+uploaded bundle, so an app can carry the dependency for months without having
+seen the message. Google has raised this minimum on an annual cycle: treat
+8.0.0 as the floor recorded here rather than a permanent one, and read the
+current requirement from Play Console at each release.
+
+### Verify and describe the result accurately
+
+At the time this case was recorded, the adapter bump had been applied to the
+host app's Gradle file and the version chain verified against Appodeal's
+published POMs and the local Gradle metadata cache. No build was run, no
+bundle was uploaded, and the resolved billing version in a real release had
+not been observed. Confirm it with a dependency diagnostic rather than
+assuming:
+
+```bash
+./gradlew :app:dependencyInsight --configuration releaseRuntimeClasspath --dependency com.android.billingclient:billing
+```
+
+The Play message stays attached to version code 1 until a bundle with a higher
+version code is uploaded; a corrected dependency does not clear the existing
+release's error. This bump also changes the myTarget SDK itself, not only its
+billing dependency, so re-check myTarget startup, ad load, display and
+impression in both test and live modes.
+
+### Primary references
+
+- [Play Billing Library release notes](https://developer.android.com/google/play/billing/release-notes)
+- [Gradle rich version declarations](https://docs.gradle.org/current/userguide/rich_versions.html)
+- [Gradle dependency resolution and version ranges](https://docs.gradle.org/current/userguide/dependency_resolution.html)

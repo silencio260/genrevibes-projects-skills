@@ -148,6 +148,16 @@ implementation "io.bidmachine:ads.networks.meta_audience:6.21.0.1"
 implementation "io.bidmachine:ads.networks.mintegral:17.1.61.1"
 ```
 
+> **Do not copy the `my_target` line as recorded.** 5.47.1.0 resolves
+> `mytracker-sdk:3.5.0`, which caps `com.android.billingclient:billing` below
+> 8.0.0 and embeds 7.1.1 in the bundle. Play rejects that on upload even for an
+> app with no in-app purchases, as it did for Gravity Rolling Icon Launcher's
+> version code 1 on 8 November 2026. Declare 5.51.2.0 or later, which brings
+> MyTracker 3.6.x and billing 9.1.0, and check the published adapter versions
+> before picking one. The analysis, the compatible versions and the forcing
+> hazards are in
+> [known release issues](android-known-release-issues.md).
+
 The five bridges make **22 enabled adapter declarations** in the recorded full
 setup. They connect networks already listed above. Carry them with this stage 2
 mediation recipe, configuring the relevant MAX units and native header bidding.

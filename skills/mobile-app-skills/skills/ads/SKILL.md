@@ -87,27 +87,38 @@ Meta does not publish at runtime. It has failed one release build here and is
 carried as a standing rule in another app for the same reason; see
 [known release issues](../../references/android-known-release-issues.md).
 
-**3. Route Appodeal's Maven groups** to Appodeal's repository and exclude
+**3. Bump the myTarget adapter past the Play Billing floor** whenever
+`com.appodeal.ads.sdk.adapters:my_target` is declared. At 5.47.1.0 and below it
+pulls `mytarget-sdk` → `mytracker-sdk:3.5.0` → `com.android.billingclient:billing`
+capped below 8.0.0, which embeds billing 7.1.1 in the bundle and makes Play
+reject the release even though the app sells nothing. Declare 5.51.2.0 or later
+so MyTracker 3.6.x brings billing 9.1.0, and never force or exclude the billing
+dependency instead; see
+[known release issues](../../references/android-known-release-issues.md). Read
+the current floor from Play Console at each release: Google has raised it
+annually.
+
+**4. Route Appodeal's Maven groups** to Appodeal's repository and exclude
 `com.appodeal` from Google Maven and Maven Central, as the debug build guide
 records. This avoids a failed lookup against two repositories per artifact
 across the whole adapter set.
 
-**4. Raise `minSdk` to the Appodeal floor** (24 at the versions recorded here)
+**5. Raise `minSdk` to the Appodeal floor** (24 at the versions recorded here)
 and confirm it against the installed plugin rather than copying a number.
 
-**5. Decide the release lint gate explicitly.** With no `lint` block, AGP runs
+**6. Decide the release lint gate explicitly.** With no `lint` block, AGP runs
 release lint inside `bundleRelease`, which has taken hours at this plugin
 count. Record the decision; do not silently override an app's deliberate lint
 policy.
 
-**6. Pin Shorebird's Flutter version** to the project's own, per the debug
+**7. Pin Shorebird's Flutter version** to the project's own, per the debug
 build guide. A defaulted Shorebird Flutter version has produced a release
 compatibility failure here.
 
-**7. Keep one declaration per adapter coordinate**, and comment genuinely
+**8. Keep one declaration per adapter coordinate**, and comment genuinely
 unused adapters with a date and reason rather than deleting them.
 
-**8. After the first release attempt, read**
+**9. After the first release attempt, read**
 `build/app/outputs/mapping/release/missing_rules.txt` before adding keep rules.
 R8 collects every missing class before failing, so that file is the complete
 blocker list; adding rules one failure at a time pays the full R8 duration per

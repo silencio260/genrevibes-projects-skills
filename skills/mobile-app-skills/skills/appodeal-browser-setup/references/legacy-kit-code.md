@@ -76,7 +76,17 @@ dependencies {
     implementation("com.appodeal.ads.sdk.adapters:bidmachine:3.7.1.0") // Meta bids through BidMachine
     implementation("com.appodeal.ads.sdk.adapters:iab:1.8.1.0")
     implementation("com.appodeal.ads.sdk.adapters:meta:6.21.0.0")
+    implementation("io.bidmachine:ads.networks.meta_audience:6.21.0.1") // Meta bidding bridge
 }
+```
+
+The first version of this setup left out the `meta_audience` bridge and the
+Meta Infer keep rule. Both are required whenever the `meta` adapter ships. If
+`android/app/proguard-rules.pro` doesn't exist, create it; Flutter's Gradle
+plugin uses it for release R8 automatically. It must contain:
+
+```proguard
+-dontwarn com.facebook.infer.annotation.**
 ```
 
 The Appodeal Maven repository in `android/build.gradle.kts` is

@@ -25,6 +25,15 @@
 
 ## Finding project guidance
 
+- Before relying on this repository, check that it is current. Run
+  `git -C agents fetch` and `git -C agents status -sb` from the app root. If it
+  is behind, read the newer guidance for your task with
+  `git -C agents show origin/main:<path>`, or pull when the user allows it. On
+  PDF Reader (8 Nov 2026) the checkout was 65 commits behind, and the agent
+  repeated a Meta setup mistake that a newer commit had already documented.
+- Verify each step's own result before reporting it done. An error-free later
+  step does not prove an earlier step worked. Do not explain away contrary
+  evidence by comparing with a case you have not confirmed is set up correctly.
 - Use [mobile skills](skills/mobile-app-skills/README.md) for app and starter kit work.
 - Read [commit policy](skills/commit-policy/SKILL.md) before history or publication actions.
 - Keep the user's requested scope. Use shared kit code where it exists; preserve app choices.

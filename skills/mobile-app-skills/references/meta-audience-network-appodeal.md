@@ -53,7 +53,13 @@ before the underscore.
 5. From the new app: **Use cases > Customize > Audience Network > Go to
    Monetization Manager**. Confirm the opened URL carries `app_id=<new app id>`.
    If it does not, stop; the property will be orphaned.
-6. **Create property**, named after the app. This accepts the Meta Audience
+6. **Gate before creating the property.** Both checks must pass. The current
+   Monetization Manager URL contains `app_id=<new app id>`, and
+   `https://developers.facebook.com/apps/<new app id>/settings/basic/` opens
+   with an *App secret* field. Never use the *Create property* button on
+   Monetization Manager's home page or properties list. It is not tied to a
+   developer app; that is how PDF Reader's orphan was made.
+   **Create property**, named after the app. This accepts the Meta Audience
    Network Policy, Terms and platform policy.
 7. **Add** the Android app to the property. Check the URL again for
    `app_id=<new app id>`.

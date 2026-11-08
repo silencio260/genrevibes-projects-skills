@@ -24,6 +24,48 @@ detailed material lives in other files; read the ones the task needs:
 | Native host checklist (Gradle memory, Meta Infer rule, myTarget floor, minSdk…) | [ads](../ads/SKILL.md#native-host-setup-for-appodeal) |
 | Apps still on the old starter kit (`google_mobile_ads ^5`, no `genrevibes_ads` modules) | [legacy kit code](references/legacy-kit-code.md) |
 
+## Mistakes that must never happen again
+
+These happened on PDF Reader on 8 November 2026. Each one cost a redo, and the
+first left a Meta property that can never be deleted. Treat every item as a hard rule.
+
+1. **Working from a stale copy of this repository.** The local `agents`
+   checkout was 65 commits behind GitHub. The newer commits already contained
+   the [Meta reference](../../references/meta-audience-network-appodeal.md) that
+   forbids the exact mistake below. Before any dashboard work, run
+   `git -C agents fetch` and `git -C agents status -sb`. If the checkout is
+   behind, read the newer versions of the ads skill, the Meta reference and
+   this skill first, with `git -C agents show origin/main:<path>` or by pulling
+   when the owner allows it.
+2. **Creating the Meta property without a developer app.** The agent clicked
+   *Create property* on Monetization Manager's home page. Meta then created
+   app id `3806862216133719`, which has no developers.facebook.com page and no
+   App Secret, so Appodeal could never use it. **Gate:** before clicking
+   *Create property*, the current URL must contain `app_id=<id>`, and
+   `https://developers.facebook.com/apps/<id>/settings/basic/` must open that
+   app's settings, showing an *App secret* field. If either check fails, stop.
+3. **Explaining away evidence that the save failed.** After the owner "saved"
+   the Meta App Secret in Appodeal, the App Id field was empty on reload. The
+   agent compared it with another app (Lunaris) whose fields were also empty
+   and concluded that "Appodeal hides saved values". Lunaris simply had no Meta
+   setup. An empty field after Save means the save failed. Never decide what is
+   normal by comparing with an app you haven't confirmed is configured.
+4. **Treating a later step's success as proof.** Appodeal let the agent create
+   three Meta bidding ad units even though the App ID and Secret were never
+   saved. A step that succeeds is not proof that an earlier step worked. Check
+   each step's own result: the App Id field holds the ID after reload, the App
+   ID has a developer page, and placement codes start with that App ID.
+5. **Skipping the native host checklist.** The first PDF Reader build declared
+   the `meta` adapter without the `io.bidmachine:ads.networks.meta_audience`
+   bridge and without the `-dontwarn com.facebook.infer.annotation.**` rule,
+   which would break release R8. Work through every item of the
+   [native host checklist](../ads/SKILL.md#native-host-setup-for-appodeal)
+   before reporting the code as done.
+6. **Reporting work as done before checking it.** The agent reported the Meta
+   sync as complete. Before reporting it, run
+   [verifying an app is done properly](../../references/meta-audience-network-appodeal.md#verifying-an-app-is-done-properly)
+   and report any check that failed or couldn't be run.
+
 ## The owner's instructions
 
 These come from the PDF Reader request of 8 November 2026. Apply them unless

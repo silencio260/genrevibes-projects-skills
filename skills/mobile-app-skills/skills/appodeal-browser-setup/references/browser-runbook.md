@@ -88,6 +88,17 @@ Browser notes:
   If one doesn't, stop.
 - **Create property.** This accepts the Audience Network Policy and Terms. Ask
   first. The property page can take about 10 seconds to load.
+  - From a new developer app, Monetization Manager opens an *Add your first
+    property* dialog. On PDF Reader its *Next* button failed silently twice:
+    the dialog reset, and the page URL had lost its `business_id`. Each time,
+    check the home page's property list before trying again, because Meta can't
+    delete a duplicate property.
+  - The third attempt worked after reloading the exact link from the developer
+    app (including `business_id`) with network tracking on
+    (`read_network_requests`). Success shows as
+    `POST …/ad_monetization_properties` returning 200, followed by two
+    `business/objects/add/connections` calls that link the new property id to
+    the app.
 - **Add the Android app.** It opens a 4-step wizard:
   - *App details*: leave the Google Play URL empty if the app is unpublished.
     App name is read-only.
@@ -126,8 +137,11 @@ developer app.
 4. **Check the save yourself.** Reload the page, expand the Meta row and
    read the `facebookAppId` input with
    `Array.from(document.querySelectorAll('input')).filter(i=>/facebook/i.test(i.name)).map(i=>({n:i.name,hasValue:!!i.value}))`.
-   Only report the secret's presence, never its value. If the App Id is empty,
-   the save failed. On PDF Reader the fields were empty because the App ID had
+   Only report the secret's presence, never its value. Avoid screenshots of
+   this panel after the save, because Appodeal shows the secret in plain text.
+   A correct save shows `facebookAppId` holding the ID and `facebookAppSecret`
+   with a value (confirmed on PDF Reader's redo). If the App Id is empty, the
+   save failed. On PDF Reader the fields were empty because the App ID had
    no secret; the agent wrongly took this as normal behavior. Ad unit creation
    below succeeds even when the App ID and Secret are not saved, so a created
    unit proves nothing.
@@ -143,6 +157,12 @@ developer app.
    - Click *Create*. The unit appears under *Meta Audience Network Ad Units* with ON.
 6. Repeat for `BANNER` and `REWARDED_VIDEO`, and `NATIVE` if used. The App ID
    and Secret are shared across ad types.
+7. **To replace a unit with a wrong placement**, for example after redoing an
+   orphaned Meta property: the *Code* field is locked (`disabled`) once a unit
+   exists, so it can't be edited. Turn the old unit's toggle **OFF**, which is
+   reversible, and add a new unit with the right code. Delete the old unit
+   (trash icon) only if the owner asks; deleting is permanent and may open a
+   confirm dialog that blocks the browser extension.
 7. Run the checks in
    [verifying an app is done properly](../../../references/meta-audience-network-appodeal.md#verifying-an-app-is-done-properly).
 
@@ -168,5 +188,9 @@ These are a worked example. Never reuse them in another app.
 | AdMob App Open unit | `ca-app-pub-4210665095499726/4712703299` |
 | Appodeal app | id `789318`, key `51c3cfa4c6c0bac989bf9d525eb8b406b698abaa690edfa0` |
 | Meta business | Vibes Studios, `2572933263011560` |
-| Orphaned Meta property | `1621903539419930`, Audience Network app `3806862216133719` (no developer app, no App Secret) |
-| Its placements (unusable) | Interstitial `…_3806863739466900`, Rewarded `…_3806864086133532`, Banner `…_3806864449466829` |
+| Meta developer app (correct) | `1444011370486110`, use case "Advertise on your app with Meta Audience Network" |
+| Meta property (correct) | `2242232979690562`, "PDF Reader" |
+| Placements (correct) | Interstitial `1444011370486110_1444060160481231`, Rewarded `1444011370486110_1444060477147866`, Banner `1444011370486110_1444060793814501` |
+| Appodeal Meta units (live) | "Meta Bidding Interstitial/Banner/Rewarded (dev app)", ON, In-App Header Bidding |
+| Orphaned Meta property | `1621903539419930`, renamed "PDF Reader (OLD - unused, no dev app)", Audience Network app `3806862216133719` (no developer app, no App Secret) |
+| Its placements (unusable) | `3806862216133719_3806863739466900` / `…_3806864086133532` / `…_3806864449466829`. Their Appodeal units "Meta Bidding Interstitial/Banner/Rewarded" are turned OFF. |

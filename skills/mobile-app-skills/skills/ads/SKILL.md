@@ -8,6 +8,11 @@ description: "Configure staged portfolio Appodeal network defaults and connect a
 Use `genrevibes_ads` for shared contracts and policy. Appodeal is the current
 portfolio recipe; keep a different provider when the app deliberately uses one.
 
+When the owner asks you to create the AdMob, Appodeal or Meta dashboard entries
+in their browser, link Meta to Appodeal, or add AdMob App Open next to
+Appodeal, follow [Appodeal setup in the owner's browser](../appodeal-browser-setup/SKILL.md).
+It also covers apps still on the old starter kit (`google_mobile_ads ^5`).
+
 1. Declare app-owned `AdPlacement` IDs and supported formats. Add the chosen
    provider adapter, plus its UI package only where needed.
 2. Read the adapter README and installed vendor plugin's native setup. Match

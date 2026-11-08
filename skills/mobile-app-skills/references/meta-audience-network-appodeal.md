@@ -22,6 +22,16 @@ therefore has **no App Secret anywhere**. Appodeal will not save the App ID
 without the Secret, so the property was unusable and the work had to be redone
 against a new app. Meta cannot delete a property, so the dead one stays.
 
+It happened again on PDF Reader on 8 November 2026. That time the property was
+created with the *Create property* button on Monetization Manager's home page,
+with no developer app at all. Meta minted Audience Network app id
+`3806862216133719`, and `developers.facebook.com/apps/3806862216133719/` redirects
+to the app list. Saving in Appodeal then failed, but adding the three bidding
+ad units still succeeded, so the link looked finished when it was not. Treat
+any property whose app id has no developers.facebook.com page as orphaned. The
+browser steps are in
+[Appodeal setup in the owner's browser](../skills/appodeal-browser-setup/references/browser-runbook.md).
+
 Appodeal's rule makes the requirement explicit: "If the first part of the
 placement ID does not match the app ID, Meta Audience Network won't work."
 Meta placement IDs are `<app id>_<placement id>`, so the App ID entered in

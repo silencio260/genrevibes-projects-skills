@@ -72,6 +72,7 @@ panel implementation is needed for each app.
 | [refactor](projects/refactor/SKILL.md) | Adopt starter kit features in an existing app without replacing unrelated architecture. |
 | [replace-provider](projects/replace-provider/SKILL.md) | Replace a kit provider adapter while preserving the shared feature interface. |
 | [ads](skills/ads/SKILL.md) | Configure staged portfolio Appodeal network defaults and connect ad placements with premium, consent, test-mode, and pacing rules. |
+| [appodeal-browser-setup](skills/appodeal-browser-setup/SKILL.md) | Create an app's AdMob, Appodeal and Meta (FAN) entries in the owner's browser, link Meta to Appodeal, and wire Appodeal plus AdMob App Open into the app. |
 | [analytics](skills/analytics/SKILL.md) | Connect selected analytics sinks, shared events, identity, and collection settings. |
 | [analytics-extension-layer](skills/analytics-extension-layer/SKILL.md) | Add typed app-specific analytics methods on top of the shared pipeline. |
 | [android-mediation-optimization](skills/android-mediation-optimization/SKILL.md) | Improve release DEX scores by auditing Appodeal/bridge consumer rules while preserving enabled networks. |

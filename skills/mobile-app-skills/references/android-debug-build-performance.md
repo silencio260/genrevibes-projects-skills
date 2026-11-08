@@ -1,7 +1,9 @@
 # Android mediation build configuration
 
-Use this when adding mediated ad SDKs makes ordinary `flutter run` slow, and
-when configuring a release with those SDKs. Apply it alongside the staged
+Apply this when adding or expanding mediated ad SDKs, and when configuring a
+release with those SDKs — before the first build, not after builds have become
+slow. The [ads skill](../skills/ads/SKILL.md) lists it as a required step of
+every Appodeal integration. Apply it alongside the staged
 [portfolio network preset](appodeal-network-defaults.md). These
 settings were used in Story Saver on an 8 GB M3 Mac with Gradle 8.13, Android
 Gradle Plugin 8.11.1, Kotlin 2.2.20 and JDK 17. Adapt them to the target project;

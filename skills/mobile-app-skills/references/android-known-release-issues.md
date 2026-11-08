@@ -1,8 +1,8 @@
 # Known Android release issues
 
-Use these cases when the installed release's logs match the recorded symptoms.
-Confirm the artifact and cause before applying a historical fix. For build-time
-R8 failures, lint delays, or memory exhaustion, use the
+Use these cases when a release build fails, or when the installed release's
+logs match the recorded symptoms. Confirm the artifact and cause before
+applying a historical fix. For lint delays or memory exhaustion, use the
 [Android release skill](../skills/android-release-build-experiment/SKILL.md).
 
 ## AGP 9 removes Room's reflective constructor
@@ -140,3 +140,81 @@ that discrepancy rather than inventing how reviewers tested it.
 - [Play internal testing](https://support.google.com/googleplay/android-developer/answer/9845334)
 - [Pre-launch report operation and availability](https://support.google.com/googleplay/android-developer/answer/9842757)
 - [Pre-launch report limitations](https://support.google.com/googleplay/android-developer/answer/9844487)
+
+## Meta adapters reference unpublished Facebook Infer annotations
+
+### Recorded incident: Gravity Rolling Icon Launcher, 7 November 2026
+
+A `shorebird release android` run failed in `:app:minifyReleaseWithR8`. R8
+stopped on two missing classes:
+
+```text
+Missing class com.facebook.infer.annotation.Nullsafe$Mode (referenced from: com.facebook.ads.AbstractAdListener and 31 other contexts)
+Missing class com.facebook.infer.annotation.Nullsafe
+```
+
+Lunaris Network had already hit the same failure and carries the two literal
+`-dontwarn` lines for it, so this reproduces across apps rather than being one
+project's dependency accident.
+
+The same run also took 58m39s before failing. That duration was a separate
+heap problem, not a symptom of this failure; see
+[mediation build configuration](android-debug-build-performance.md). Do not
+read a long R8 phase as evidence of a missing keep rule, or this failure as
+evidence of a memory problem.
+
+### Cause and evidence
+
+Meta Audience Network is compiled against Facebook's Infer nullability
+annotations. Infer is a static analyzer and Meta does not publish those
+annotations as a runtime artifact, so the references cannot resolve during
+shrinking. Two declared dependencies pull the Meta ad classes in:
+
+```text
+com.appodeal.ads.sdk.adapters:meta:6.21.0.0
+io.bidmachine:ads.networks.meta_audience:6.21.0.1
+```
+
+`build/app/outputs/mapping/release/missing_rules.txt` listed exactly these two
+rules and nothing else. R8 collects every missing class before it fails, so
+that file is the complete blocker list for the run that produced it. Read it
+before adding rules one failure at a time.
+
+### Targeted source fix
+
+In the host app's `android/app/proguard-rules.pro`:
+
+```proguard
+-dontwarn com.facebook.infer.annotation.**
+```
+
+The annotations are build-time only, so suppressing the reference is correct
+here rather than hiding a class the app needs at runtime. This is not licence
+to silence missing mediation classes in general: an absent active adapter
+still needs its SDK at runtime, and `-dontwarn` on one would hide a real
+packaging defect. Keep the suppression scoped to
+`com.facebook.infer.annotation`; a broad `com.facebook.**` would also cover
+the Meta SDK's own classes. The wildcard covers both reported classes and any
+sibling annotation a later Meta adapter bump references.
+
+### Which apps are affected
+
+Any app declaring the Appodeal Meta adapter or the BidMachine Meta Audience
+bridge. When this case was recorded, Smart Launcher had adopted both adapters
+on 7 November 2026 without the rule and had not yet been built, so an app can
+carry this defect without having seen it fail.
+
+### Verify and describe the result accurately
+
+At the time this case was recorded, the rule had been added to the host app's
+ProGuard file and checked against `missing_rules.txt`, but no corrected
+release had been built, installed or published. Do not describe it as a
+verified release result. The next release build is the verification; keep
+`build/` and the Gradle caches in place so that run is not also paying for a
+cold rebuild.
+
+### Primary references
+
+- [Shrinking and obfuscating with R8](https://developer.android.com/build/shrink-code)
+- [Meta Audience Network Android setup](https://developers.facebook.com/docs/audience-network/setting-up/platform-setup/android)
+- [Facebook Infer](https://fbinfer.com/)

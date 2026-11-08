@@ -66,10 +66,56 @@ avoids a hardcoded mismatch.
 
 ### Native host setup for Appodeal
 
-When adding mediation SDKs slows Android debug builds, read
+Work through the checklist below every time Appodeal is added to an app or its
+adapter set is expanded, before the first build. Each item has cost a recorded
+release failure or build-time incident in this portfolio; none of them is a
+remedy to reach for once a build is already slow or failing.
+
+**1. Apply the recorded Gradle memory and cache configuration** from
 [Android debug build performance](../../references/android-debug-build-performance.md)
-for the recorded cache, daemon, heap and repository configuration before changing
-working network integrations.
+to `android/gradle.properties`. A default or inherited heap is the single
+largest cause of slow mediation builds here: a Gradle heap at or above the
+machine's physical RAM lets R8 grow into swap, which took one release build to
+58m39s. Missing `org.gradle.caching` and `org.gradle.workers.max` compound it.
+Set this before the first build; do not wait for a slow one.
+
+**2. Add the Meta Infer keep rule** whenever
+`com.appodeal.ads.sdk.adapters:meta` or `io.bidmachine:ads.networks.meta_audience`
+is declared. Without `-dontwarn com.facebook.infer.annotation.**` in
+`android/app/proguard-rules.pro`, `:app:minifyReleaseWithR8` fails on classes
+Meta does not publish at runtime. It has failed one release build here and is
+carried as a standing rule in another app for the same reason; see
+[known release issues](../../references/android-known-release-issues.md).
+
+**3. Route Appodeal's Maven groups** to Appodeal's repository and exclude
+`com.appodeal` from Google Maven and Maven Central, as the debug build guide
+records. This avoids a failed lookup against two repositories per artifact
+across the whole adapter set.
+
+**4. Raise `minSdk` to the Appodeal floor** (24 at the versions recorded here)
+and confirm it against the installed plugin rather than copying a number.
+
+**5. Decide the release lint gate explicitly.** With no `lint` block, AGP runs
+release lint inside `bundleRelease`, which has taken hours at this plugin
+count. Record the decision; do not silently override an app's deliberate lint
+policy.
+
+**6. Pin Shorebird's Flutter version** to the project's own, per the debug
+build guide. A defaulted Shorebird Flutter version has produced a release
+compatibility failure here.
+
+**7. Keep one declaration per adapter coordinate**, and comment genuinely
+unused adapters with a date and reason rather than deleting them.
+
+**8. After the first release attempt, read**
+`build/app/outputs/mapping/release/missing_rules.txt` before adding keep rules.
+R8 collects every missing class before failing, so that file is the complete
+blocker list; adding rules one failure at a time pays the full R8 duration per
+round.
+
+Do not run `flutter clean` or delete build output to make a build faster. The
+recorded timings show a warm daemon with existing output at 17.2 seconds and
+the same daemon after deleted output at 245.5 seconds.
 
 For low release DEX optimization scores with many enabled networks, use
 [Android mediation optimization](../android-mediation-optimization/SKILL.md).

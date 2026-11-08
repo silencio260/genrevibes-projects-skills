@@ -178,6 +178,7 @@ pending items:
 
 - **Placements in the app.** Where interstitials and rewarded ads show is a product decision. Ask the owner.
 - **Appodeal ↔ AdMob sync.** The owner does this.
-- **Meta "Missing app URL".** It stays until the Play listing exists. Business verification, privacy URLs and app-ads.txt are listed in the Meta reference.
+- **Meta "Missing app URL".** It stays until the Play listing exists. Business verification and app-ads.txt are listed in the Meta reference.
+- **Legal pages.** Meta needs a privacy policy, terms and data deletion URL on the developer app before it goes Live. If the app has no published pages yet, follow [legal-pages](../legal-pages/SKILL.md), which also sets those Meta fields and adds the in-app *Ad privacy choices* entry point.
 - **New AdMob units.** They can take up to an hour to serve.
 - **iOS.** Anything not set up for iOS, listed explicitly.

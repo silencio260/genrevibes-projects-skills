@@ -114,8 +114,63 @@ Treat the save indicator as unreliable and verify by reloading the editor:
 3. Type in chunks of a few thousand characters, not one large insert. Between
    chunks press select-all then Right to put the caret back at the end;
    without it a chunk can land at the top and scramble the document.
-4. The header page-title field rejects automated input entirely and always
-   reverts. Leave it to the user.
+4. The header page-title field often rejects automated input and reverts. On
+   PDF Reader (8 Nov 2026) it did keep the title. The steps were: click the
+   title box twice, cmd+a, type, then click the empty body. Check it after
+   reloading; if it reverted, leave it to the user.
+
+### Paste the body as HTML instead of typing it (works)
+
+On PDF Reader (8 Nov 2026), typing showed three more problems:
+
+- Characters outside ASCII (`·`, `•`, `›`, `©`) were dropped.
+- Google Sites autoformat turned `- ` into a bulleted list, then doubled the
+  marker on the next lines, and turned `1. Heading` into a numbered list item.
+- A long `type` action timed out at 30 seconds, although the text still arrived.
+
+A synthetic paste avoids all three. Use it as the default. It keeps real
+headings, lists and Unicode, skips autoformat, and survived an editor reload
+and publishing on both PDF Reader pages:
+
+1. Convert the drafted Markdown to simple HTML: `<h2>` for numbered sections,
+   `<h3>` for subsections, `<p>` for paragraphs, `<ul><li>` for the `In short`
+   bullets, and `<br>` for address lines. Leave out the H1, because the page
+   title holds it.
+2. In the editor, choose *Insert* > *Text box*. The new box has the caret.
+   For an existing box, click it twice, press cmd+a, then Delete.
+3. Run this with `javascript_tool`, with the HTML as a JSON-escaped string:
+   ```js
+   const target = document.activeElement;            // the text box's contenteditable
+   const dt = new DataTransfer();
+   dt.setData('text/html', HTML);
+   dt.setData('text/plain', 'x');
+   target.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dt, bubbles: true, cancelable: true}));
+   ```
+4. Check the result in the box. `querySelectorAll('h2,h3,li')` counts should
+   match the draft, and `innerText` should start with the effective line and
+   end with the footer.
+5. Press Escape, wait about 8 seconds, reload the editor URL, and check the text
+   again before you publish.
+
+Keep the drafts as Markdown in the app's `docs/legal/` folder. They are the
+source for the HTML, and the user's fallback if pasting ever stops working.
+
+### Other Google Sites details
+
+- Setting the Drive name (top left) pre-fills the header site-name field. Click
+  that field and press cmd+a before typing, or your text lands inside the old
+  name.
+- Web address slugs are limited to **30 characters**, and common names such as
+  `pdf-reader-terms-of-use` are often taken by other people. Use
+  `genrevibes-<app>-privacy` and `genrevibes-<app>-terms`, shortening `<app>`
+  to fit.
+- The publish dialog can redraw itself with a "professional domain" promo, and
+  the web address input then loses focus. Use `find` for the "Web address"
+  textbox and click its ref instead of coordinates.
+- Right after publishing, the `/view/<slug>` URL returned **404 for about 20
+  seconds**. Don't republish; wait and reload. The *Publish* button gaining a
+  dropdown arrow means the first publish succeeded. *Publish* ▾ > *View
+  published site* opens the live page.
 
 Persistence has been observed to stop working part-way through a session, on
 new sites as well as existing ones, while structural edits (adding or deleting
@@ -129,7 +184,16 @@ its privacy policy from Firebase Hosting while its terms sit on Google Sites. In
 that case the policy must still be reachable at a stable public URL, and the
 `Our website` section names the actual host.
 
-## Record the links in all four places
+## Before you publish
+
+- Ask the user which **support email** the pages should list. Each app should use
+  its own address, but the user may choose a shared one; PDF Reader uses
+  `buzzkarma11@gmail.com`, the same as Lunaris. Ask for the **minimum age** too,
+  and keep the Lunaris value (13) unless the user changes it.
+- Publishing is outward-facing. Show where the drafts are, and get a clear yes
+  before you press *Publish*.
+
+## Record the links in every place that uses them
 
 A published page nobody references does not satisfy anything. After publishing,
 put the links in every place that consumes them, and tell the user which of
@@ -148,7 +212,31 @@ these an agent cannot do for them.
    cannot sign in to the Play Console on the user's behalf: hand the user the
    URL and say exactly where it goes.
 4. **In-app.** Confirm the settings or about screen renders both links from the
-   env values once they are set.
+   env values once they are set. An app without a settings screen gets them in
+   its side drawer, as PDF Reader does: `lib/shared/legal/legal_links.dart`
+   holds the URLs and opens them with `url_launcher` (`LaunchMode.externalApplication`),
+   and the Android manifest's `<queries>` declares a `VIEW` intent for the
+   `https` scheme. If the app has AdMob App Open ads, call the ads service's
+   `skipNextAppOpen()` before opening the browser. Otherwise returning from
+   the policy is a foreground event that shows an ad.
+   - When the app shows ads with a consent form, add an **Ad privacy choices**
+     item next to the links. Google requires this privacy-options entry point
+     for EEA and regulated US-state users, and the policy promises it. With
+     Appodeal, call `Appodeal.ConsentForm.getPrivacyOptionsRequirementStatus()`.
+     If it returns `required`, call `showPrivacyOptionsForm()`; otherwise tell
+     the user that no choices apply in their region. Hide `google_mobile_ads`'
+     `PrivacyOptionsRequirementStatus`, because both packages export that name.
+5. **Meta developer app** (any app with Meta Audience Network). In
+   developers.facebook.com > the app > *App settings* > *Basic*, set:
+   - *Privacy policy URL*
+   - *Terms of Service URL*
+   - *User data deletion* > *Data deletion instructions URL*: the privacy policy,
+     whose rights section explains deletion
+   - *Category*
+
+   Meta requires these before the app can go Live. Click *Save Changes*, then
+   reload and read the fields back. Leave the Data Protection Officer section
+   empty unless the user supplies those details.
 
 Report the published URLs to the user in the reply, not only in a file.
 
@@ -172,6 +260,8 @@ Observed in the user's Google Sites account, for agents picking up this work:
 | Lunaris Network Terms of use | Published at `sites.google.com/view/lunaris-network-terms-of-use`; the reference for the terms template |
 | Lunaris Network Privacy Policy | Google Sites copy is an unpublished draft; the live policy is served from Firebase Hosting at `lunaris-network.web.app` |
 | Simple Phone Launcher Privacy Policy | Unpublished draft, older generated boilerplate; superseded by these templates and not a model to copy |
+| PDF Reader Privacy Policy | Published 2026-11-08 at `sites.google.com/view/genrevibes-pdf-reader-privacy`, with the HTML-paste method. A worked example of a no-account, on-device app with Appodeal + AdMob App Open; source in the app's `docs/legal/privacy-policy.md` |
+| PDF Reader Terms of use | Published 2026-11-08 at `sites.google.com/view/genrevibes-pdf-reader-terms`; source in the app's `docs/legal/terms-of-use.md` |
 
 Treat the Lunaris pair as the house style. Do not reuse the Simple Phone
 Launcher page's provider list or its location and AI sections.

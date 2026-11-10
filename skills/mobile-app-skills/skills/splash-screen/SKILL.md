@@ -1,12 +1,47 @@
 ---
 name: splash-screen
-description: "Use the kit splash flow for bounded launch presentation and optional launch ads."
+description: "Build the splash screen: minimal, just the app logo, name and a loading bar, on the kit splash flow with bounded launch and optional launch ads."
 ---
 
 # Splash screen
 
 Use `SplashFlow` and `SplashLoadingView` for launch presentation. The app owns
 startup and destination selection; see [runtime setup](../runtime-setup/SKILL.md).
+
+## Default look: logo, name and a loading bar
+
+Unless the owner asks for something else, keep the splash minimal: the app
+logo, the app name under it, and a loading bar. Add nothing else: no tagline
+block, illustration, glow, halo, particles, gradient ring or animated shapes
+around the logo. On PDF Reader (Nov 2026) the owner asked for a red glow behind
+the logo to be removed.
+
+Story Saver (`lib/features/splash/presentation/screens/splash_screen.dart`) is
+the reference. It passes its parts to the kit's `SplashLoadingView`:
+
+- `logo`: the launcher artwork `assets/images/app-logo.png` (512 px), drawn at
+  120 × 120 and clipped to a radius of 32.
+- `title`: the app name, bold, 32 pt, in the app's accent colour.
+- `SplashLoadingStyle`: a soft vertical gradient from the accent tint to the
+  page colour (`0xFFD7F0DE` → white), with `progressColor` set to the accent.
+- `SplashLabels`: `loading: 'Loading'`, which shows as the label above the bar,
+  and `adDisclosure: 'This action can contain ads'`. The disclosure appears only
+  when a launch ad is expected.
+- `minDuration: Duration(seconds: 2)`, so the splash never flashes past.
+
+`SplashLoadingView` centres the logo and name a little above the middle, then
+puts the label, a rounded progress bar and the ad disclosure near the bottom.
+Its bar follows the real `SplashProgress`. An app without the kit splash should
+build the same layout and use a determinate bar sized to its real startup work.
+
+Match the app's theme. A dark app uses its dark background and its own accent;
+it does not copy Story Saver's light green. Give the native launch screen
+(Android `launch_background.xml`, `windowSplashScreenBackground` on API 31+, and
+iOS `LaunchScreen.storyboard`) the same background colour, so there is no white
+flash before Flutter draws. Keep the logo animation, if any, to a short fade or
+scale-in, and skip it when `MediaQuery.disableAnimationsOf` is true.
+
+## Bounded launch and launch ads
 
 - Supply bounded `prepare`, optional `resolveAd`, and `onFinished` callbacks.
   Show recovery when required startup fails. A splash deadline is not proof

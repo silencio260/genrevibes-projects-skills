@@ -31,6 +31,35 @@ only when they ask for it by name.
 Check repeated finish taps, optional failures, completion persistence, upgraded
 installs, no-ad variants, and small-screen layout. Reuse the same controller in Kit Lab.
 
+## Reset must replay immediately
+
+A successful onboarding reset must take the user through the introductory flow
+again immediately, including when reset is initiated inside Kit Lab. Do not just
+clear a preference and wait for the next launch.
+
+- Use the runtime's initialized `OnboardingController` for both the root gate and
+  Kit Lab. Seed the root view from `isCompleted`, then listen to
+  `completionChanges`; do not keep a one-time completion read as the routing
+  authority.
+- On a `false` notification, close pushed settings/developer/dialog routes that
+  cover the root, switch the root to onboarding, and recreate its flow at page
+  zero (for example with a reset-generation key). A reset while already incomplete
+  must still restart the flow. Keep navigation in the host; the neutral kit must
+  not choose an app route or own product content.
+- The kit emits only after a successful persistence operation. A failed reset
+  leaves the current completion and route intact; show the operation's failure.
+  Completion emits `true` after saving. Let `OnboardingFlow.onFinished` finish
+  all configured actions before replacing a visible flow with the app shell; a
+  completion notification must not prematurely cancel later finish actions.
+  Dispose the root subscription without disposing a borrowed runtime controller.
+- Persist a current `false` when resetting. Do not remove the current completion
+  key when a migration adapter can read a legacy `true`, or the next launch can
+  silently restore completion. Preserve unrelated preferences and independent
+  feature tutorial progress.
+- Check reset from a nested Kit Lab page, reset while already incomplete, failed
+  persistence, completion after replay, and reopening a store with a legacy
+  completion. Follow the repository's opt-in rules for tests and device runs.
+
 ## Default look: one illustration per page
 
 Unless the owner asks for something else, every onboarding page is one

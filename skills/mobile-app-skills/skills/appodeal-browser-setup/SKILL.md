@@ -23,6 +23,7 @@ detailed material lives in other files; read the ones the task needs:
 | Which Appodeal adapters ship, and when | [portfolio network defaults](../../references/appodeal-network-defaults.md) |
 | Native host checklist (Gradle memory, Meta Infer rule, myTarget floor, minSdk…) | [ads](../ads/SKILL.md#native-host-setup-for-appodeal) |
 | Apps still on the old starter kit (`google_mobile_ads ^5`, no `genrevibes_ads` modules) | [legacy kit code](references/legacy-kit-code.md) |
+| Test ads in debug, live in release except on test devices; App Open plus Appodeal preloaded on the splash (7 s cap) | [App Open in the app](#app-open-in-the-app-test-ads-test-devices-and-the-splash) |
 
 ## Mistakes that must never happen again
 
@@ -161,6 +162,103 @@ Read the package name yourself from `applicationId` in
 > Rolling Launcher (7 Nov 2026) and again on PDF Reader (8 Nov 2026). Before
 > creating a property, check that the Monetization Manager URL contains
 > `app_id=<the developer app's id>`.
+
+## App Open in the app: test ads, test devices and the splash
+
+The owner's rules, from the PDF Reader request of 10 November 2026:
+
+- **Debug builds always get test ads** from both AdMob and Appodeal.
+- **Release builds get live ads, except on the owner's test devices**, which
+  get test ads in every build. The owner's phones are always test devices.
+- **Load ads on the splash.** Start the AdMob App Open load and Appodeal's
+  auction together, wait on the splash for them, and never hold the user
+  there longer than **7 seconds** in total. Show the App Open ad from the
+  splash, then continue.
+
+PDF Reader is the reference: `lib/shared/ads/ads_service.dart`,
+`lib/shared/ads/app_open_ad_manager.dart`, `lib/shared/ads/ad_ids.dart`,
+`android/.../AdTestDevice.kt` and
+`lib/features/onboarding/presentation/splash_screen.dart`.
+
+### Test devices
+
+A test-device id is the upper-case MD5 of the app's `ANDROID_ID`. Google
+Mobile Ads prints it in logcat as
+`Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("…"))`
+(only after a live request), and UMP prints the same value as
+`addTestDeviceHashedId("…")` on every consent check.
+
+- `ANDROID_ID` is per app signing key on Android 8+. The same phone has one id
+  for debug builds and another for release builds, and a different id for
+  every other app. Do not copy an id from another app's log line: on PDF Reader
+  the first `setTestDeviceIds` line in logcat belonged to a wallpaper app.
+  Filter logcat by the app's own process (`adb logcat -d --pid=<pid>`).
+- The app reads its own id through a small method channel (`AdTestDevice.kt`,
+  channel `pdf_editor/ads`, method `testDeviceId`) and logs
+  `Ads: test-device id <id> (listed|not listed)` at start-up, in release
+  builds too, so the release id can be copied once and added.
+- Keep the ids in `AdIds.testDeviceIds`, with the phone model and which
+  signing key each one is for. Remote Config `ad_test_device_ids`
+  (comma-separated) adds more without an app update; it applies from the
+  launch after the fetch.
+- At start-up: `testAds = !kReleaseMode || listed`. Call
+  `MobileAds.instance.updateRequestConfiguration(RequestConfiguration(testDeviceIds: …))`
+  **before** either SDK requests anything, so AdMob demand inside Appodeal is
+  covered too, then `Appodeal.setTesting(testAds)`, and give the App Open
+  manager Google's test unit (`ca-app-pub-3940256099942544/9257395921`)
+  whenever `testAds` is true. The live unit, or the Remote Config
+  `app_open_ad_id` override, is used only when `testAds` is false.
+
+### Start-up order
+
+1. Run `AdsService.initialize` straight after `runApp` without awaiting it.
+2. Set the test devices, then start `MobileAds.instance.initialize()` and
+   `Appodeal.initialize` **at the same time**. Do not start AdMob inside
+   Appodeal's `onInitializationFinished`: on PDF Reader that ordering put the
+   App Open request about 8 seconds after launch, past the splash, so no
+   launch ad ever showed.
+3. Consent: call `ConsentInformation.instance.canRequestAds()`. When consent
+   saved by an earlier launch already allows ads, load the App Open ad as soon
+   as AdMob has initialized. Otherwise (first launch, or consent still
+   needed), load it in Appodeal's `onInitializationFinished`, after Appodeal's
+   consent form. This is Google's recommended pattern; never request before
+   consent where consent is required.
+4. Appodeal caches interstitials itself after `initialize`. Use
+   `onInterstitialLoaded` / `onInterstitialFailedToLoad` only to tell the
+   splash that the first auction has settled.
+
+### Splash
+
+- The kit's `SplashFlow` bounds `prepare` by `maxWait`. Set
+  `maxWait: Duration(seconds: 7)` and, after the app's own launch work in
+  `prepare`, await `AdsService.waitForLaunchAds()`, which completes when the
+  App Open ad and the first Appodeal interstitial have each loaded or failed.
+  A timeout there is normal and does not block navigation.
+- In `onFinished`, if an App Open ad is ready, the app is resumed and policy
+  allows it, show it over the splash and navigate only after it closes
+  (`AdsService.showLaunchAppOpen()`). Never wait for an ad after the deadline,
+  and never show a launch ad that arrives later over the home screen; keep it
+  for the next return to the app.
+- First launch: skip the wait and the launch ad so onboarding comes first.
+  The ad still preloads for later.
+- The App Open manager no longer shows anything by itself on cold start. Its
+  foreground listener only handles returns to the app, with
+  `skipNextResume()` around pickers, share sheets and ad clicks.
+
+### Diagnosing "no App Open ads"
+
+The manager logs every step as `App Open ad: …` (loading with the unit and
+whether it is test or live, loaded, failed with code, shown, or not shown and
+why: developer switch, Remote Config `should_show_app_open_ad`,
+`min_app_open_ad` pacing, another full-screen ad, no ad ready). If none of
+those lines appear, the load never started: check `ads_enabled`, the
+developer ad switches, and that `AdsService.initialize` ran.
+
+Also check UMP. On PDF Reader logcat showed `Publisher misconfiguration: …
+no form(s) configured for the input app ID`: the AdMob app had no GDPR
+message under **Privacy & messaging**. Users in the EEA/UK then get no consent
+form, and AdMob serves them limited or no ads. The owner creates the message
+in AdMob; it is a dashboard task, not code.
 
 ## Final report
 

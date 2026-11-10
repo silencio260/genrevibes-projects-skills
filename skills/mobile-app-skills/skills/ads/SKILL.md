@@ -24,7 +24,11 @@ It also covers apps still on the old starter kit (`google_mobile_ads ^5`).
 4. Follow [consent](../gdpr-compliance/SKILL.md): consent runs first, but failure
    or timeout lets ads initialization continue.
 5. Follow [developer access](../developer-access/SKILL.md) for initial test mode
-   and changes. Check provider health before requesting inventory.
+   and changes. Check provider health before requesting inventory. Debug
+   builds get test ads; release builds get live ads except on the owner's
+   listed test devices. Test-device ids, and AdMob App Open preloading on the
+   splash, are in
+   [App Open in the app](../appodeal-browser-setup/SKILL.md#app-open-in-the-app-test-ads-test-devices-and-the-splash).
 6. Apply shared premium, suppression, pacing, and developer-switch rules before
    load and show. Inline views need the same eligibility as full-screen ads.
 7. Cancel event listeners and dispose providers with the runtime.

@@ -56,6 +56,10 @@ scale-in, and skip it when `MediaQuery.disableAnimationsOf` is true.
   when the product uses launch ads. Do not show another interstitial on Home entry.
 - Use the configured `maxWait` for the flow; avoid unbounded stream waits in
   preparation. Navigate once and only while the widget is mounted.
+- Apps with Appodeal plus a direct AdMob App Open ad (PDF Reader): start both
+  SDKs together, wait for both in `prepare` under a 7-second `maxWait`, and
+  show the App Open ad from `onFinished`. Follow
+  [App Open in the app](../appodeal-browser-setup/SKILL.md#app-open-in-the-app-test-ads-test-devices-and-the-splash).
 
 A remote key can select only a provider already integrated in the binary. Read
 current network/store placement rules when introducing or changing launch ads.

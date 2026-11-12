@@ -208,6 +208,44 @@ Mobile Ads prints it in logcat as
   manager Google's test unit (`ca-app-pub-3940256099942544/9257395921`)
   whenever `testAds` is true. The live unit, or the Remote Config
   `app_open_ad_id` override, is used only when `testAds` is false.
+- **The advertising ID (GAID on Android, IDFA on iOS) is not the in-code
+  id.** When the owner says "configure my IDFA/advertising ID", do both:
+  list the phone's upper-case MD5 of ANDROID_ID in the app (above), and ask
+  the owner to add the advertising ID under AdMob › Settings › Test devices
+  (owner's browser step). The console entry covers every app and build on that
+  phone for AdMob demand, but not Appodeal's other networks, so the in-code
+  list is still required. The phone shows its advertising ID under Settings ›
+  Google › All services › Ads.
+
+#### Starter-kit apps (DeveloperAdSwitches)
+
+Apps built on the GenRevibes starter kit keep the kit's developer switches and
+add the owner's test phones on top (Lunaris Network is the reference:
+`lib/features/ads/ad_test_device.dart`, wired in `lib/bootstrap/app_bootstrap.dart`):
+
+- `AdTestDevice.resolve` reads ANDROID_ID through the app's existing device
+  channel, hashes it, and merges three lists: the `hardcoded` map in code
+  (`ID: phone, signing key`), the `test_device_ids` build define, and Remote
+  Config `ad_test_device_ids` (registered in the app's schema). It prints
+  `Ads: test-device id <id> (listed|not listed)` in every build.
+- Test mode for both providers, at construction and on every developer-access
+  or switch change:
+  `AppEnv.testAdsForBuild || adTestDevice.isListed || developerAdSwitches.servesTestAds`.
+  `testAdsForBuild` is true for debug and `development_mode` builds unless the
+  run passes `ads_live_diagnostics`, so a remembered "Real ads" switch on the
+  phone can never put a debug build on live inventory.
+- Pass every listed id as `GenRevibesAdMobConfiguration.testDeviceIds`; the
+  AdMob adapter sets `RequestConfiguration` before `MobileAds.initialize`.
+- **First launch:** when the owner wants the App Open ad on a new install's
+  very first splash, start the kit's deferred modules (consent, AdMob, Appodeal)
+  right away instead of after the language picker, and gate it on
+  `splash_ad_on_first_launch` (code default `true`; a fresh install has no
+  cached Remote Config, so the default decides that launch).
+- **Consent outside the EEA:** Appodeal's consent step can fail with "no
+  form configured" and leave the kit's `ConsentGate` degraded with
+  `canRequestAds` false. Do not require `ModuleState.ready` for the launch ad;
+  fall back to `ConsentInformation.instance.canRequestAds()` from Google UMP,
+  which allows ads where consent isn't required and blocks them where it is.
 
 ### Start-up order
 

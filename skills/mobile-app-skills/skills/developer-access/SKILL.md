@@ -139,7 +139,7 @@ in Settings. Do not persist a successful passcode grant as a permanent premium f
 |---|---|
 | Lab entry and developer pages | `allows(DeveloperAction.diagnostics)`; keep built-in page guards. |
 | Simulated premium | `allows(DeveloperAction.premiumSimulation)` each time access is derived. |
-| Ad provider at construction | Initial test mode from `DeveloperAdSwitches.servesTestAds` (and any app run flag). |
+| Ad provider at construction | Initial test mode from `DeveloperAdSwitches.servesTestAds`, OR debug/development build, OR the owner's listed test phone ([test devices](../appodeal-browser-setup/SKILL.md#starter-kit-apps-developeradswitches)). |
 | Later ad-mode changes | `AdTestModeProvider.setTestMode` on access changes and switch changes; preserve Appodeal relaunch limitation. |
 | Inline/load/show placement | Shared `DeveloperAdSwitches.allows(format)` plus other ad eligibility. |
 | Hidden entry | `DeveloperUnlockGesture` and its theme/mask hooks. |

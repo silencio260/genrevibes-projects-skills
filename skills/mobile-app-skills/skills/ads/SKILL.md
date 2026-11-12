@@ -291,6 +291,14 @@ Consent failure should not leave another app-level wait behind. Appodeal can
 withhold inventory after a mid-session mode change until relaunch; that is not
 ordinary no-fill. Use the Lab's live values before adding duplicate load calls.
 
+### Investigating a high click-through rate
+
+Before saying an app's CTR is too high, calling it invalid traffic, or moving
+placements because of it, follow
+[ad CTR investigation](../ad-ctr-investigation/SKILL.md). It splits clicks by
+network and ad type in Appodeal, times each click in Mixpanel, and records the
+November 2026 Gravity Rolling Launcher baseline.
+
 ## Yodo1 MAS
 
 `genrevibes_ads_yodo1` wraps the official `yodo1_mas_flutter_plugin`. MAS is a

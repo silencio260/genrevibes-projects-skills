@@ -18,6 +18,12 @@ keep the scope narrow and preserve useful existing translations.
 
 ## Portfolio ownership and readiness
 
+- Adding translations or language selection also applies the
+  [default first-use order](../onboarding/SKILL.md#default-first-use-order):
+  splash → language selector → onboarding → available paywall → main app,
+  unless the owner specifies otherwise. Apply the saved language before the
+  introduction. Preserve completion for existing installs and offer language
+  changes in Settings as well as first use.
 - Reusable locale matching, preference state/persistence, device-following,
   region selection and picker structure belong in the starter kit. The shared
   package availability depends on the app's installed kit revision. Inspect the

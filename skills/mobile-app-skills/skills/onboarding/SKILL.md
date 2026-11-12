@@ -8,6 +8,31 @@ description: "Build the onboarding screens: one real illustration image per page
 Use `OnboardingController` for persisted completion and `OnboardingFlow` for UI.
 The app supplies pages, artwork, labels, layout, and destination.
 
+## Default first-use order
+
+Unless the owner specifies otherwise, a translated app or an app with language
+selection uses this order:
+
+**Splash screen → language selector → onboarding → paywall (when available) → main app.**
+
+- Apply this order when adding translations or a language selector to an
+  existing app, and when adding a paywall later. Keep the language selector
+  immediately after the first splash and before the illustrated introduction.
+- Save and apply the selected language before continuing, so onboarding and any
+  paywall use it. Offer the device language and only enabled, compatible locales.
+  Keep Country/region independent; choosing a language must not force a country.
+- Use a clear continue action. A failed language save retains the confirmed
+  preference, shows a localized error, and leaves the selector usable for retry.
+- When a paywall is available, open it after onboarding finishes or is skipped,
+  then enter the main app after its actual close/result. Use the existing IAP
+  provider and entitlement state; already-entitled users skip the purchase offer.
+  An absent, disabled or unavailable optional paywall must not trap first use.
+  See [paywall](../paywall/SKILL.md) for cancellation and failure handling.
+- Existing completed installs keep their saved completion and language and
+  normally go from splash to the main app. Adding translations or a paywall
+  alone must not silently reset onboarding. An explicit onboarding replay starts
+  at the language selector and follows the same order, preserving saved choices.
+
 When the owner asks for an onboarding screen, they mean illustrated pages: one
 real illustration image per page, as described in
 [default look](#default-look-one-illustration-per-page). Build anything else
@@ -42,8 +67,8 @@ clear a preference and wait for the next launch.
   `completionChanges`; do not keep a one-time completion read as the routing
   authority.
 - On a `false` notification, close pushed settings/developer/dialog routes that
-  cover the root, switch the root to onboarding, and recreate its flow at page
-  zero (for example with a reset-generation key). A reset while already incomplete
+  cover the root, restart the first-use sequence above, and recreate onboarding
+  at page zero (for example with a reset-generation key). A reset while already incomplete
   must still restart the flow. Keep navigation in the host; the neutral kit must
   not choose an app route or own product content.
 - The kit emits only after a successful persistence operation. A failed reset

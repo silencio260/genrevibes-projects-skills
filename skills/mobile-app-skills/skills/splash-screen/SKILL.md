@@ -8,6 +8,12 @@ description: "Build the splash screen: minimal, just the app logo, name and a lo
 Use `SplashFlow` and `SplashLoadingView` for launch presentation. The app owns
 startup and destination selection; see [runtime setup](../runtime-setup/SKILL.md).
 
+For translated apps or apps with language selection, follow the
+[default first-use order](../onboarding/SKILL.md#default-first-use-order):
+splash → language selector → onboarding → available paywall → main app, unless
+the owner specifies otherwise. Returning completed installs keep their normal
+splash-to-app route; adding translations does not reset completion.
+
 ## Default look: logo, name and a loading bar
 
 Unless the owner asks for something else, keep the splash minimal: the app

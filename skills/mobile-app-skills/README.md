@@ -30,6 +30,12 @@ options and store assets. Package availability depends on the installed kit
 revision; inspect current APIs rather than treating the dated rollout baseline
 as the current inventory. Expose locales only after their readiness checks pass.
 
+For translated apps or apps with language selection, the default first-use order
+is **splash → language selector → onboarding → paywall (when available) → main
+app**, unless the owner specifies otherwise. Apply this when translating an app,
+adding language selection or adding a paywall later. See the
+[onboarding rules](skills/onboarding/SKILL.md#default-first-use-order).
+
 - [Create an app](projects/new/SKILL.md)
 - [Adopt a feature in an existing app](projects/refactor/SKILL.md)
 - [Upgrade the kit](projects/kit-upgrade/SKILL.md)

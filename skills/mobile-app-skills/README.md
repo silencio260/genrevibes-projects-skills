@@ -73,6 +73,7 @@ panel implementation is needed for each app.
 | [replace-provider](projects/replace-provider/SKILL.md) | Replace a kit provider adapter while preserving the shared feature interface. |
 | [ads](skills/ads/SKILL.md) | Configure staged portfolio Appodeal network defaults and connect ad placements with premium, consent, test-mode, and pacing rules. |
 | [ad-ctr-investigation](skills/ad-ctr-investigation/SKILL.md) | Investigate a high ad click-through rate: split clicks by network and format, time each click, and research the network before blaming placements or calling it invalid traffic. |
+| [appodeal-browser-setup](skills/appodeal-browser-setup/SKILL.md) | Create an app's AdMob, Appodeal and Meta (FAN) entries in the owner's browser, link Meta to Appodeal, and wire Appodeal plus AdMob App Open into the app. |
 | [analytics](skills/analytics/SKILL.md) | Connect selected analytics sinks, shared events, identity, and collection settings. |
 | [analytics-extension-layer](skills/analytics-extension-layer/SKILL.md) | Add typed app-specific analytics methods on top of the shared pipeline. |
 | [android-mediation-optimization](skills/android-mediation-optimization/SKILL.md) | Improve release DEX scores by auditing Appodeal/bridge consumer rules while preserving enabled networks. |
@@ -108,7 +109,7 @@ panel implementation is needed for each app.
 | [logging](skills/logging/SKILL.md) | Connect structured kit logs and the shared Kit Lab recorder. |
 | [navigation](skills/navigation/SKILL.md) | Connect kit screens and external actions to the app router. |
 | [offline-caching](skills/offline-caching/SKILL.md) | Add feature-specific caching and offline behavior without duplicating kit storage. |
-| [onboarding](skills/onboarding/SKILL.md) | Build a shared onboarding flow with app content, completion state, and optional actions. |
+| [onboarding](skills/onboarding/SKILL.md) | Build onboarding as illustrated pages (one real illustration per page, found online or generated), with completion state and optional actions. |
 | [tutorials](skills/tutorials/SKILL.md) | Build reusable in-app tutorials, feature walkthroughs and spotlight guides with independent progress and app-owned content/actions. |
 | [paywall](skills/paywall/SKILL.md) | Present hosted or app-owned paywalls using the existing IAP provider. |
 | [permissions](skills/permissions/SKILL.md) | Request and recheck app permissions through the kit permission coordinator. |
@@ -121,7 +122,7 @@ panel implementation is needed for each app.
 | [session-replay](skills/session-replay/SKILL.md) | Configure shared replay rollout, masking, overrides, and SDK recording state. |
 | [settings](skills/settings/SKILL.md) | Build app settings from shared kit rows and app-owned state and callbacks. |
 | [shorebird](skills/shorebird/SKILL.md) | Prepare Shorebird releases and patches for an explicitly selected app version. |
-| [splash-screen](skills/splash-screen/SKILL.md) | Use the kit splash flow for bounded launch presentation and optional launch ads. |
+| [splash-screen](skills/splash-screen/SKILL.md) | Build a minimal splash (logo, name, loading bar) on the kit splash flow, with bounded launch and optional launch ads. |
 | [storage-migration](skills/storage-migration/SKILL.md) | Preserve saved state when replacing copied app code with kit modules. |
 | [theming](skills/theming/SKILL.md) | Apply the app theme to shared kit UI without copying another app brand. |
 | [tracking-retention](skills/tracking-retention/SKILL.md) | Reuse retention history, milestones, and targeting rules from genrevibes_engagement. |

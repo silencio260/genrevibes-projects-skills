@@ -8,6 +8,11 @@ description: "Configure staged portfolio Appodeal network defaults and connect a
 Use `genrevibes_ads` for shared contracts and policy. Appodeal is the current
 portfolio recipe; keep a different provider when the app deliberately uses one.
 
+When the owner asks you to create the AdMob, Appodeal or Meta dashboard entries
+in their browser, link Meta to Appodeal, or add AdMob App Open next to
+Appodeal, follow [Appodeal setup in the owner's browser](../appodeal-browser-setup/SKILL.md).
+It also covers apps still on the old starter kit (`google_mobile_ads ^5`).
+
 1. Declare app-owned `AdPlacement` IDs and supported formats. Add the chosen
    provider adapter, plus its UI package only where needed.
 2. Read the adapter README and installed vendor plugin's native setup. Match
@@ -19,7 +24,11 @@ portfolio recipe; keep a different provider when the app deliberately uses one.
 4. Follow [consent](../gdpr-compliance/SKILL.md): consent runs first, but failure
    or timeout lets ads initialization continue.
 5. Follow [developer access](../developer-access/SKILL.md) for initial test mode
-   and changes. Check provider health before requesting inventory.
+   and changes. Check provider health before requesting inventory. Debug
+   builds get test ads; release builds get live ads except on the owner's
+   listed test devices. Test-device ids, and AdMob App Open preloading on the
+   splash, are in
+   [App Open in the app](../appodeal-browser-setup/SKILL.md#app-open-in-the-app-test-ads-test-devices-and-the-splash).
 6. Apply shared premium, suppression, pacing, and developer-switch rules before
    load and show. Inline views need the same eligibility as full-screen ads.
 7. Cancel event listeners and dispose providers with the runtime.

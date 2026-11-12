@@ -22,6 +22,16 @@ therefore has **no App Secret anywhere**. Appodeal will not save the App ID
 without the Secret, so the property was unusable and the work had to be redone
 against a new app. Meta cannot delete a property, so the dead one stays.
 
+It happened again on PDF Reader on 8 November 2026. That time the property was
+created with the *Create property* button on Monetization Manager's home page,
+with no developer app at all. Meta minted Audience Network app id
+`3806862216133719`, and `developers.facebook.com/apps/3806862216133719/` redirects
+to the app list. Saving in Appodeal then failed, but adding the three bidding
+ad units still succeeded, so the link looked finished when it was not. Treat
+any property whose app id has no developers.facebook.com page as orphaned. The
+browser steps are in
+[Appodeal setup in the owner's browser](../skills/appodeal-browser-setup/references/browser-runbook.md).
+
 Appodeal's rule makes the requirement explicit: "If the first part of the
 placement ID does not match the app ID, Meta Audience Network won't work."
 Meta placement IDs are `<app id>_<placement id>`, so the App ID entered in
@@ -43,7 +53,13 @@ before the underscore.
 5. From the new app: **Use cases > Customize > Audience Network > Go to
    Monetization Manager**. Confirm the opened URL carries `app_id=<new app id>`.
    If it does not, stop; the property will be orphaned.
-6. **Create property**, named after the app. This accepts the Meta Audience
+6. **Gate before creating the property.** Both checks must pass. The current
+   Monetization Manager URL contains `app_id=<new app id>`, and
+   `https://developers.facebook.com/apps/<new app id>/settings/basic/` opens
+   with an *App secret* field. Never use the *Create property* button on
+   Monetization Manager's home page or properties list. It is not tied to a
+   developer app; that is how PDF Reader's orphan was made.
+   **Create property**, named after the app. This accepts the Meta Audience
    Network Policy, Terms and platform policy.
 7. **Add** the Android app to the property. Check the URL again for
    `app_id=<new app id>`.

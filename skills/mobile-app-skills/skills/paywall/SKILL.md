@@ -21,8 +21,16 @@ Return the actual paywall outcome to the caller. Refresh access from the shared
 entitlement snapshot; do not unlock solely because the paywall closed. Keep
 pending payment separate from success and show a restore error when it fails.
 
-The app chooses when to show a paywall. Onboarding and Settings should call the
-same integration. An optional paywall failure must not trap onboarding.
+Unless the owner specifies otherwise, a first-use paywall follows the
+[default onboarding order](../onboarding/SKILL.md#default-first-use-order):
+splash → language selector (for translated apps or apps with language selection)
+→ onboarding → available paywall → main app. Adding a paywall later must preserve
+this order; do not put it before language selection or the introduction. Keep
+existing completed installs completed unless a replay is explicitly requested.
+Onboarding and Settings call the same integration. Already-entitled users skip
+the offer, and an absent, disabled or unavailable optional paywall must not trap
+onboarding. Closing or skipping the offer continues to the main app without
+claiming a purchase succeeded.
 Record display/action events once without duplicating provider purchase events.
 
 Check cancelled, pending, purchased, restored, missing products, and failure UI.

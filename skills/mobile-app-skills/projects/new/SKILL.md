@@ -49,6 +49,11 @@ as it becomes available, and enable only reviewed, compatible locales. Include
 independent language/region settings and localized store copy/graphics in the
 delivery plan; do not claim the proposed kit package already exists.
 
+Follow the [default first-use order](../../skills/onboarding/SKILL.md#default-first-use-order):
+splash → language selector → onboarding → available paywall → main app, unless
+the owner specifies otherwise. Keep the same order when adding translations,
+language selection or a paywall to the app later.
+
 For an Appodeal app, apply the
 [staged network default](../../references/appodeal-network-defaults.md): configure
 BidMachine/Bidon first, verify actual test and live serving, then enable the

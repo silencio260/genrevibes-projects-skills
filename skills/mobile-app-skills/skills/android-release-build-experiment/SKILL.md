@@ -230,6 +230,12 @@ Two fixes from that day are worth keeping in any app that shrinks resources:
   with `tools:keep="@drawable/*,@mipmap/launcher_icon"`. Resource shrinking cannot
   see Dart strings, so a notification icon named as text can be deleted and
   notifications then silently stop appearing.
+  **With Google sign-in, also keep `@string/default_web_client_id`.**
+  `google_sign_in_android` reads it with `getIdentifier()`, so the shrinker
+  removes it from release builds only. Sign-in then fails before reaching Google
+  (`clientConfigurationError`, no `serverClientId`) while debug builds work
+  (Lunaris Network, 13 Nov 2026). Check with
+  `aapt2 dump resources <base-master.apk> | grep default_web_client_id`.
 - **Bump the build number for each Shorebird release.** Shorebird refuses a second
   release for a version it already has: "It looks like you have an existing android
   release for version X. Please bump your version number and try again." Deeper

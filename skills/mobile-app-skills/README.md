@@ -141,6 +141,9 @@ panel implementation is needed for each app.
   handling, release shrinking and Shorebird toolchain compatibility.
 - [Live ads in debug](references/live-ads-debugging.md): the live diagnostic
   Flutter command, current USB/wireless device selection and SDK mode verification.
+- [app-ads.txt authorization](references/appodeal-app-ads-txt.md): why the
+  networks on our own account send zero bids while Appodeal's keep serving, how
+  to tell absent demand from losing demand, and hosting the file on Firebase.
 - [Commit policy](../commit-policy/SKILL.md)
 - [Firebase Gen 2 HTTP auth](../firebase-functions-v2-auth/SKILL.md)
 - [Environment keys](references/environment-keys.md)

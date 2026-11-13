@@ -236,6 +236,7 @@ Two fixes from that day are worth keeping in any app that shrinks resources:
   (`clientConfigurationError`, no `serverClientId`) while debug builds work
   (Lunaris Network, 13 Nov 2026). Check with
   `aapt2 dump resources <base-master.apk> | grep default_web_client_id`.
+  The full Google sign-in setup is in [auth](../auth/SKILL.md#google-sign-in-on-android-with-firebase).
 - **Bump the build number for each Shorebird release.** Shorebird refuses a second
   release for a version it already has: "It looks like you have an existing android
   release for version X. Please bump your version number and try again." Deeper

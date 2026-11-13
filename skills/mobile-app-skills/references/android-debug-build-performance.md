@@ -215,6 +215,8 @@ Protect resources referred to by name only from Dart, such as notification
 icons, in `android/app/src/main/res/raw/keep.xml`. Story Saver keeps
 `@drawable/*,@mipmap/launcher_icon` because it has few drawables; another app
 should keep its actual named resources rather than all large asset collections.
+An app with Google sign-in must also keep `@string/default_web_client_id`; see
+[auth](../skills/auth/SKILL.md#google-sign-in-on-android-with-firebase).
 Keep required consumer/ProGuard rules from the SDKs. For missing classes, inspect
 R8's `missing_rules.txt`: use targeted `-dontwarn` for genuinely optional
 references, and add/fix a dependency when a required runtime class is missing.

@@ -57,7 +57,7 @@
             "value": "0"
           },
           "valueType": "NUMBER",
-          "description": "Minimum seconds between paced app-open ads."
+          "description": "Keep 0. App Open has no minimum time before or between showings; time-based spacing is for interstitials only."
         },
         "should_show_app_open_ad": {
           "defaultValue": {

@@ -288,7 +288,9 @@ add the owner's test phones on top (Lunaris Network is the reference:
 The manager logs every step as `App Open ad: …` (loading with the unit and
 whether it is test or live, loaded, failed with code, shown, or not shown and
 why: developer switch, Remote Config `should_show_app_open_ad`,
-`min_app_open_ad` pacing, another full-screen ad, no ad ready). If none of
+`min_app_open_ad`, another full-screen ad, no ad ready). `min_app_open_ad`
+must stay `0`: App Open has no minimum time before or between showings (see
+[App Open timing](../ads/SKILL.md#app-open-timing)). If none of
 those lines appear, the load never started: check `ads_enabled`, the
 developer ad switches, and that `AdsService.initialize` ran.
 

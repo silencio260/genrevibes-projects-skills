@@ -242,6 +242,70 @@ A view can load internally, so disabling only a full-screen show button is not
 an ad-free implementation. Apply the same app eligibility to banner/native
 `enabled` and any preload job. Do not load inventory for a known premium user.
 
+### App Open timing
+
+The owner's rule (November 2026): **App Open has no minimum time before or
+between showings.** Time-based spacing is for interstitials only.
+
+- Do not put App Open under an interstitial cooldown, a full-screen interval
+  shared with interstitials, or a "minimum time away" before a return may
+  show it.
+- Showing App Open must not start the interstitial cooldown either.
+- Keep the Remote Config key `min_app_open_ad` at `0`. Interstitial spacing
+  belongs in `min_insta_ad_interval` and `time_before_first_insta_ad`.
+- Rewarded ads are opt-in and are not spaced out either.
+- What still stops App Open: another full-screen ad already on screen (the
+  kit's display lock), premium, the developer switches,
+  `should_show_app_open_ad`, consent, and returns from a task the app itself
+  started (pickers, share sheets, unlock prompts, system screens, ad clicks).
+
+Gravity Rolling Launcher broke this rule before it was written down: its
+`LauncherAds` applied one 45-second cap to interstitial, rewarded and App Open,
+and its App Open on return needed 30 seconds away. Both were removed. The
+45-second cap (`LauncherAds.fullScreenInterval`) now covers interstitials only.
+
+Interstitials keep their time rules. They wait after the app starts before the
+first one may show, and are spaced out after that:
+
+| Rule | Where | Gravity value |
+|---|---|---|
+| Wait before the first interstitial | Remote Config `time_before_first_insta_ad` (kit `AdPlacementPolicy.initialDelay`) | 7 s (owner's choice, November 2026; tune in Remote Config) |
+| Kit spacing between interstitials | Remote Config `min_insta_ad_interval` | 10 s |
+| App spacing between interstitials | `LauncherAds.fullScreenInterval` | 45 s |
+
+The first-interstitial wait counts from when the ad policy was created, which
+is when the app process starts; the kit's `AdPolicyController.startSession()`
+would restart it, but Gravity does not call it. A launcher's process stays
+alive for days, so in practice the wait applies after a cold start only.
+
+Changing a value in `config/remote_config.json` changes the default built into
+the app. A value published in Firebase Remote Config overrides it, so publish
+the same value there (the user's request is needed; see
+[remote config](../remote-config/SKILL.md)).
+
+### App Open in a launcher
+
+A launcher that is the default home app is resumed on every Home press, and
+Play's Ads policy lists "ads that are triggered by the home button" as
+disruptive. In a launcher:
+
+- Show no App Open when the home screen appears while the app is the default
+  launcher. That includes a cold start, which is also a Home press.
+- When it is not the default, opening it is an ordinary app launch. Show App
+  Open on the launch splash with the portfolio splash rule (load on the
+  splash, at most 7 seconds). In Gravity this is `DefaultLauncherGate`. Treat
+  an unknown default status as "default": a wrong "not default" puts the ad
+  on a Home press. Gravity reads it with `LauncherService.defaultLauncherStatus()`,
+  which returns null when Android cannot be asked.
+- Mini apps inside the launcher (Gravity's privacy tools) may show App Open on
+  entry and on return.
+- Skip returns from tasks the app started. Gravity marks them with
+  `AppOpenReturnGuard` (`lib/core/ads/app_open_return_guard.dart`) around its
+  `LauncherService` system screens, the privacy tools' native steps (unlock,
+  configure, import, export, migrate) and ad clicks.
+- Never show App Open when the user opens Settings, wallpaper, widgets or
+  another page of the home screen. Those are navigations the user chose.
+
 ### Native event ownership
 
 Use one `ads.events` subscription for provider events. Native UI has app-wide

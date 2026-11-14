@@ -25,6 +25,30 @@ When creating an app or changing a command, script, environment profile,
 entrypoint, flavor, native build setting or toolchain pin that affects a recipe,
 update the relevant commands in both files in the same change.
 
+## Recipes every Android app must document
+
+Besides run and build commands, each Android app's `README.md` and
+`docs/commands.md` must contain, with app-specific values:
+
+1. **Shorebird release and patch** recipes, when the app uses Shorebird
+   ([shorebird](../shorebird/SKILL.md)).
+2. **Install a release bundle on a device with `bundletool`**: the exact AAB on
+   disk, converted with Shorebird's cached jar
+   (`$HOME/.shorebird/bin/cache/artifacts/bundletool/bundletool.jar`), signed
+   with the app's key through private password files.
+3. **Install an uploaded release with `shorebird preview`**: for a release
+   already on Shorebird, with `--release-version`, `--device-id` and the
+   signing flags.
+4. **Inspect release DEX optimization**: `python3 tool/check_dex_optimization.py
+   <aab>` against the exact bundle that will be uploaded
+   ([android-mediation-optimization](../android-mediation-optimization/SKILL.md)).
+
+Copy the wording and templates from
+[required recipes](references/required-recipes.md), and the checker script
+from [tools/check_dex_optimization.py](references/tools/check_dex_optimization.py)
+when the app lacks one. When auditing an app's command docs, a missing item
+here is a gap to fill, not an optional extra.
+
 ## Derive recipes from the app
 
 Inspect the app's existing README/docs, package scripts, tool entrypoints,

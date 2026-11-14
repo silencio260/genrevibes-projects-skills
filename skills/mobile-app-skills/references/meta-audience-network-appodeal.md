@@ -130,7 +130,11 @@ dashboard wiring:
   Basic settings.
 - **An app-ads.txt** carrying the Meta Business Manager ID, published on the
   developer site. Appodeal generates it at Mediation Setup > App-ads.txt with
-  `Publisher_ID` and `Business_ID` placeholders that must be replaced.
+  `Publisher_ID` and `Business_ID` placeholders that must be replaced. The same
+  file gates AdMob, and leaving the placeholders in place is the usual reason
+  both networks send zero bids while the rest of the waterfall serves normally:
+  see [app-ads.txt authorization](appodeal-app-ads-txt.md) for the diagnosis,
+  where to find each id and how to host the file.
 - **BidMachine enabled with its adapter present**, and Appodeal SDK 2.10.3+.
 
 Report these as pending rather than treating a completed link as live demand.

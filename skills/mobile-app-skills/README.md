@@ -142,7 +142,8 @@ panel implementation is needed for each app.
   measured Lunaris results and remaining verification limits.
 - [Portfolio Appodeal network defaults](references/appodeal-network-defaults.md):
   start with BidMachine/Bidon, verify test and live serving, then enable the
-  17-adapter preset and five bridges; leave nine adapters for manual activation.
+  17-adapter preset and seven bridges, including Google/Meta for MAX; leave nine
+  adapters for manual activation.
 - [Android debug build performance](references/android-debug-build-performance.md):
   recorded daemon, cache, memory and repository settings, shared SDK/bridge
   handling, release shrinking and Shorebird toolchain compatibility.

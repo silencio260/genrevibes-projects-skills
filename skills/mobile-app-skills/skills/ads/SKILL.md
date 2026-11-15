@@ -161,8 +161,9 @@ For portfolio Appodeal apps, follow
 [portfolio network defaults](../../references/appodeal-network-defaults.md):
 start a new integration with **BidMachine and Bidon**, verify SDK startup plus
 ad load/display/impression in **test and live modes**, then enable the full
-**17-adapter preset** and its five recorded mediation bridges. The other nine
-adapters stay commented until the owner manually activates them after account,
+**17-adapter preset** and its seven mediation bridges, including Google and Meta
+for MAX. The other nine adapters stay commented until the owner manually
+activates them after account,
 approval or eligibility requirements are met. Preserve the enabled setup of a
 working existing app; do not restart its integration at stage 1.
 
@@ -220,7 +221,7 @@ cutting 26 adapters to 15 removed 15% of the app's
 classes, which was the difference between R8 running out of a 4 GB heap and
 completing a full shrink, and took the phone download from about 57 MB to
 42.8 MB. Those results describe the September setup, not the current 17-adapter
-preset with five bridges. Follow the current staged default for new apps and
+preset with seven bridges. Follow the current staged default for new apps and
 diagnose duplicate dependencies or the failing release task before dropping a
 default network. Any deliberate change to the owner's preset must retain its
 reason in the dependency comments.
@@ -363,6 +364,47 @@ requested versus SDK test mode, supported format, load result, and readiness.
 Consent failure should not leave another app-level wait behind. Appodeal can
 withhold inventory after a mid-session mode change until relaunch; that is not
 ordinary no-fill. Use the Lab's live values before adding duplicate load calls.
+
+### Diagnosing a missing network in Appodeal
+
+First identify the app, bundle, property, date range, time zone, app version,
+format and serving engine. Check default Appodeal and custom MAX/LevelPlay
+groups separately. An enabled all-country group or a generic "not connected"
+banner alone does not establish which route served a specific request.
+
+1. Split the network's own report by ad unit and app version. Direct AdMob
+   App Open revenue proves only that unit serves. It does not prove AdMob is
+   called through Appodeal. An Appodeal unit named `admob_bidding` can legitimately
+   map to a standard AdMob unit using an Appodeal custom-event mediation group;
+   do not replace it with a partner-bidding unit just because of its name.
+2. Compare requests, bid responses, winning-bid ad requests, loads and impressions
+   as different stages. Appodeal network requests are not Meta bid requests;
+   Meta can receive many auction invitations but only load a winning bid.
+   Zero revenue/impressions alone does not show whether the network was called.
+3. If the network has no requests, inspect per-format account/unit enablement,
+   waterfall inclusion, active routing, SDK initialization and load errors.
+   Do not call it "losing bids" or "low fill" without evidence of requests.
+4. If Meta receives requests but returns few bids, inspect its No Bid Reasons
+   for the exact property, placement and reporting window. A valid response
+   proves that part of the route worked; it does not prove all formats/devices
+   work. An empty reason report leaves the reason unknown. Historical bids do
+   not establish current onboarding status; "Data missing" is not a measured zero.
+5. Inspect consent state and errors without weakening consent or child/privacy
+   settings. App-level fail-open initialization does not make a network accept
+   an unresolved consent signal. `unknown` is evidence to investigate, not proof
+   it caused no fill. Match real AdMob app IDs and units in the packaged manifest;
+   a debug build using Google's sample app ID is not a production AdMob check,
+   even if another switch requests live Appodeal inventory.
+6. Compare the installed artifact with source dependencies. Missing MAX bridges
+   affect the MAX route, not the independent default Appodeal route. Verify each
+   route with a device's initialization/load errors or Appodeal's request trace
+   before reporting its root cause or claiming a fix restored serving.
+
+When logs or a backend trace are unavailable, state exactly which stage is
+confirmed and which error/reason is missing. Do not relabel an unrelated SDK
+addition as the solution to a default-mediation problem. Use the
+[network/engine matrix](../../references/appodeal-network-defaults.md#google-and-meta-require-a-bridge-for-each-mediation-engine)
+to check dependencies. Keep secrets out of reports and logs shared externally.
 
 ### Investigating a high click-through rate
 

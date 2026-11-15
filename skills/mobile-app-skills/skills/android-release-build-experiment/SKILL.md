@@ -26,7 +26,7 @@ For current portfolio setup, read the
 [staged Appodeal preset](../../references/appodeal-network-defaults.md) and
 [Android mediation build configuration](../../references/android-debug-build-performance.md).
 The September 15-adapter measurements below are historical; the current default
-expands to 17 adapters plus five bridges after test/live serving is verified.
+expands to 17 adapters plus seven bridges after test/live serving is verified.
 Preserve that default while investigating actual duplicates or build failures.
 
 For a build failure, read the failing Gradle task first. The same release build

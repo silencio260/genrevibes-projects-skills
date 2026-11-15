@@ -103,7 +103,9 @@ dependency commented with a date and reason so it can be restored later.
 ## Recorded Android dependency block
 
 This is the stage 2 block from Story Saver, compatible with
-`stack_appodeal_flutter 4.2.0`. Use one dependency block for the selected stage;
+`stack_appodeal_flutter 4.2.0`, corrected on 15 November 2026 to include the
+Google and Meta MAX bridges omitted from the original recipe. Use one dependency
+block for the selected stage;
 do not append it alongside stage 1 or another generated all-network block.
 For a different plugin version, retain the enabled/commented selection but
 resolve every version and required bridge against that installed plugin's guide.
@@ -141,6 +143,8 @@ implementation "com.appodeal.ads.sdk.adapters:yandex:7.17.0.0"
 
 // MAX bridges for the recorded portfolio mediation setup.
 implementation "com.applovin.mediation:bidmachine-adapter:3.7.1.0"
+implementation "com.applovin.mediation:facebook-adapter:6.21.0.0"
+implementation "com.applovin.mediation:google-adapter:24.7.0.0"
 implementation "com.applovin.mediation:inmobi-adapter:11.1.0.0"
 implementation "com.applovin.mediation:vungle-adapter:7.6.1.0"
 // BidMachine header-bidding bridges for Meta and Mintegral.
@@ -158,12 +162,50 @@ implementation "io.bidmachine:ads.networks.mintegral:17.1.61.1"
 > hazards are in
 > [known release issues](android-known-release-issues.md).
 
-The five bridges make **22 enabled adapter declarations** in the recorded full
+The seven bridges make **24 enabled adapter declarations** in the full
 setup. They connect networks already listed above. Carry them with this stage 2
 mediation recipe, configuring the relevant MAX units and native header bidding.
 They are distinct integration code: direct Appodeal adapters do not replace
 MAX or BidMachine bridges. In a different mediation topology, check which
 bridges the SDK actually needs instead of adding unrelated alternatives.
+
+### Google and Meta require a bridge for each mediation engine
+
+Keep the direct Appodeal adapters and the engine-specific bridges separate:
+
+| Serving route | Google AdMob | Meta Audience Network |
+|---|---|---|
+| Appodeal default mediation | `com.appodeal.ads.sdk.adapters:admob` | `com.appodeal.ads.sdk.adapters:meta` plus the bidding integration required by the plugin |
+| AppLovin MAX inside Appodeal | `com.applovin.mediation:google-adapter` | `com.applovin.mediation:facebook-adapter` |
+| BidMachine header bidding | Check the installed plugin's recipe | `io.bidmachine:ads.networks.meta_audience` |
+
+Include the Google and Meta MAX bridges with this portfolio recipe when MAX
+is included. Shipping either network's direct Appodeal adapter or its SDK does
+not supply its MAX bridge. Keep MAX account, app, format and unit configuration
+enabled separately; adding a bridge does not activate those dashboard settings.
+
+For `stack_appodeal_flutter 4.3.1`, the installed plugin's Android README lists
+Google MAX `25.2.0.0` and Meta MAX `6.21.0.0`. Their Maven Central POMs require
+Google Mobile Ads `25.2.0` and Audience Network `6.21.0`, respectively. Use these
+pins for that recipe rather than copying the older Google `24.7.0.0` line above.
+Inspect the resolved classpath too: Gravity's direct `google_mobile_ads` provider
+already raises the shared Google SDK to `25.5.0`. Do not add a second SDK copy,
+force a downgrade, or declare compatibility tested from a version number alone.
+
+Verify the installed plugin's recipe, published POMs, resolved dependencies and,
+when a build/device run is authorized, the packaged adapter classes and actual
+initialization/load result. A source edit is not deployed until a native build
+containing it is installed; a Dart-only patch cannot add these native adapters.
+
+Use the official [MAX mediated networks guide](https://support.axon.ai/en/max/flutter/preparing-mediated-networks/)
+and the plugin README for current integration instructions. Published metadata:
+[Google MAX POM](https://repo.maven.apache.org/maven2/com/applovin/mediation/google-adapter/25.2.0.0/google-adapter-25.2.0.0.pom),
+[Meta MAX POM](https://repo.maven.apache.org/maven2/com/applovin/mediation/facebook-adapter/6.21.0.0/facebook-adapter-6.21.0.0.pom).
+
+Do not attribute a default-Appodeal failure to missing MAX adapters. Identify
+the route for the affected format/version/session first; the same app can use
+multiple engines and direct AdMob App Open. Follow the missing-network checks
+in [Ads](../skills/ads/SKILL.md#diagnosing-a-missing-network-in-appodeal).
 
 Appodeal analytics/service adapters (Adjust, AppsFlyer, Facebook analytics,
 Firebase and Sentry) remain omitted in this recipe; the app's shared analytics
@@ -182,6 +224,6 @@ Flutter, Shorebird Flutter, Gradle, AGP and JDK versions before release.
 The older 15-adapter release measurement in the
 [release build guide](../skills/android-release-build-experiment/SKILL.md) is
 historical evidence, not the current portfolio preset or proof that the expanded
-17-plus-five configuration cannot run out of memory. Diagnose the actual failing
+17-plus-seven configuration cannot run out of memory. Diagnose the actual failing
 task, keep full release shrinking, and report the verification performed rather
 than guaranteeing build speed or successful releases from configuration alone.

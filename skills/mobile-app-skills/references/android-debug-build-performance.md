@@ -178,7 +178,7 @@ recorded repeat-build speedup.
 Apply the same daemon/cache/repository setup to release configuration, keeping
 the 4 GB Gradle cap and two workers for the recorded 8 GB machine. Repeat-debug
 timings are not a release/R8 benchmark. The September full-release success used
-15 adapters; the current default is 17 plus seven bridges and needs its own
+15 adapters; the current default is 17 plus five bridges and needs its own
 release verification.
 
 In `android/app/build.gradle`, retain real release signing and full code/resource

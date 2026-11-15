@@ -178,10 +178,17 @@ network adapters from the [route guide](appodeal-bidding-routes.md), using the
 installed plugin's versions. Preserve disabled networks and verify actual
 dashboard units per format and engine before enabling another demand path.
 
-Appodeal analytics/service adapters (Adjust, AppsFlyer, Facebook analytics,
-Firebase and Sentry) remain omitted in this recipe; the app's shared analytics
-and ad-revenue pipeline owns reporting. The Meta **ad-network adapter** above is
-separate from the Facebook **analytics adapter**.
+Include Appodeal's **Firebase service adapter** in each portfolio host app that
+uses Appodeal + Firebase. It is additional to the demand-network preset and
+FlutterFire Analytics, not another ad network. For `stack_appodeal_flutter`
+4.3.1's published set, declare
+`implementation("com.appodeal.ads.sdk.adapters:firebase:23.2.0.0")`.
+Follow [revenue tracking](appodeal-firebase-revenue.md) for compatible versions,
+Attribution Settings (`Firebase Tracking` on, event `ad_impression`), duplicate
+filtering and live checks. The previous omission of Firebase services is
+superseded by this requirement. Adjust, AppsFlyer, Facebook analytics and Sentry
+remain optional and require their own deliberate integration. The Meta
+**ad-network adapter** is separate from the Facebook **analytics adapter**.
 
 ## Apply the build configuration with the preset
 

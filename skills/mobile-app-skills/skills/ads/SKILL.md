@@ -324,39 +324,17 @@ custom Firebase-compatible click event.
 
 ### Appodeal impression revenue
 
-Symptom (Lunaris, October 2026): Firebase showed `ad_show` events but zero
-`ad_impression` and $0 revenue for weeks, while the Appodeal dashboard showed
-paid impressions. Mixpanel had none either, since both sinks get the same event.
+For portfolio Appodeal + Firebase apps, use Appodeal's native Firebase service
+adapter to forward `ad_impression` automatically. Keep native SDK declarations
+in each host app alongside its other SDKs; keep reusable duplicate-event
+filtering in `genrevibes_analytics_firebase`. FlutterFire Analytics alone does
+not connect Appodeal's Firebase service.
 
-Cause: Appodeal SDK 4.3 calls the app's `AdRevenueCallbacks` only after its
-analytics services are ready, with no timeout. An app with no analytics services
-configured in the Appodeal dashboard initializes with
-`InternalError: SdkConfigurationError`, so the callback never fires. Logcat
-shows `Appodeal: Interstitial [Ad Revenue]` but no kit line after it. Two smaller
-losses: the plugin's revenue parser throws on unexpected values and Flutter
-swallows channel-handler exceptions, and Android banner views report ad type 64,
-which the plugin maps to `None`.
-
-Fix, built into `genrevibes_ads_appodeal` (see its README): the client reads the
-revenue channel itself and logs each report; each impression waits 15 s for the
-report and otherwise emits a `paid` event at predicted eCPM / 1,000 in USD with
-`precision: predicted_ecpm`; a later report for that impression is dropped. When
-the app is hidden with no full-screen ad on screen, waiting impressions are
-estimated at once, so closing an ad and leaving the app does not lose them (a
-full-screen ad also hides the app, so that case keeps waiting). Apps need no
-code for this beyond initializing the Flutter binding before the provider: map
-`AdRevenue.precision` into `ad_impression` as usual.
-
-Do as well:
-- Treat `SdkConfigurationError` in the startup log as "exact revenue blocked",
-  not as harmless. Ask Appodeal support, or configure an analytics service in the
-  dashboard, so exact reports arrive and replace estimates.
-- Verify with a live-ads build (developer access plus **Live ads on this phone**,
-  then relaunch). Lab › Logs shows either `Appodeal revenue report received` or
-  `counted at … USD from predicted eCPM`, and Event log shows `ad_impression`.
-  Release builds don't send kit logs to logcat.
-- Estimated revenue tracks the dashboard closely but is not exact. The Appodeal
-  dashboard is the source of truth for payouts.
+Follow [Appodeal revenue tracking](../../references/appodeal-firebase-revenue.md)
+for the version-scoped dependency, per-app Attribution Settings, kit sink
+configuration, optional Firebase Config Keys, callback fallback limitations,
+AdMob overlap checks, migration, and live verification. Do not treat an
+estimated pipeline event as proof that native Firebase forwarding works.
 
 ### Diagnosing a missing ad
 

@@ -28,7 +28,12 @@ name mappings before changing existing event names.
 
 For ads, track shown callbacks separately from paid callbacks. Use
 `custom_ad_click` rather than Firebase's reserved `ad_click`. Send paid amounts
-and currency only when supplied by the provider. Avoid titles, message bodies,
+and currency only when supplied by the provider. For Appodeal + Firebase,
+follow [Appodeal revenue tracking](../../references/appodeal-firebase-revenue.md):
+use native Firebase forwarding with event `ad_impression` and configure
+`FirebaseAnalyticsSink(sdkManagedAdPlatforms: const {'appodeal'})` to suppress
+manual copies at Firebase only. Keep callback events for other sinks; do not
+send predicted-eCPM fallback amounts as Firebase revenue. Avoid titles, message bodies,
 form contents, tokens, and arbitrary notification payloads in event properties.
 
 For every notification feature, log three outcomes: the notification was sent or

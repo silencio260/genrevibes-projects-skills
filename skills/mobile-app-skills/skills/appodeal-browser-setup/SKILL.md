@@ -20,6 +20,7 @@ detailed material lives in other files; read the ones the task needs:
 |---|---|
 | Click-by-click dashboard steps and browser-tool tips | [browser runbook](references/browser-runbook.md) |
 | Meta app → property → placements → Appodeal link (order is critical) | [Meta Audience Network with Appodeal](../../references/meta-audience-network-appodeal.md) |
+| Automatic Firebase revenue, `ad_impression`, optional Config Keys and duplicate filtering | [Appodeal revenue tracking](../../references/appodeal-firebase-revenue.md) |
 | Which Appodeal adapters ship, and when | [portfolio network defaults](../../references/appodeal-network-defaults.md) |
 | Native host checklist (Gradle memory, Meta Infer rule, myTarget floor, minSdk…) | [ads](../ads/SKILL.md#native-host-setup-for-appodeal) |
 | Apps still on the old starter kit (`google_mobile_ads ^5`, no `genrevibes_ads` modules) | [legacy kit code](references/legacy-kit-code.md) |

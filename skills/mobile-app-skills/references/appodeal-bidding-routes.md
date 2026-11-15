@@ -22,6 +22,33 @@ appear in In-App Header Bidding, or when expanding an existing app's demand.
 5. Keep direct AdMob App Open separate from mediated AdMob. Revenue from App Open
    does not establish that AdMob receives Appodeal requests.
 
+### Evidence required before diagnosing the same issue in another app
+
+Treat `Mediation Provider: max` as evidence that MAX initialized, not proof that
+every Appodeal request uses MAX, that a particular group selected it, or that
+AdMob/Meta failed to bid. Verify the matching dashboard group and associate an
+actual ad request/load with its provider, format and winning network.
+
+Keep the two recorded cases distinct:
+
+- **Gravity Launcher:** the enabled All Countries MAX group was inspected;
+  after the owner disabled it, a fresh session reported Appodeal and Google
+  mediation calls appeared. This supports a routing diagnosis for the observed
+  sessions, not a claim that Default never served in the app's history.
+- **Lunaris 1.0.5, build 8:** logs showed MAX initialization and Google recognized
+  the phone as a test device. Installed-APK inspection found the direct Appodeal
+  Google/Meta adapters but not their MAX bridges. Without the matching group
+  inspection and request attribution, record a **suspected route/adapter
+  mismatch**, not the same confirmed failure. Do not recommend disabling MAX
+  as a confirmed fix from those observations alone.
+
+A visible Google test creative may belong to direct App Open rather than an
+Appodeal-mediated placement. Test-device registration establishes test treatment
+for Google requests; it does not identify the mediation route or establish live
+bid participation. SDK initialization logging and test-ad display cannot replace
+per-request attribution. Correct an earlier overstatement explicitly rather
+than carrying it into portfolio guidance as a confirmed incident.
+
 ## Distinguish the account list, bidding units and waterfall units
 
 The account list identifies available network connections, not active bidders.

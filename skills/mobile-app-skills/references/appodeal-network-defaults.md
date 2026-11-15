@@ -23,6 +23,13 @@ dependencies may bring. Keep the rest of the preset as commented declarations
 during this stage. Match versions to the installed Appodeal plugin's integration
 guide; do not downgrade a newer plugin to these historical versions.
 
+The two host declarations do not complete every downstream demand route. Add at
+least the selected Bidon network adapter (for example, its BidMachine adapter)
+before verifying Bidon demand. Follow
+[bidding routes and network adapters](appodeal-bidding-routes.md) for the adapter
+families, registration ownership and compatible recorded pins. Do not initialize
+Bidon independently or mistake its SDK initialization for network availability.
+
 Before enabling the remaining adapters, verify the initial configuration on a
 device in **both test and live inventory modes**:
 
@@ -164,6 +171,12 @@ mediation recipe, configuring the relevant MAX units and native header bidding.
 They are distinct integration code: direct Appodeal adapters do not replace
 MAX or BidMachine bridges. In a different mediation topology, check which
 bridges the SDK actually needs instead of adding unrelated alternatives.
+
+This historical block predates the Bidon network-adapter audit; 22 declarations
+are not evidence of complete bidding coverage. Add the selected eligible Bidon
+network adapters from the [route guide](appodeal-bidding-routes.md), using the
+installed plugin's versions. Preserve disabled networks and verify actual
+dashboard units per format and engine before enabling another demand path.
 
 Appodeal analytics/service adapters (Adjust, AppsFlyer, Facebook analytics,
 Firebase and Sentry) remain omitted in this recipe; the app's shared analytics

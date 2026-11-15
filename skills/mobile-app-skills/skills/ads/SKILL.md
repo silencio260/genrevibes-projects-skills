@@ -194,6 +194,13 @@ provides no way to delete the result.
 Keep `bidmachine` and `bidon` in both integration stages as the owner's initial
 Appodeal demand baseline.
 
+Read [bidding routes and network adapters](../../references/appodeal-bidding-routes.md)
+when enabling more demand or diagnosing missing bids. Match the active mediation
+group to its network units and route-specific bridges, including Bidon's network
+adapters. An enabled network, an SDK dependency and a working bidding route are
+separate checks. Do not treat the Default group as a bidder or assume every
+network can be moved into In-App Header Bidding.
+
 Never delete an SDK or adapter dependency line. Comment it out and write, in the
 comment, the date and why it is off: no linked account, not earning, removed to
 cut build memory. Restoring a network is then one uncommented line, the version

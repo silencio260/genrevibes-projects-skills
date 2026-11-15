@@ -41,6 +41,7 @@ adding language selection or adding a paywall later. See the
 - [Upgrade the kit](projects/kit-upgrade/SKILL.md)
 - [Replace a provider](projects/replace-provider/SKILL.md)
 - [Select kit packages](starter-kit/SKILL.md)
+- [Audit production readiness](skills/production-readiness/SKILL.md)
 
 ## Start with the detail needed for the task
 
@@ -77,6 +78,7 @@ panel implementation is needed for each app.
 | [new](projects/new/SKILL.md) | Create a Flutter app using selected GenRevibes starter kit features. |
 | [refactor](projects/refactor/SKILL.md) | Adopt starter kit features in an existing app without replacing unrelated architecture. |
 | [replace-provider](projects/replace-provider/SKILL.md) | Replace a kit provider adapter while preserving the shared feature interface. |
+| [production-readiness](skills/production-readiness/SKILL.md) | Audit product/release health, monetization, analytics, replay and live services; distinguish confirmed defects from unverified readiness. |
 | [ads](skills/ads/SKILL.md) | Configure staged portfolio Appodeal network defaults and connect ad placements with premium, consent, test-mode, and pacing rules. |
 | [ad-ctr-investigation](skills/ad-ctr-investigation/SKILL.md) | Investigate a high ad click-through rate: split clicks by network and format, time each click, and research the network before blaming placements or calling it invalid traffic. |
 | [app-retention-analytics-reporting](skills/app-retention-analytics-reporting/SKILL.md) | Explain a live app's DAU, retention, funnel leaks, ratings and ad revenue (overall and per app version) from Firebase/GA4, Crashlytics, Mixpanel, Appodeal, AdMob, Meta and Play, reconcile the tools, and read dashboards in the owner's signed-in browsers without asking for site access. |

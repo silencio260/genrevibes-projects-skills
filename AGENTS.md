@@ -35,6 +35,10 @@
   step does not prove an earlier step worked. Do not explain away contrary
   evidence by comparing with a case you have not confirmed is set up correctly.
 - Use [mobile skills](skills/mobile-app-skills/README.md) for app and starter kit work.
+- For production/release readiness audits, use
+  [production readiness](skills/mobile-app-skills/skills/production-readiness/SKILL.md).
+  Include monetization, analytics and session replay in full audits. Return findings
+  in chat unless the user requests a report or a project rule requires one.
 - Read [commit policy](skills/commit-policy/SKILL.md) before history or publication actions.
 - Keep the user's requested scope. Use shared kit code where it exists; preserve app choices.
 - Write instructions in plain language: name the action, file/API, and condition.

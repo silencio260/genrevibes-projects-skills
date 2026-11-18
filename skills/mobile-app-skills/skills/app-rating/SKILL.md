@@ -34,10 +34,10 @@ Google Play (in-app review guidelines and the ratings and reviews policy):
 
 **The portfolio review card knowingly breaks two of these.** Its title asks
 "Are you enjoying your experience?", and its **Yes** button requests the store
-sheet. The owner chose this pattern and accepts the risk: Play can remove
-reviews, reject an update or give the app a policy strike. Keep the rest. **Not
-now** and **Don't ask again** only close the card. Never send a negative answer to
-feedback, and never offer a reward.
+sheet, then opens the Play listing. The owner chose this pattern and accepts the
+risk: Play can remove reviews, reject an update or give the app a policy strike.
+Keep the rest. **Not now** and **Don't ask again** only close the card. Never
+send a negative answer to feedback, and never offer a reward.
 
 App Store (guideline 5.6.1):
 
@@ -67,10 +67,27 @@ Move Story Saver to the pattern below.
      `recordTrigger('review_card_shown')`.
    - **Not now**, muted. It, or dismissing the dialog, records
      `RatingOutcome.maybeLater`, which snoozes the next ask.
-   - **Yes**, a bold filled button in the accent color. It records
-     `RatingOutcome.submitted`, then requests the store sheet. If the sheet is
-     unavailable, or the request returns in under 800 ms (nothing was shown),
-     it opens the Play listing instead. That way **Yes** never does nothing.
+   - **Yes**, a bold filled button in the accent color. It calls
+     `StoreReviewProvider.requestReviewThenOpenListing()` and records
+     `RatingOutcome.submitted` when that succeeds. The kit method requests the
+     store sheet, waits for it to close, then **always** opens the Play
+     listing. Don't write your own Yes handler, and don't call
+     `requestReview()` or `openStoreListing()` alone from **Yes**.
+
+     Why always: the review API never reports whether the sheet appeared or
+     the user rated, and the store declines the sheet silently once its quota
+     is spent. Gravity Rolling Launcher (Nov 2026) sent **Yes** to the sheet
+     alone. On a repeat test the sheet did not appear and nothing else
+     happened, and 101 Yes answers in 28 days produced 2 Play ratings. A
+     shorter "open the listing only if the request returned in under 800 ms"
+     rule was considered and dropped, because the duration is only a guess.
+     The cost of always opening the listing is that a user who just rated in
+     the sheet also sees the listing; the owner accepted that.
+
+     Log the returned `ReviewFlowReport` (`sheet_requested`, `sheet_ms`,
+     `listing_opened`), for example as a `rating_review_flow` event, so the
+     sheet's real show rate can be measured. Retry with a snackbar only when
+     the method fails, which means neither the sheet nor the listing opened.
 
    The card always appears, so it reaches users whose sheet quota is used up.
 
@@ -198,7 +215,8 @@ and the sheet appearing is not "the user rated".
       Android only.
 - [ ] No star picker, no score-based routing and no reward. Not now and Don't
       ask again only close the card.
-- [ ] Yes requests the store sheet and falls back to the listing.
+- [ ] Yes calls `requestReviewThenOpenListing()`: the store sheet, then always
+      the Play listing. It logs the returned `ReviewFlowReport`.
 - [ ] Don't ask again is hidden on the first 5 cards.
 - [ ] Ads are suppressed while an ask is open.
 - [ ] There is a Settings "Rate <App>" row that opens the listing.

@@ -151,6 +151,12 @@ panel implementation is needed for each app.
 - [app-ads.txt authorization](references/appodeal-app-ads-txt.md): why the
   networks on our own account send zero bids while Appodeal's keep serving, how
   to tell absent demand from losing demand, and hosting the file on Firebase.
+- [Google test devices](references/google-test-devices.md): how the kit keeps
+  Play's pre-launch and review robots (Firebase Test Lab) out of analytics, the
+  one line each app adds for Mixpanel/PostHog, and how to verify it.
+- [Launch journey](references/launch-journey.md): the kit's `LaunchJourney`
+  first-launch funnel (`launch_number`, `l1_`/`l2_` copies, startup steps,
+  abandoned launches), how to wire it into an app and how to read it.
 - [Commit policy](../commit-policy/SKILL.md)
 - [Firebase Gen 2 HTTP auth](../firebase-functions-v2-auth/SKILL.md)
 - [Environment keys](references/environment-keys.md)

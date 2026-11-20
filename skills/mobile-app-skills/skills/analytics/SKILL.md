@@ -49,6 +49,10 @@ can lag; distinguish local dispatch, provider acceptance, and remote reporting.
 Check current SDK diagnostics for provider delivery problems instead of adding
 blanket keep rules or another event listener.
 
+Every app also wires the kit's `LaunchJourney` for its first-launch funnel
+(`launch_number`, `l1_`/`l2_` copies, startup steps): see
+[Launch journey](../../references/launch-journey.md).
+
 ## Portfolio rule: analytics is never consent-gated
 
 Analytics collection is a condition of using these apps and is disclosed in
@@ -61,7 +65,11 @@ every app's privacy policy. It is the app owner's decision and it is fixed:
 - **Firebase Analytics can never be turned off.** The kit's Firebase adapter
   has no disabling code path: `FirebaseAnalyticsClient.enableCollection()`
   only ever enables, and the sink ignores a `false` collection request. Do not
-  add a flag, config field or consent state that would disable it.
+  add a flag, config field or consent state that would disable it. The single
+  exception is built into the kit and needs no wiring: on Google's automated
+  test phones the sink switches Firebase off and sends nothing (see
+  [Google test devices](../../references/google-test-devices.md)). Every app
+  also skips its paid sinks there with `GoogleTestDevice.check()`.
 - `AnalyticsPipeline` has no consent API. Do not reintroduce one.
 - **The only supported way to hold a provider back is the developer's own
   remote kill switch on a paid sink** — `analytics_mixpanel_enabled` /

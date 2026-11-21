@@ -99,7 +99,13 @@ Use shown callbacks separately for `ad_show`, not as a source of paid amounts.
 ## Shared revenue routing
 
 `FirebaseAnalyticsSink(logger: logger)` is enough: `sdkManagedAdPlatforms`
-defaults to `{'appodeal'}`. Apps that don't use Appodeal never send
+defaults to `{'appodeal'}`, and the sink **checks** it. At startup the kit's
+Android plugin looks for the adapter class
+(`com.appodeal.ads.services.firebase.FirebaseService`); only if it is there is
+the app's copy skipped. If the adapter is missing, or on iOS (no adapter is
+shipped there yet), the sink logs a warning and keeps sending the app's copy,
+so Firebase never loses Appodeal revenue to the skip. `skippedAdPlatforms`
+shows what it decided; read it in Kit Lab or logs when auditing an app. Apps that don't use Appodeal never send
 `ad_platform: appodeal`, so the default changes nothing for them. Pass a set
 only to add a platform (`{'appodeal', 'admob'}` once an AdMob app is linked to
 Firebase) or, in a rollback, `const {}`.

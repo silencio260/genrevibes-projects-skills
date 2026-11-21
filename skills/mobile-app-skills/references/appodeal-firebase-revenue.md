@@ -20,26 +20,39 @@ FlutterFire or switching a dashboard checkbox alone is not a complete setup.
 
 | Location | Responsibility |
 |---|---|
-| Each app's Android Gradle file | Declare Appodeal's Firebase service adapter alongside the host's other native SDKs. |
-| `genrevibes_analytics_firebase` in the starter kit | Provide reusable filtering of manual revenue events already sent by a native SDK. |
-| Each app's runtime/bootstrap | Initialize Firebase, select native revenue ownership on its Firebase sink, and initialize Appodeal once. |
+| `genrevibes_ads_appodeal` in the starter kit | Ships Appodeal's Firebase service adapter from its Android plugin module. Every app using the package gets it; apps don't declare it. |
+| `genrevibes_analytics_firebase` in the starter kit | Skips the app's own Appodeal `ad_impression` at Firebase **by default** (`defaultSdkManagedAdPlatforms`). |
+| Each app's runtime/bootstrap | Initialize Firebase and Appodeal once. No revenue option to set. |
 | Each app's Firebase configuration | Supply its own matching `google-services.json` and Flutter Firebase options. |
 | Each Appodeal app's Attribution Settings | Enable Firebase Tracking and choose `ad_impression`. |
 | Agents guidance | Apply and verify this recipe consistently across apps. |
 
-Do not force Firebase SDKs into the provider-neutral ads contract or add a
-native Flutter plugin just to relocate a dependency. Keep SDK ownership
-consistent with the host's other Appodeal adapter declarations. Shared code and
-guidance do not automatically upgrade other host apps or their dashboards.
+Do not force Firebase SDKs into the provider-neutral `genrevibes_ads`
+contract; the adapter lives in the Appodeal package only. Updating the kit gives
+an app the adapter and the skip, but **not the dashboard setting**: until
+Firebase Tracking is on in that app's Appodeal dashboard, the app reports no
+Appodeal revenue to Firebase at all. Make the dashboard step part of the
+release that first picks up this kit version.
+
+**The app's own Firebase copy of Appodeal revenue is deprecated: redundant and
+less accurate** than the adapter's. The predicted-eCPM estimate that filled
+missing reports (it inflated Lunaris GA4 revenue about 50x in 1.0.5) is off by
+default and deprecated. Mixpanel and other non-Firebase sinks still receive the
+app's ad events with their `precision`.
 
 ## Native dependency and Firebase setup
 
-For the dependency set published with `stack_appodeal_flutter` **4.3.1**
-(Android Appodeal core **4.3.0**), add to the host's Android app dependencies:
+The kit's `genrevibes_ads_appodeal/android/build.gradle.kts` declares, for the
+dependency set published with `stack_appodeal_flutter` **4.3.1** (Android
+Appodeal core **4.3.0**; the package now requires `>=4.3.1`):
 
 ```kotlin
 implementation("com.appodeal.ads.sdk.adapters:firebase:23.2.0.0")
 ```
+
+Apps must **not** also declare it; remove the line from an app's Gradle file
+when it moves to this kit version. Upgrade the adapter in the kit together with
+the Appodeal SDK.
 
 This is Appodeal's **service adapter**, distinct from FlutterFire's
 `firebase_analytics`, the AdMob demand adapter, and the Meta analytics adapter.
@@ -85,19 +98,11 @@ Use shown callbacks separately for `ad_show`, not as a source of paid amounts.
 
 ## Shared revenue routing
 
-Configure the kit's Firebase sink in the host runtime:
-
-```dart
-FirebaseAnalyticsSink(
-  sdkManagedAdPlatforms: const {'appodeal'},
-  logger: logger,
-)
-```
-
-This option belongs to `genrevibes_analytics_firebase`, not a copied app-local
-Firebase client. Upgrade the kit to a revision exposing it before using it.
-The default is empty so apps without native forwarding retain manual delivery.
-Opt in only with the native adapter and dashboard setup present.
+`FirebaseAnalyticsSink(logger: logger)` is enough: `sdkManagedAdPlatforms`
+defaults to `{'appodeal'}`. Apps that don't use Appodeal never send
+`ad_platform: appodeal`, so the default changes nothing for them. Pass a set
+only to add a platform (`{'appodeal', 'admob'}` once an AdMob app is linked to
+Firebase) or, in a rollback, `const {}`.
 
 The sink skips the pipeline's `ad_impression` when `ad_platform` is exactly
 `appodeal`, including predicted-eCPM fallback events. It keeps Firebase
@@ -130,8 +135,12 @@ eCPM / 1,000 USD with `precision: predicted_ecpm` when available. On background
 without a full-screen ad showing, it estimates waiting impressions immediately.
 Test inventory is not estimated; native format has no predicted-eCPM fallback.
 
-That fallback remains useful for callback consumers and local diagnostics, but
-is excluded from Firebase revenue by the sink option above. The provider matches
+**The fallback is now deprecated and off by default**
+(`GenRevibesAppodealConfiguration.estimateMissingRevenue: false`). With the
+Firebase adapter installed, Appodeal's analytics services are ready, so real
+reports reach the app; an impression without one gets no revenue rather than a
+made-up value. Turn the estimate on only for a diagnostic, never for
+reporting; it was always excluded from Firebase revenue by the sink default. The provider matches
 waiting callbacks by format/order and suppresses late callbacks for two minutes
 after an estimate; it does not reconcile by a unique impression ID. Late values
 do not correct a previously sent estimate. Do not describe this as exact revenue,
@@ -166,8 +175,9 @@ reference. Never fabricate zero-fill revenue or infer actual serving from test a
    imported into Google Ads; do not optimize simultaneously on duplicate event
    names for the same revenue. Preserve historical data rather than deleting it.
 
-When migrating, coordinate the adapter, sink option and dashboard changes in
-the same release. Older builds without the native adapter retain their old
+When an app moves to this kit version: delete its own adapter Gradle line and
+any `sdkManagedAdPlatforms: const {'appodeal'}` argument, and set the Appodeal
+dashboard (above) before the release ships. Older builds without the native adapter retain their old
 reporting behavior. If reverting to manual reporting, remove the platform from
 the sink's managed set and disable the native revenue forwarding path together;
 otherwise the rollback can lose revenue or count it twice.

@@ -30,9 +30,9 @@ For ads, track shown callbacks separately from paid callbacks. Use
 `custom_ad_click` rather than Firebase's reserved `ad_click`. Send paid amounts
 and currency only when supplied by the provider. For Appodeal + Firebase,
 follow [Appodeal revenue tracking](../../references/appodeal-firebase-revenue.md):
-use native Firebase forwarding with event `ad_impression` and configure
-`FirebaseAnalyticsSink(sdkManagedAdPlatforms: const {'appodeal'})` to suppress
-manual copies at Firebase only. Keep callback events for other sinks; do not
+the kit ships Appodeal's native Firebase adapter (`genrevibes_ads_appodeal`)
+and `FirebaseAnalyticsSink` skips the app's Appodeal copy by default; each app
+only sets Firebase Tracking / `ad_impression` in its Appodeal dashboard. Keep callback events for other sinks; do not
 send predicted-eCPM fallback amounts as Firebase revenue. Avoid titles, message bodies,
 form contents, tokens, and arbitrary notification payloads in event properties.
 

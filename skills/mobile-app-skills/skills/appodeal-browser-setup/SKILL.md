@@ -22,6 +22,7 @@ detailed material lives in other files; read the ones the task needs:
 | Meta app → property → placements → Appodeal link (order is critical) | [Meta Audience Network with Appodeal](../../references/meta-audience-network-appodeal.md) |
 | Automatic Firebase revenue, `ad_impression`, optional Config Keys and duplicate filtering | [Appodeal revenue tracking](../../references/appodeal-firebase-revenue.md) |
 | Which Appodeal adapters ship, and when | [portfolio network defaults](../../references/appodeal-network-defaults.md) |
+| Yandex units at several eCPM floors ($10/$5/$2/$1…) in the Appodeal waterfall | [Yandex eCPM floor waterfall](../../references/yandex-ecpm-floor-waterfall.md) |
 | Native host checklist (Gradle memory, Meta Infer rule, myTarget floor, minSdk…) | [ads](../ads/SKILL.md#native-host-setup-for-appodeal) |
 | Apps still on the old starter kit (`google_mobile_ads ^5`, no `genrevibes_ads` modules) | [legacy kit code](references/legacy-kit-code.md) |
 | Test ads in debug, live in release except on test devices; App Open plus Appodeal preloaded on the splash (7 s cap) | [App Open in the app](#app-open-in-the-app-test-ads-test-devices-and-the-splash) |

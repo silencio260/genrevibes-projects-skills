@@ -144,6 +144,9 @@ panel implementation is needed for each app.
 - [Portfolio Appodeal network defaults](references/appodeal-network-defaults.md):
   start with BidMachine/Bidon, verify test and live serving, then enable the
   17-adapter preset and five bridges; leave nine adapters for manual activation.
+- [Yandex eCPM floor waterfall](references/yandex-ecpm-floor-waterfall.md):
+  one Yandex unit per floor with the "eCPM floor" strategy, each added to
+  Appodeal with its code and a matching Default eCPM; choosing realistic floors.
 - [Android debug build performance](references/android-debug-build-performance.md):
   recorded daemon, cache, memory and repository settings, shared SDK/bridge
   handling, release shrinking and Shorebird toolchain compatibility.

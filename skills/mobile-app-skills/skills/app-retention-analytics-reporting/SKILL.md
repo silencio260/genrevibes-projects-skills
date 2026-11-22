@@ -1,5 +1,5 @@
 ---
-name: app-metrics-analysis
+name: app-retention-analytics-reporting
 description: "Analyse a live app's numbers across Firebase/GA4, Crashlytics, Mixpanel, Appodeal, AdMob, Meta Audience Network, Google Play and the app's own tracked events: explain DAU, retention, funnel leaks, revenue and why the tools disagree, using the owner's signed-in browsers without asking for site access."
 ---
 

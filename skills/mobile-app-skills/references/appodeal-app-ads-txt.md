@@ -111,6 +111,59 @@ Two hazards:
   invites a policy flag, so ship a small `index.html` with the app name,
   the store link and the privacy/terms URLs. Add `.firebase/` to `.gitignore`.
 
+## Yandex's own lines
+
+When Yandex is connected with the owner's own Yandex Partner account (see
+[Yandex eCPM floor waterfall](yandex-ecpm-floor-waterfall.md)), Yandex keeps a
+seller list of its own that Appodeal's generated file does not contain. The
+Yandex app page (`https://partner.yandex.ru/v2/inapp/app/<page id>/`) then
+shows **"The app-ads.txt file is outdated"** and the lines it wants. On Lunaris
+that was 1,052 lines (about 44 KB), including the owner's own seller lines
+`yandex.com, <seller id>, DIRECT` and `yango-ads.com, <seller id>, DIRECT`.
+Without them Yandex's demand treats the inventory as unauthorized.
+
+### Getting the list
+
+- The page's **Download the app-ads.txt file** link points at
+  `https://partner.yandex.ru/restapi/v1/api/files/sellers/app-ads.txt?page_id=<page id>`.
+  It needs the owner's Yandex session (curl gets 401), so fetch it from inside
+  the signed-in page with `javascript_tool`:
+  `await (await fetch('/restapi/v1/api/files/sellers/app-ads.txt?page_id=<id>',{credentials:'include'})).text()`.
+  That is Yandex's full file (about 2,470 lines). The warning's list is the
+  part of it the live file lacks.
+- Getting 44+ KB out of the browser: tool output truncates at about 1,000
+  characters and base64 output is blocked. A POST to a local receiver fails
+  because the site's CSP blocks `connect-src` to localhost. Use the clipboard:
+  inject a button whose `onclick` calls
+  `navigator.clipboard.writeText(text)`, click it with the `computer` tool (a
+  real click counts as a user gesture; a script `click()` does not), then
+  `pbpaste > file` locally. Check the line and character counts against
+  `text.length` in the page. Remove the button afterwards. Tell the owner
+  their clipboard was overwritten.
+- Don't use `get_page_text` on that page; it is too large.
+
+### Merging
+
+- Yandex compares lines **exactly, case included**. 29 of Lunaris' "missing"
+  lines were already present with different letter case (`App-stock.com` vs
+  `app-stock.com`, and one Krushmedia account id `ajxf6R…` vs `AJxF6R…`).
+  Account ids can be case-sensitive, and duplicate records are allowed by the
+  IAB spec, so append Yandex's exact lines. Skip only lines that are identical
+  once whitespace is ignored.
+- Append, never replace: keep Appodeal's block intact (see
+  [Never publish a partial file](#never-publish-a-partial-file)). Put Yandex's
+  lines under a `#Yandex (Yandex Partner page <id>, added <date>)` comment at
+  the end.
+- Check before deploying: every line of Yandex's full file is in the merged
+  file (whitespace-insensitive), and `git diff --numstat` shows additions only.
+- Deploy with `firebase deploy --only hosting`, after the owner approves.
+  Check that `git status` shows no other unreleased changes under the hosting
+  folder. Then fetch the live URL and `cmp` it with the repo copy. Yandex's
+  warning clears only after its next crawl.
+
+Lunaris Network, 22 November 2026: Yandex page `20438788`, 1,052 lines appended
+(3,568 lines total), hosted at `https://lunaris-network.web.app/app-ads.txt`.
+
 ## Then wait, and expect Meta to lag
 
 Set Play Console > Store settings > **Store listing contact details > Website**

@@ -22,7 +22,10 @@ eCPMs do not enforce any floor: Yandex just answers the same request again,
 lower down the waterfall.
 
 Keep the original Yandex unit with "Maximum revenue" strategy and Default eCPM
-$0 at the bottom of each waterfall as the catch-all. Do not delete it.
+$0 at the bottom of each waterfall as the catch-all. Do not delete it. When
+checking a finished setup, confirm every ad type still has this $0 line item:
+on Lunaris the Native waterfall had all four tiers but no catch-all, so native
+requests that cleared below every floor got no Yandex ad.
 
 ## Choose realistic floors first
 
@@ -115,6 +118,8 @@ shows the original Yandex unit at $0 plus one row per floor.
   top tier with no fill only adds delay: switch its Appodeal line item OFF
   rather than deleting it, so it can be turned back on.
 - The Yandex app page warns when the hosted app-ads.txt is missing Yandex's
-  lines. Update the file; unauthorized inventory earns less.
+  lines. Update the file; unauthorized inventory earns less. How to get the
+  list out of the signed-in page and merge it:
+  [Yandex's own lines](appodeal-app-ads-txt.md#yandexs-own-lines).
 - Record the codes and floors in the app's own notes so later edits match both
   dashboards.

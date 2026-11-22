@@ -154,7 +154,8 @@ panel implementation is needed for each app.
   Flutter command, current USB/wireless device selection and SDK mode verification.
 - [app-ads.txt authorization](references/appodeal-app-ads-txt.md): why the
   networks on our own account send zero bids while Appodeal's keep serving, how
-  to tell absent demand from losing demand, and hosting the file on Firebase.
+  to tell absent demand from losing demand, hosting the file on Firebase, and
+  adding Yandex's own seller lines from Yandex Partner.
 - [Google test devices](references/google-test-devices.md): how the kit keeps
   Play's pre-launch and review robots (Firebase Test Lab) out of analytics, the
   one line each app adds for Mixpanel/PostHog, and how to verify it.

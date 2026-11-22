@@ -84,6 +84,7 @@ panel implementation is needed for each app.
 | [analytics](skills/analytics/SKILL.md) | Connect selected analytics sinks, shared events, identity, and collection settings. |
 | [analytics-extension-layer](skills/analytics-extension-layer/SKILL.md) | Add typed app-specific analytics methods on top of the shared pipeline. |
 | [android-mediation-optimization](skills/android-mediation-optimization/SKILL.md) | Improve release DEX scores by auditing Appodeal/bridge consumer rules while preserving enabled networks. |
+| [play-policy-issues](skills/play-policy-issues/SKILL.md) | Known Play Console review blockers (implied hardware features, low DEX optimization score) and the production-ready check to run before every upload. |
 | [android-release-build-experiment](skills/android-release-build-experiment/SKILL.md) | Diagnose Android release build/startup failures, known R8 constructor issues, and the recorded partial shrinking experiment. |
 | [android-signing](skills/android-signing/SKILL.md) | Configure Android release signing while preserving the app existing signing identity. |
 | [app-icon-generation](skills/app-icon-generation/SKILL.md) | Create app icon concepts and compare them at launcher size. |

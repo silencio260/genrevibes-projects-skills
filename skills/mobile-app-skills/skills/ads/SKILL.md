@@ -46,10 +46,16 @@ mounted native view retains its ad; rebuilding it can take another ad.
 Listen once to `ads.events`. Native callbacks use one
 `AppodealNativeAds.instance.attributedAdEvents(fallback: ...)` subscription,
 not one subscription per placement. Otherwise callbacks can be counted repeatedly.
-Use impression callbacks for shown counts, paid callbacks for revenue, and
-click callbacks for clicks. Do not invent revenue in the app. The one estimate
-allowed is the Appodeal adapter's own predicted-eCPM fallback, marked
-`precision: predicted_ecpm`; see [Appodeal impression revenue](#appodeal-impression-revenue).
+Use impression callbacks for shown counts (`ad_show`, no value, every
+provider), paid callbacks for revenue (`ad_impression`, only with the amount
+the provider reported), and click callbacks for clicks. Do not invent revenue
+in the app. Never send a value-less `ad_impression`: GA4 treats that name as
+its ad-revenue event, so an extra copy doubles impressions and dilutes revenue
+per impression. The Appodeal provider's predicted-eCPM estimate
+(`estimateMissingRevenue`, `precision: predicted_ecpm`) is deprecated and off
+by default; it inflated Lunaris GA4 revenue on 1.0.5 (18 Nov 2026: $7.25 in
+GA4 against $0.60 in Appodeal for the same 150 or so impressions). Leave it off in releases. See
+[Appodeal impression revenue](#appodeal-impression-revenue).
 
 Launch and exit ads use [splash](../splash-screen/SKILL.md) and
 [exit](../exit-prompt/SKILL.md) policies. Do not fall back to a different format
@@ -324,11 +330,27 @@ custom Firebase-compatible click event.
 
 ### Appodeal impression revenue
 
-For portfolio Appodeal + Firebase apps, use Appodeal's native Firebase service
-adapter to forward `ad_impression` automatically. Keep native SDK declarations
-in each host app alongside its other SDKs; keep reusable duplicate-event
-filtering in `genrevibes_analytics_firebase`. FlutterFire Analytics alone does
-not connect Appodeal's Firebase service.
+For portfolio Appodeal + Firebase apps, Appodeal's native Firebase service
+adapter sends the valued `ad_impression` to Firebase. The starter kit owns the
+whole route:
+
+- `genrevibes_ads_appodeal` ships the adapter
+  (`com.appodeal.ads.sdk.adapters:firebase`) from its Android plugin module.
+  Apps must **not** declare it in their own Gradle files; remove the line when
+  an app moves to that kit version.
+- `FirebaseAnalyticsSink` skips the app's own Appodeal `ad_impression` at
+  Firebase by default (`defaultSdkManagedAdPlatforms = {'appodeal'}`), but only
+  when it finds the adapter in the app, so Firebase never ends up with no
+  Appodeal revenue.
+- Mixpanel and other sinks still get the app's `ad_impression` with Appodeal's
+  reported amount and `precision`, because they have no other revenue source.
+- Providers that no SDK forwards (for example direct AdMob app-open ads when
+  the AdMob app is not linked to Firebase) keep the app's `ad_impression` with
+  the exact paid amount in every sink.
+
+Each app still has to turn on Firebase Tracking (event `ad_impression`) in its
+Appodeal Attribution Settings. FlutterFire Analytics alone does not connect
+Appodeal's Firebase service.
 
 Follow [Appodeal revenue tracking](../../references/appodeal-firebase-revenue.md)
 for the version-scoped dependency, per-app Attribution Settings, kit sink

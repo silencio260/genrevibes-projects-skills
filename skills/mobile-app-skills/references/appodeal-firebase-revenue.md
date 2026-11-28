@@ -12,6 +12,7 @@ FlutterFire or switching a dashboard checkbox alone is not a complete setup.
 - [Native dependency and Firebase setup](#native-dependency-and-firebase-setup)
 - [Appodeal dashboard](#appodeal-dashboard)
 - [Shared revenue routing](#shared-revenue-routing)
+- [The app's own `ad_impression` (direct AdMob App Open)](#the-apps-own-ad_impression-direct-admob-app-open)
 - [Callback fallback and historical failure](#callback-fallback-and-historical-failure)
 - [Verification and migration](#verification-and-migration)
 - [Sources](#sources)
@@ -78,7 +79,18 @@ Android coordinate into a Podfile or report iOS configured from Android checks.
 
 ## Appodeal dashboard
 
-Open **Apps → the actual app → Attribution Settings**:
+Open **Apps → the actual app → Attribution Settings**. In the dashboard it is
+under the sidebar's **Apps** menu (expand it while the app is selected), at
+`https://app.appodeal.com/apps/<appodeal app id>/attribution-settings`. It is
+not on the app's General page or the apps list row menu.
+
+**A new Appodeal app starts with Firebase Tracking off and the event name
+`custom_ad_impression`.** Check every app; do not assume an earlier setup
+covered it. Video Downloader Hub (app 789619) was found that way on 28
+November 2026, after its ads were already wired. With the kit's adapter in the
+build, the Firebase sink skips the app's own Appodeal `ad_impression`, so an
+app left at the default sends **no Appodeal revenue to Firebase at all**,
+while `ad_show` and Mixpanel revenue look normal.
 
 1. Enable **Firebase Tracking**.
 2. Set **Firebase Ad Revenue Event Name** to **`ad_impression`**.
@@ -123,6 +135,29 @@ forwarding separately. Select one revenue owner per impression before summing
 reports or importing conversion actions. Direct AdMob App Open is outside
 Appodeal; preserve its separate reporting and check manual versus automatic
 AdMob overlap. Never globally drop every provider's `ad_impression` as a fix.
+
+### The app's own `ad_impression` (direct AdMob App Open)
+
+Direct AdMob App Open revenue reaches Firebase only through the app's own
+event, unless the AdMob app is linked to Firebase (AdMob › Settings › Linked
+services; then use `admob_automatic` routing so it is not counted twice).
+GA4 reads these parameters from `ad_impression`:
+
+| Parameter | Value |
+|---|---|
+| `ad_platform` | `admob` (the provider id) |
+| `ad_source` | The serving network's name, for example `AdMob Network` |
+| `ad_format` | `appOpen` |
+| `ad_unit_name` | The AdMob unit id (`ca-app-pub-…/…`) |
+| `value` | A double in currency units: `valueMicros / 1,000,000`, never micros |
+| `currency` | The ISO code AdMob reported |
+
+`genrevibes_ads_admob` puts AdMob's Java adapter class
+(`com.google.ads.mediation.admob.AdMobAdapter`) in `mediationNetwork` and sets
+no unit name. Map them in the app before the event reaches the pipeline, as
+Video Downloader Hub does in `AppAds._event` (`admobSourceName`): the adapter
+class becomes `AdMob Network`, and `ad_unit_name` is the live App Open unit.
+Otherwise GA4 reports group revenue by a class name and show no unit.
 
 ## Callback fallback and historical failure
 
@@ -169,6 +204,11 @@ reference. Never fabricate zero-fill revenue or infer actual serving from test a
 4. Check Firebase DebugView in the matching project for native `ad_impression`
    and its value/currency and source fields. Check available formats separately.
    Distinguish `ad_show` counts from callbacks that actually contain paid data.
+   Without a device run, read Firebase console › Analytics › Events for the
+   last 28 days. `ad_show` and `ad_loaded` with **no `ad_impression` row and
+   $0.00 revenue** is what test ads produce (they send no paid callback); it
+   is not proof that revenue tracking works or fails. Only a live impression
+   shows whether `ad_impression` arrives with `value` and `currency`.
 5. Confirm the pipeline logs a skipped manual Appodeal revenue event at Firebase
    and continues sending other app events. A successful local dispatch of a
    skipped event does not prove a native event reached Firebase. The native

@@ -46,6 +46,18 @@ keep the scope narrow and preserve useful existing translations.
   them explicitly and record unsupported store slots; do not invent country
   locale codes in Play or claim a language count guarantees maximum downloads.
 
+## Language page confirmation
+
+- Put a visible primary button labelled **Select language** (localized) at the
+  bottom of every full-screen language picker, including Settings and first use.
+  Keep it in the safe area outside the scrolling list. The bottom button is the
+  confirmation action for the page.
+- Tapping a language row highlights the choice. Pressing **Select language**
+  saves and applies it. During first use, advance to onboarding only after the
+  save succeeds.
+- With the starter kit's `LocalizationPickerPage`, set `confirmAtBottom: true`
+  and pass the translated label through `confirmLabel`.
+
 ## Use the current translation resources
 
 - Add user-facing text to the current translation resources. If the app uses

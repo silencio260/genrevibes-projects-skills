@@ -1,0 +1,4 @@
+interface:
+  display_name: "Production Readiness"
+  short_description: "Audit app quality, monetization and measurement"
+  default_prompt: "Use $production-readiness to audit this app for production, including core flows, monetization, analytics, session replay and live service verification."

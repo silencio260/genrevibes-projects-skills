@@ -21,8 +21,11 @@ selection uses this order:
 - Save and apply the selected language before continuing, so onboarding and any
   paywall use it. Offer the device language and only enabled, compatible locales.
   Keep Country/region independent; choosing a language must not force a country.
-- Use a clear continue action. A failed language save retains the confirmed
-  preference, shows a localized error, and leaves the selector usable for retry.
+- Confirm the choice with the localized **Select language** button at the
+  bottom of the page. Follow the
+  [language page confirmation pattern](../localization/SKILL.md#language-page-confirmation).
+  A failed language save retains the confirmed preference, shows a localized
+  error, and leaves the selector usable for retry.
 - When a paywall is available, open it after onboarding finishes or is skipped,
   then enter the main app after its actual close/result. Use the existing IAP
   provider and entitlement state; already-entitled users skip the purchase offer.
